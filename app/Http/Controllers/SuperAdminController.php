@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\DestinasiWisata;
 use App\Models\Fasilitas;
 use App\Models\GaleriDestinasi;
+use App\Models\JenisTiket;
 use App\Models\Pemesanan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,7 +17,7 @@ class SuperAdminController extends Controller
     public function destinations(): View
     {
         return view('superadmin.destinations', [
-            'destinations' => DestinasiWisata::query()->latest('id_destinasi')->paginate(10),
+            'destinations' => DestinasiWisata::query()->with(['fasilitas', 'galeri', 'jenisTiket'])->latest('id_destinasi')->paginate(10),
         ]);
     }
 
@@ -28,6 +29,7 @@ class SuperAdminController extends Controller
         $destination = DestinasiWisata::create($data);
         $this->storeMainPhoto($request, $destination);
         $this->syncAmenities($request, $destination);
+        $this->syncTicketTypes($request, $destination);
 
         return back()->with('success', 'Destinasi berhasil ditambahkan.');
     }
@@ -40,6 +42,7 @@ class SuperAdminController extends Controller
         $destination->update($data);
         $this->storeMainPhoto($request, $destination);
         $this->syncAmenities($request, $destination);
+        $this->syncTicketTypes($request, $destination);
 
         return back()->with('success', 'Destinasi berhasil diperbarui.');
     }
@@ -95,8 +98,8 @@ class SuperAdminController extends Controller
             }
         }
 
-        if ($request->has('galeri')) {
-            $uploads = collect($request->file('galeri', []))->filter(fn ($gallery) => ! empty($gallery['foto']))->values();
+        if ($request->hasFile('galeri')) {
+            $uploads = collect($request->file('galeri', []))->filter(fn ($gallery) => ! empty($gallery['foto']));
 
             if ($uploads->isNotEmpty()) {
                 $destination->galeri()->delete();
@@ -105,6 +108,30 @@ class SuperAdminController extends Controller
                     GaleriDestinasi::create(['id_destinasi' => $destination->id_destinasi, 'url_foto' => '/storage/' . ltrim($path, '/'), 'keterangan' => $request->input("galeri.$index.keterangan")]);
                 }
             }
+        }
+    }
+
+    private function syncTicketTypes(Request $request, DestinasiWisata $destination): void
+    {
+        $data = $request->validate([
+            'jenis_tiket' => ['nullable', 'array', 'max:20'],
+            'jenis_tiket.*.id' => ['nullable', 'integer'],
+            'jenis_tiket.*.nama_jenis' => ['required', 'string', 'max:100'],
+            'jenis_tiket.*.harga' => ['required', 'numeric', 'min:0'],
+        ]);
+
+        foreach ($data['jenis_tiket'] ?? [] as $ticketData) {
+            if (! empty($ticketData['id'])) {
+                $ticket = JenisTiket::query()->where('id_destinasi', $destination->id_destinasi)->whereKey($ticketData['id'])->firstOrFail();
+                $ticket->update(['nama_jenis' => $ticketData['nama_jenis'], 'harga' => $ticketData['harga']]);
+                continue;
+            }
+
+            JenisTiket::create([
+                'id_destinasi' => $destination->id_destinasi,
+                'nama_jenis' => $ticketData['nama_jenis'],
+                'harga' => $ticketData['harga'],
+            ]);
         }
     }
 

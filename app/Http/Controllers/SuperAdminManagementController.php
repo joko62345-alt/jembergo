@@ -8,7 +8,6 @@ use App\Models\Customer;
 use App\Models\DestinasiWisata;
 use App\Models\Fasilitas;
 use App\Models\GaleriDestinasi;
-use App\Models\JenisTiket;
 use App\Models\SuperAdmin;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,7 +25,6 @@ class SuperAdminManagementController extends Controller
             'articles' => Artikel::latest('tanggal_publikasi')->get(),
             'facilities' => Fasilitas::with('destinasi')->latest('id_fasilitas')->get(),
             'galleries' => GaleriDestinasi::with('destinasi')->latest('id_galeri')->get(),
-            'ticketTypes' => JenisTiket::with('destinasi')->latest('id_jenis_tiket')->get(),
         ]);
     }
 
@@ -56,6 +54,18 @@ class SuperAdminManagementController extends Controller
         return view('superadmin.article-create');
     }
 
+    public function articles(): View
+    {
+        return view('superadmin.articles', [
+            'articles' => Artikel::latest('created_at')->get(),
+        ]);
+    }
+
+    public function editArticle(int $id): View
+    {
+        return view('superadmin.article-edit', ['article' => Artikel::findOrFail($id)]);
+    }
+
     public function facility(Request $request): RedirectResponse
     {
         Fasilitas::create($request->validate(['id_destinasi' => ['required', 'exists:destinasi_wisata,id_destinasi'], 'nama_fasilitas' => ['required', 'string', 'max:100']]));
@@ -68,23 +78,39 @@ class SuperAdminManagementController extends Controller
         return back()->with('success', 'Galeri berhasil ditambahkan.');
     }
 
-    public function ticketType(Request $request): RedirectResponse
-    {
-        JenisTiket::create($request->validate(['id_destinasi' => ['required', 'exists:destinasi_wisata,id_destinasi'], 'nama_jenis' => ['required', 'string', 'max:100'], 'harga' => ['required', 'numeric', 'min:0']]));
-        return back()->with('success', 'Jenis tiket berhasil ditambahkan.');
-    }
-
     public function destroyFacility(int $id): RedirectResponse { Fasilitas::findOrFail($id)->delete(); return back()->with('success', 'Fasilitas berhasil dihapus.'); }
     public function destroyGallery(int $id): RedirectResponse { GaleriDestinasi::findOrFail($id)->delete(); return back()->with('success', 'Foto galeri berhasil dihapus.'); }
-    public function destroyTicketType(int $id): RedirectResponse { JenisTiket::findOrFail($id)->delete(); return back()->with('success', 'Jenis tiket berhasil dihapus.'); }
     public function destroyArticle(int $id): RedirectResponse { Artikel::findOrFail($id)->delete(); return back()->with('success', 'Artikel berhasil dihapus.'); }
     public function destroyAdmin(int $id): RedirectResponse { AdminPariwisata::findOrFail($id)->delete(); return back()->with('success', 'Akun admin berhasil dihapus.'); }
 
     public function article(Request $request): RedirectResponse
     {
-        $data = $request->validate(['judul' => ['required', 'string', 'max:200'], 'isi' => ['required', 'string'], 'gambar' => ['nullable', 'url', 'max:500'], 'status' => ['required', 'in:DRAFT,PUBLISHED']]);
+        $data = $request->validate(['judul' => ['required', 'string', 'max:200'], 'isi' => ['required', 'string'], 'gambar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'], 'status' => ['required', 'in:DRAFT,PUBLISHED']]);
+        if ($request->hasFile('gambar')) {
+            $path = $request->file('gambar')->store('articles', 'public');
+            $data['gambar'] = '/storage/' . ltrim($path, '/');
+        } else {
+            $data['gambar'] = null;
+        }
         Artikel::create([...$data, 'id_superadmin' => session('jg_user_id'), 'tanggal_publikasi' => $data['status'] === 'PUBLISHED' ? now() : null]);
         return back()->with('success', 'Artikel berhasil disimpan.');
+    }
+
+    public function updateArticle(Request $request, int $id): RedirectResponse
+    {
+        $article = Artikel::findOrFail($id);
+        $data = $request->validate(['judul' => ['required', 'string', 'max:200'], 'isi' => ['required', 'string'], 'gambar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'], 'status' => ['required', 'in:DRAFT,PUBLISHED']]);
+        unset($data['gambar']);
+
+        if ($request->hasFile('gambar')) {
+            $path = $request->file('gambar')->store('articles', 'public');
+            $data['gambar'] = '/storage/' . ltrim($path, '/');
+        }
+
+        $data['tanggal_publikasi'] = $data['status'] === 'PUBLISHED' ? ($article->tanggal_publikasi ?? now()) : null;
+        $article->update($data);
+
+        return redirect()->route('superadmin.articles')->with('success', 'Artikel berhasil diperbarui.');
     }
 
     public function admin(Request $request): RedirectResponse

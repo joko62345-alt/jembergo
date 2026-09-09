@@ -11,9 +11,9 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @endif
 </head>
-<body class="bg-light">
+<body class="public-page">
 <x-public-navbar />
-<main class="container py-5"><span class="text-warning text-uppercase small fw-bold">Catatan perjalanan</span><h1 class="display-4 fw-bold mt-2">Cerita dari <em>Jember.</em></h1>
-<div class="row g-4 mt-3">@forelse($articles as $article)<div class="col-md-6 col-lg-4"><article class="card border-0 shadow-sm rounded-4 overflow-hidden h-100"><img src="{{ $article->gambar && str_starts_with($article->gambar, 'http') ? $article->gambar : 'https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=800&q=80' }}" class="card-img-top" style="height:220px;object-fit:cover" alt="{{ $article->judul }}"><div class="card-body p-4"><small class="text-secondary">{{ optional($article->tanggal_publikasi)->translatedFormat('d F Y') }}</small><h2 class="h5 fw-bold mt-2">{{ $article->judul }}</h2><a href="{{ route('articles.show', $article->id_artikel) }}" class="text-warning fw-semibold text-decoration-none">Baca selengkapnya <i class="bi bi-arrow-up-right"></i></a></div></article></div>@empty<div class="col-12"><div class="alert alert-light">Belum ada artikel yang dipublikasikan.</div></div>@endforelse</div>
-<div class="mt-4">{{ method_exists($articles, 'links') ? $articles->links() : '' }}</div></main>
+<main class="container"><div class="page-intro"><span class="eyebrow text-orange">Catatan perjalanan</span><h1 class="display-4 fw-bold mt-2">Cerita dari <em>Jember.</em></h1><p class="text-secondary">Temukan cerita, inspirasi, dan tips untuk merencanakan perjalananmu di Jember.</p></div>
+<div class="row g-4 mt-3">@forelse($articles as $article)<div class="col-md-6 col-lg-4"><article class="card border-0 shadow-sm rounded-4 overflow-hidden h-100"><img src="{{ $article->gambar ?: 'https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=800&q=80' }}" class="card-img-top" style="height:220px;object-fit:cover" alt="{{ $article->judul }}"><div class="card-body p-4"><small class="text-secondary">{{ optional($article->tanggal_publikasi)->translatedFormat('d F Y') }}</small><h2 class="h5 fw-bold mt-2">{{ $article->judul }}</h2><a href="{{ route('articles.show', $article->id_artikel) }}" class="text-warning fw-semibold text-decoration-none">Baca selengkapnya <i class="bi bi-arrow-up-right"></i></a></div></article></div>@empty<div class="col-12"><div class="alert alert-light">Belum ada artikel yang dipublikasikan.</div></div>@endforelse</div>
+<div class="mt-4">{{ method_exists($articles, 'links') ? $articles->links() : '' }}</div></main><x-public-footer />
 </body></html>

@@ -1,19 +1,117 @@
-<!doctype html>
-<html lang="id">
-<head>
-    <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Destinasi | JemberGo</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="{{ asset('css/jembergo-fallback.css') }}" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @endif
-</head>
-<body class="bg-light">
-<x-public-navbar />
-<main class="container py-5"><span class="text-warning text-uppercase small fw-bold">Jelajah Jember</span><h1 class="display-4 fw-bold mt-2">Destinasi untuk <em>ceritamu.</em></h1><p class="lead text-secondary mb-5">Pilih tempat yang ingin kamu kunjungi berikutnya.</p>
-<div class="row g-4">@forelse($destinations as $destination)@php($image = $destination->foto_utama)@php($fallback = 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80')<div class="col-md-6 col-lg-4"><article class="destination-card"><div class="destination-image"><img src="{{ $image ?: $fallback }}" onerror="this.onerror=null;this.src='{{ $fallback }}';" alt="{{ $destination->nama_wisata }}"><span class="category-pill">{{ $destination->kategori }}</span></div><div class="destination-body"><h3>{{ $destination->nama_wisata }}</h3><p><i class="bi bi-geo-alt me-1"></i>{{ $destination->alamat }}</p><div class="d-flex justify-content-between align-items-center mt-3"><span class="price">Mulai <strong>Rp {{ number_format($destination->jenisTiket->min('harga') ?? 0, 0, ',', '.') }}</strong></span><a href="{{ route('destinations.show', $destination->id_destinasi) }}" class="card-arrow"><i class="bi bi-arrow-up-right"></i></a></div></div></article></div>@empty<div class="col-12"><div class="empty-state">Belum ada destinasi aktif.</div></div>@endforelse</div>
-<div class="mt-5">{{ method_exists($destinations, 'links') ? $destinations->links() : '' }}</div></main>
-</body></html>
+@extends('layouts.app')
+
+@section('title', 'Destinasi Wisata - JemberGo')
+
+@section('content')
+@include('components.public-navbar')
+
+<main class="section-pad" style="padding-top: 8rem; background: var(--jg-bg); min-height: 100vh;">
+    <div class="container">
+        <!-- Header Section -->
+        <div class="text-center mb-5">
+            <span class="eyebrow text-orange">Jelajahi Jember</span>
+            <h1 class="mt-2 mb-3">Destinasi Wisata Pilihan</h1>
+            <p class="text-muted mx-auto" style="max-width: 600px;">
+                Temukan berbagai keindahan alam, wisata bahari, dan wisata buatan di Kabupaten Jember yang siap menemani petualanganmu.
+            </p>
+        </div>
+
+        <!-- Search / Filter -->
+        <div class="row justify-content-center mb-5">
+            <div class="col-md-8 col-lg-6">
+                <form action="{{ route('destinations.search') }}" method="GET" class="position-relative">
+                    <input type="text" name="q" class="form-control form-control-lg ps-5" placeholder="Cari destinasi wisata..." value="{{ request('q') }}">
+                    <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+                    <button type="submit" class="btn btn-jg-primary position-absolute top-50 end-0 translate-middle-y me-2">Cari</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Destinations Grid -->
+        <div class="row g-4">
+            @forelse ($destinations as $destination)
+                @php
+                    $image = $destination->foto_utama ?: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80';
+                    $minPrice = $destination->jenisTiket && $destination->jenisTiket->count() > 0 ? $destination->jenisTiket->min('harga') : 0;
+                @endphp
+                <div class="col-md-6 col-lg-4">
+                    <article class="destination-card h-100">
+                        <div class="destination-image">
+                            <img src="{{ $image }}" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80';" alt="{{ $destination->nama_wisata }}">
+                            <span class="category-pill">{{ $destination->kategori ?? 'Umum' }}</span>
+                        </div>
+                        <div class="destination-body d-flex flex-column h-100">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h3 class="mb-0 fs-5">{{ $destination->nama_wisata }}</h3>
+                                <span class="rating"><i class="bi bi-star-fill"></i> 4.8</span>
+                            </div>
+                            <p class="text-muted small mb-3">
+                                <i class="bi bi-geo-alt-fill text-orange me-1"></i>
+                                {{ Str::limit($destination->alamat, 60) }}
+                            </p>
+                            <div class="mt-auto">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <span class="price">Mulai <strong class="text-orange">Rp {{ number_format($minPrice, 0, ',', '.') }}</strong></span>
+                                </div>
+                                                                <a href="{{ route('destinations.show', $destination->id_destinasi) }}" class="destination-detail-button btn btn-jg-primary w-100">
+                                                                    Lihat detail destinasi <i class="bi bi-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            @empty
+                <div class="col-12">
+                    <div class="empty-state py-5 text-center">
+                        <i class="bi bi-map fs-1 text-muted mb-3 d-block"></i>
+                        <h4>Destinasi tidak ditemukan</h4>
+                        <p class="text-muted">Coba gunakan kata kunci lain atau jelajahi kategori yang tersedia.</p>
+                        <a href="{{ route('destinations.index') }}" class="btn btn-outline-jg mt-2">Reset Pencarian</a>
+                    </div>
+                </div>
+            @endforelse
+        </div>
+
+        <!-- Pagination -->
+        @if ($destinations->hasPages())
+            <div class="d-flex justify-content-center mt-5">
+                <nav aria-label="Page navigation">
+                    {{ $destinations->links('pagination::bootstrap-5') }}
+                </nav>
+            </div>
+        @endif
+    </div>
+</main>
+
+<footer class="footer">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('home') }}">
+                    <span class="brand-mark"><i class="bi bi-compass"></i></span>
+                    Jember<span class="brand-accent">Go</span>
+                </a>
+                <p class="mt-3">Platform informasi dan layanan pariwisata resmi Kabupaten Jember.</p>
+            </div>
+            <div class="col-lg-4">
+                <strong>Jelajahi</strong>
+                <a href="{{ route('destinations.index') }}">Destinasi Wisata</a>
+                <a href="{{ route('articles.index') }}">Artikel & Tips</a>
+                <a href="#tentang">Tentang JemberGo</a>
+            </div>
+            <div class="col-lg-4">
+                <strong>Ikuti Kami</strong>
+                <div class="d-flex gap-3 mt-3">
+                    <a href="#" class="fs-4"><i class="bi bi-instagram"></i></a>
+                    <a href="#" class="fs-4"><i class="bi bi-facebook"></i></a>
+                    <a href="#" class="fs-4"><i class="bi bi-twitter-x"></i></a>
+                    <a href="#" class="fs-4"><i class="bi bi-youtube"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom mt-4">
+            <span>© {{ date('Y') }} JemberGo. Hak Cipta Dilindungi.</span>
+        </div>
+    </div>
+</footer>
+@endsection

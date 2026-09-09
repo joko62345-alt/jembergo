@@ -1,2 +1,29 @@
 @include('components.superadmin-sidebar')
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Management | JemberGo</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"></head><body class="bg-light"><main class="container py-5"><h1 class="h2 fw-bold mb-1">Management JemberGo</h1><p class="text-secondary mb-4">Kelola data utama aplikasi.</p><div class="row g-4"><div class="col-md-6"><div class="card border-0 shadow-sm rounded-4 h-100"><div class="card-body p-4"><h2 class="h5">Akun Admin Pariwisata</h2><p class="text-secondary">Buat dan lihat akun admin.</p><a href="{{ route('superadmin.management.admin.create') }}" class="btn btn-warning rounded-pill me-2">Buat akun</a><a href="{{ route('superadmin.management.admins') }}" class="btn btn-outline-dark rounded-pill">Lihat akun</a></div></div></div><div class="col-md-6"><div class="card border-0 shadow-sm rounded-4 h-100"><div class="card-body p-4"><h2 class="h5">Akun Customer</h2><p class="text-secondary">Lihat customer terdaftar.</p><a href="{{ route('superadmin.management.customers') }}" class="btn btn-outline-dark rounded-pill">Lihat customer</a></div></div></div><div class="col-md-6"><div class="card border-0 shadow-sm rounded-4 h-100"><div class="card-body p-4"><h2 class="h5">Artikel Publik</h2><p class="text-secondary">Tulis dan publikasikan artikel.</p><a href="{{ route('superadmin.management.article.create') }}" class="btn btn-warning rounded-pill">Tulis artikel</a></div></div></div><div class="col-md-6"><div class="card border-0 shadow-sm rounded-4 h-100"><div class="card-body p-4"><h2 class="h5">Laporan transaksi</h2><p class="text-secondary">Pantau transaksi dan pendapatan.</p><a href="{{ route('superadmin.report') }}" class="btn btn-outline-dark rounded-pill">Buka laporan</a></div></div></div></div></main></body></html>
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Management | JemberGo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+    <main class="container py-5">
+        <h1 class="h2 fw-bold mb-1">Management JemberGo</h1>
+        <p class="text-secondary mb-4">Kelola data utama aplikasi.</p>
+
+        @if(session('success'))
+            <div class="alert alert-success">{{ session('success') }}</div>
+        @endif
+        @if($errors->any())
+            <div class="alert alert-danger">{{ $errors->first() }}</div>
+        @endif
+
+        <div class="row g-4">
+            <div class="col-md-6"><div class="card border-0 shadow-sm rounded-4 h-100"><div class="card-body p-4"><h2 class="h5">Akun Admin Pariwisata</h2><p class="text-secondary">Buat dan lihat akun admin.</p><a href="{{ route('superadmin.management.admin.create') }}" class="btn btn-warning rounded-pill me-2">Buat akun</a><a href="{{ route('superadmin.management.admins') }}" class="btn btn-outline-dark rounded-pill">Lihat akun</a></div></div></div>
+            <div class="col-md-6"><div class="card border-0 shadow-sm rounded-4 h-100"><div class="card-body p-4"><h2 class="h5">Akun Customer</h2><p class="text-secondary">Lihat customer terdaftar.</p><a href="{{ route('superadmin.management.customers') }}" class="btn btn-outline-dark rounded-pill">Lihat customer</a></div></div></div>
+            <div class="col-md-6"><div class="card border-0 shadow-sm rounded-4 h-100"><div class="card-body p-4"><h2 class="h5">Laporan transaksi</h2><p class="text-secondary">Pantau transaksi dan pendapatan.</p><a href="{{ route('superadmin.report') }}" class="btn btn-outline-dark rounded-pill">Buka laporan</a></div></div></div>
+        </div>
+    </main>
+</body>
+</html>

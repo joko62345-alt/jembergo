@@ -1,35 +1,104 @@
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-<nav class="navbar navbar-expand-lg fixed-top jg-navbar bg-white border-bottom">
-    <div class="container">
-        <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('home') }}#beranda">
+<nav class="navbar navbar-expand-lg jg-navbar">
+    <div class="d-flex align-items-center justify-content-between w-100 px-3">
+        <!-- Logo -->
+        <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('home') }}">
             <span class="brand-mark"><i class="bi bi-compass"></i></span>
             Jember<span class="brand-accent">Go</span>
         </a>
+
+        <!-- Mobile Toggle -->
         <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#publicNav" aria-label="Buka menu">
-            <i class="bi bi-list fs-3"></i>
+            <i class="bi bi-list fs-3 text-dark"></i>
         </button>
+
+        <!-- Menu -->
         <div class="collapse navbar-collapse" id="publicNav">
-            <ul class="navbar-nav mx-auto gap-lg-3">
-                <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#beranda">Beranda</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ route('destinations.index') }}">Destinasi</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ route('articles.index') }}">Artikel</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ route('home') }}#tentang">Tentang</a></li>
-                @if (session('jg_role') === 'CUSTOMER')
-                    <li class="nav-item"><a class="nav-link" href="{{ route('customer.profile') }}"><i class="bi bi-person me-1"></i>Profil</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ route('customer.tickets') }}"><i class="bi bi-ticket-perforated me-1"></i>Tiket Saya</a></li>
+            <!-- Menu Utama (Selalu Tampil) -->
+            <ul class="navbar-nav mx-auto gap-lg-1">
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">
+                        Beranda
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('destinations.*') ? 'active' : '' }}" href="{{ route('destinations.index') }}">
+                        Destinasi
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('articles.*') ? 'active' : '' }}" href="{{ route('articles.index') }}">
+                        Artikel
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ route('home') }}#tentang">
+                        Tentang
+                    </a>
+                </li>
+
+                <!-- Akun Saya (Hanya Tampil Jika Login) -->
+                @if (session('jg_role'))
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center gap-1" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-circle"></i> Akun Saya
+                        </a>
+                        <ul class="dropdown-menu border-0 shadow-lg rounded-3 mt-2 p-2" style="min-width: 220px;">
+                            @if (session('jg_role') === 'CUSTOMER')
+                                <li>
+                                    <a class="dropdown-item rounded-2 py-2 px-3 d-flex align-items-center gap-2" href="{{ route('customer.profile') }}">
+                                        <i class="bi bi-person text-orange"></i>
+                                        <span>Profil Saya</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item rounded-2 py-2 px-3 d-flex align-items-center gap-2" href="{{ route('customer.tickets') }}">
+                                        <i class="bi bi-ticket-perforated text-orange"></i>
+                                        <span>Tiket Saya</span>
+                                    </a>
+                                </li>
+                            @elseif (session('jg_role') === 'ADMIN_PARIWISATA' || session('jg_role') === 'SUPER_ADMIN')
+                                <li>
+                                    <a class="dropdown-item rounded-2 py-2 px-3 d-flex align-items-center gap-2" href="{{ route('dashboard') }}">
+                                        <i class="bi bi-speedometer2 text-orange"></i>
+                                        <span>Dashboard</span>
+                                    </a>
+                                </li>
+                            @endif
+                            <li><hr class="dropdown-divider my-2"></li>
+                            <li>
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button class="dropdown-item rounded-2 py-2 px-3 d-flex align-items-center gap-2 text-danger w-100 border-0 bg-transparent" type="submit">
+                                        <i class="bi bi-box-arrow-right"></i>
+                                        <span>Keluar</span>
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </li>
                 @endif
             </ul>
-            <div class="d-flex align-items-center gap-2">
-                <a href="{{ route('destinations.index') }}" class="btn btn-jg-primary px-4">Jelajahi Wisata <i class="bi bi-arrow-up-right ms-1"></i></a>
-                @if (session('jg_role') === 'CUSTOMER')
-                    <form method="POST" action="{{ route('logout') }}" class="d-inline">@csrf<button class="btn btn-link text-dark p-1" title="Keluar" aria-label="Keluar"><i class="bi bi-box-arrow-right fs-5"></i></button></form>
-                @elseif (session('jg_role'))
-                    <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary rounded-pill">Dashboard</a>
+
+            <!-- Tombol Kanan -->
+            <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
+                @if (session('jg_role'))
+                    <!-- User Login: Tampilkan Nama User -->
+                    <span class="d-none d-md-inline text-muted small me-2">
+                        Halo, <strong class="text-dark">{{ session('jg_user_name', 'User') }}</strong>
+                    </span>
                 @else
-                    <a href="{{ route('login') }}" class="btn btn-link text-dark">Masuk</a>
-                    <a href="{{ route('register') }}" class="btn btn-outline-secondary rounded-pill">Daftar</a>
+                    <!-- Guest: Tampilkan Masuk & Daftar -->
+                    <a href="{{ route('login') }}" class="btn btn-link text-dark text-decoration-none fw-semibold px-3">
+                        Masuk
+                    </a>
+                    <a href="{{ route('register') }}" class="btn btn-jg-primary btn-sm px-4">
+                        Daftar
+                    </a>
                 @endif
             </div>
         </div>
     </div>
 </nav>
+@once
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+@endonce

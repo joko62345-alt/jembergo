@@ -14,6 +14,7 @@
         <a href="{{ route('dashboard') }}" class="nav-link"><i class="bi bi-grid-1x2 me-2"></i><span class="nav-label">Dashboard</span></a>
         <a href="{{ route('superadmin.destinations') }}" class="nav-link"><i class="bi bi-geo-alt me-2"></i><span class="nav-label">Destinasi</span></a>
         <a href="{{ route('superadmin.management') }}" class="nav-link"><i class="bi bi-sliders me-2"></i><span class="nav-label">Management</span></a>
+        <a href="{{ route('superadmin.articles') }}" class="nav-link"><i class="bi bi-journal-text me-2"></i><span class="nav-label">Artikel</span></a>
         <a href="{{ route('superadmin.report') }}" class="nav-link"><i class="bi bi-bar-chart me-2"></i><span class="nav-label">Laporan</span></a>
     </nav>
     <form method="POST" action="{{ route('logout') }}" class="mt-5">@csrf<button class="nav-link w-100 border-0 bg-transparent text-start"><i class="bi bi-box-arrow-left me-2"></i><span class="nav-label">Keluar</span></button></form>

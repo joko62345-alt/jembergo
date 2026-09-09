@@ -10,11 +10,12 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @endif
 </head>
-<body class="bg-light">
+<body class="public-page">
 <x-public-navbar />
-<main class="container py-5 pt-5">
+<main class="container">
     <a href="{{ route('articles.index') }}" class="text-dark text-decoration-none">Kembali ke artikel</a>
-    <article class="bg-white rounded-4 shadow-sm overflow-hidden mt-4"><div class="p-4 p-lg-5"><small class="text-warning text-uppercase fw-bold">Cerita perjalanan</small><h1 class="display-5 fw-bold mt-3">{{ $article->judul }}</h1><p class="text-secondary">{{ optional($article->tanggal_publikasi)->translatedFormat('d F Y') }}</p>@if($article->gambar)<img src="{{ $article->gambar }}" class="w-100 rounded-4 my-4" style="max-height:480px;object-fit:cover" alt="{{ $article->judul }}">@endif<div class="lead" style="white-space:pre-line">{{ $article->isi }}</div></div></article>
+    <article class="public-card overflow-hidden mt-4"><div class="p-4 p-lg-5"><small class="text-warning text-uppercase fw-bold">Cerita perjalanan</small><h1 class="display-5 fw-bold mt-3">{{ $article->judul }}</h1><p class="text-secondary">{{ optional($article->tanggal_publikasi)->translatedFormat('d F Y') }}</p>@if($article->gambar)<img src="{{ $article->gambar }}" class="w-100 rounded-4 my-4" style="max-height:480px;object-fit:cover" alt="{{ $article->judul }}">@endif<div class="lead" style="white-space:pre-line">{{ $article->isi }}</div></div></article>
 </main>
+<x-public-footer />
 </body>
 </html>

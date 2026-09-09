@@ -81,28 +81,34 @@ class BookingController extends Controller
     public function pay(Request $request, int $id): RedirectResponse
     {
         $booking = $this->ownedBooking($id);
+        abort_if($booking->status_pemesanan === 'PAID' || $booking->tiket()->exists(), 422, 'Pesanan ini sudah dibayar dan e-ticket sudah dibuat.');
         $request->validate(['metode_pembayaran' => ['required', 'in:QRIS,TRANSFER_BANK,E_WALLET']]);
         $payment = app(PaymentGateway::class)->createPayment($booking, $request->string('metode_pembayaran')->toString());
+        if (strtoupper((string) ($payment['status'] ?? 'PENDING')) !== 'PAID') {
+            $booking->pembayaran()->update(['metode_pembayaran' => $payment['method'] ?? $request->string('metode_pembayaran')->toString(), 'status_pembayaran' => $payment['status'] ?? 'PENDING', 'referensi_gateway' => $payment['reference'] ?? null]);
+
+            return back()->with('success', 'Pembayaran sedang diproses. E-ticket akan muncul setelah pembayaran terkonfirmasi.');
+        }
         app(DatabaseManager::class)->transaction(function () use ($booking, $payment): void {
             $booking->update(['status_pemesanan' => 'PAID']);
             $booking->pembayaran()->update(['metode_pembayaran' => $payment['method'], 'status_pembayaran' => $payment['status'], 'waktu_pembayaran' => now(), 'referensi_gateway' => $payment['reference']]);
-            foreach ($booking->detailPemesanan as $detail) {
-                $participantsForType = collect($booking->anggota_names ?? [])->prepend(['nama' => $booking->ketua_nama, 'id_jenis_tiket' => (int) $booking->ketua_jenis_tiket])->filter(fn (array $participant) => (int) $participant['id_jenis_tiket'] === (int) $detail->id_jenis_tiket);
-                for ($index = 0; $index < $detail->jumlah; $index++) {
-                    $ticket = Tiket::create(['id_pemesanan' => $booking->id_pemesanan, 'kode_qr' => 'pending-' . Str::uuid(), 'status_tiket' => 'ACTIVE']);
-                    $participantName = $participantsForType->values()->get($index, ['nama' => $booking->ketua_nama])['nama'];
-                    $ticket->update(['kode_qr' => Crypt::encryptString(json_encode([
-                        'ticket_id' => $ticket->id_tiket,
-                        'booking_code' => $booking->kode_booking,
-                        'destination' => $booking->destinasi->nama_wisata,
-                        'visit_date' => date('Y-m-d', strtotime((string) $booking->tanggal_kunjungan)),
-                        'participant' => $participantName,
-                        'ticket_type_id' => $detail->id_jenis_tiket,
-                        'leader' => $booking->ketua_nama,
-                        'members' => $booking->anggota_names ?? [],
-                    ], JSON_THROW_ON_ERROR))]);
-                    if ($index === 0) { $detail->update(['id_tiket' => $ticket->id_tiket]); }
-                }
+            $details = $booking->detailPemesanan->keyBy('id_jenis_tiket');
+            $participants = collect($booking->anggota_names ?? [])->prepend(['nama' => $booking->ketua_nama, 'id_jenis_tiket' => (int) $booking->ketua_jenis_tiket])->values();
+
+            foreach ($participants as $participant) {
+                $detail = $details->get((int) $participant['id_jenis_tiket']);
+                $ticket = Tiket::create(['id_pemesanan' => $booking->id_pemesanan, 'kode_qr' => 'pending-' . Str::uuid(), 'status_tiket' => 'ACTIVE']);
+                $ticket->update(['kode_qr' => Crypt::encryptString(json_encode([
+                    'ticket_id' => $ticket->id_tiket,
+                    'booking_code' => $booking->kode_booking,
+                    'destination' => $booking->destinasi->nama_wisata,
+                    'visit_date' => date('Y-m-d', strtotime((string) $booking->tanggal_kunjungan)),
+                    'participant' => $participant['nama'],
+                    'ticket_type_id' => (int) $participant['id_jenis_tiket'],
+                    'leader' => $booking->ketua_nama,
+                    'members' => $booking->anggota_names ?? [],
+                ], JSON_THROW_ON_ERROR))]);
+                if ($detail && ! $detail->id_tiket) { $detail->update(['id_tiket' => $ticket->id_tiket]); }
             }
         });
 
@@ -111,8 +117,7 @@ class BookingController extends Controller
 
     public function ticket(int $id): View
     {
-        $booking = $this->ownedBooking($id)->load(['tiket', 'detailPemesanan.jenisTiket', 'pembayaran']);
-        $booking->tiket->each(fn (Tiket $ticket) => $ticket->setAttribute('kode_qr', $booking->kode_booking));
+        $booking = $this->ownedBooking($id)->load(['tiket.review', 'tiket.detailPemesanan.jenisTiket', 'detailPemesanan.jenisTiket', 'pembayaran']);
 
         return view('customer.ticket', compact('booking'));
     }
@@ -128,6 +133,6 @@ class BookingController extends Controller
 
     private function ownedBooking(int $id): Pemesanan
     {
-        return Pemesanan::query()->where('id_pemesanan', $id)->where('id_customer', session('jg_user_id'))->with(['destinasi', 'detailPemesanan'])->firstOrFail();
+        return Pemesanan::query()->where('id_pemesanan', $id)->where('id_customer', session('jg_user_id'))->with(['destinasi', 'detailPemesanan.jenisTiket'])->firstOrFail();
     }
 }

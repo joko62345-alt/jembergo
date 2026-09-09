@@ -82,12 +82,13 @@ Route::middleware('role:SUPER_ADMIN')->prefix('superadmin')->name('superadmin.')
 	Route::get('/management/admin', [SuperAdminManagementController::class, 'admins'])->name('management.admins');
 	Route::get('/management/customer', [SuperAdminManagementController::class, 'customers'])->name('management.customers');
 	Route::get('/management/artikel/tulis', [SuperAdminManagementController::class, 'createArticle'])->name('management.article.create');
+	Route::get('/artikel', [SuperAdminManagementController::class, 'articles'])->name('articles');
+	Route::get('/artikel/{id}/edit', [SuperAdminManagementController::class, 'editArticle'])->whereNumber('id')->name('articles.edit');
+	Route::put('/artikel/{id}', [SuperAdminManagementController::class, 'updateArticle'])->whereNumber('id')->name('articles.update');
 	Route::post('/management/fasilitas', [SuperAdminManagementController::class, 'facility'])->name('management.facility');
 	Route::post('/management/galeri', [SuperAdminManagementController::class, 'gallery'])->name('management.gallery');
-	Route::post('/management/jenis-tiket', [SuperAdminManagementController::class, 'ticketType'])->name('management.ticket-type');
 	Route::delete('/management/fasilitas/{id}', [SuperAdminManagementController::class, 'destroyFacility'])->whereNumber('id')->name('management.facility.destroy');
 	Route::delete('/management/galeri/{id}', [SuperAdminManagementController::class, 'destroyGallery'])->whereNumber('id')->name('management.gallery.destroy');
-	Route::delete('/management/jenis-tiket/{id}', [SuperAdminManagementController::class, 'destroyTicketType'])->whereNumber('id')->name('management.ticket-type.destroy');
 	Route::post('/management/artikel', [SuperAdminManagementController::class, 'article'])->name('management.article');
 	Route::delete('/management/artikel/{id}', [SuperAdminManagementController::class, 'destroyArticle'])->whereNumber('id')->name('management.article.destroy');
 	Route::post('/management/admin', [SuperAdminManagementController::class, 'admin'])->name('management.admin');

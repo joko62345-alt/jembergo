@@ -14,7 +14,9 @@ use App\Http\Controllers\VerificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class, 'home'])->name('home');
+Route::get('/tentang', fn () => redirect('/#tentang'))->name('about');
 Route::get('/destinasi', [PublicController::class, 'destinations'])->name('destinations.index');
+Route::get('/destinasi/cari', [PublicController::class, 'destinations'])->name('destinations.search');
 Route::get('/destinasi/{id}', [PublicController::class, 'destination'])->whereNumber('id')->name('destinations.show');
 Route::get('/artikel', [PublicController::class, 'articles'])->name('articles.index');
 Route::get('/artikel/{id}', [PublicController::class, 'article'])->whereNumber('id')->name('articles.show');
@@ -53,6 +55,11 @@ Route::middleware('role:CUSTOMER')->prefix('customer')->name('customer.')->group
 	Route::post('/pemesanan/{id}/batalkan', [BookingController::class, 'cancel'])->whereNumber('id')->name('cancel');
 	Route::get('/tiket/{id}/review', [ReviewController::class, 'create'])->whereNumber('id')->name('review.create');
 	Route::post('/tiket/{id}/review', [ReviewController::class, 'store'])->whereNumber('id')->name('review.store');
+});
+
+Route::middleware('role:CUSTOMER')->group(function () {
+	Route::get('/customer/dashboard', [CustomerDashboardController::class, 'orders'])->name('customer.dashboard');
+	Route::get('/customer/profil/edit', [CustomerDashboardController::class, 'profile'])->name('profile.edit');
 });
 
 Route::middleware('role:ADMIN_PARIWISATA')->prefix('admin')->name('admin.')->group(function () {

@@ -1,3 +1,4 @@
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 <nav class="navbar navbar-expand-lg fixed-top jg-navbar bg-white border-bottom">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('home') }}#beranda">

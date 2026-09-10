@@ -5,7 +5,7 @@
 @section('content')
 @include('components.public-navbar')
 
-<main class="section-pad" style="padding-top: 8rem; background: var(--jg-bg); min-height: 100vh;">
+<main class="section-pad booking-page" style="padding-top: 8rem; background: var(--jg-bg); min-height: 100vh;">
     <div class="container">
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb">
@@ -25,7 +25,7 @@
                     <div class="card-body p-4 p-lg-5">
                         <div class="page-intro mb-4">
                             <span class="eyebrow text-orange">Pemesanan kelompok</span>
-                            <h1 class="h2 fw-bold mt-3">Data ketua dan anggota</h1>
+                            <h1 class="booking-title mt-3">Data ketua dan anggota</h1>
                             <p class="text-secondary mb-0">Maksimal 10 orang termasuk ketua. Setiap peserta dapat memilih jenis tiketnya sendiri.</p>
                         </div>
 
@@ -61,7 +61,7 @@
             </div>
 
             <div class="col-lg-4">
-                <div class="customer-card sticky-top" style="top: 100px;">
+                <div class="customer-card booking-summary sticky-top" style="top: 100px;">
                     <div class="card-body p-4">
                         <span class="eyebrow text-orange">Ringkasan</span>
                         <div class="d-flex gap-3 align-items-center mt-3 mb-3"><img src="{{ $destination->foto_utama ?: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=200&q=80' }}" class="rounded-3" style="width: 80px; height: 80px; object-fit: cover;" alt="{{ $destination->nama_wisata }}"><div><h2 class="h6 mb-1">{{ $destination->nama_wisata }}</h2><small class="text-muted"><i class="bi bi-geo-alt me-1"></i>{{ Str::limit($destination->alamat, 32) }}</small></div></div>
@@ -78,8 +78,22 @@
 </main>
 
 <style>
-    .step-number { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--jg-orange); color: #fff; font-weight: 700; }
-    .participant-row { border-color: var(--jg-border); }
+    .booking-page .breadcrumb { font-size: 0.9rem; }
+    .booking-title { font-size: clamp(2rem, 3.5vw, 2.8rem); font-weight: 500; letter-spacing: 0; }
+    .booking-page .page-intro p { max-width: 44rem; font-size: 0.95rem; }
+    .booking-section { padding-bottom: 1.25rem; border-bottom: 1px solid var(--jg-border); }
+    .step-number { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--jg-orange); color: #fff; font-size: 0.9rem; font-weight: 600; }
+    .booking-page .form-label { font-size: 0.88rem; font-weight: 500; }
+    .booking-page .form-control, .booking-page .form-select { min-height: 48px; border-radius: 0.75rem; }
+    .participant-row { border-color: var(--jg-border); border-radius: 1rem; background: #fff; box-shadow: 0 5px 16px rgba(31, 41, 55, 0.04); }
+    .participant-row strong { font-weight: 600; }
+    .booking-summary { border-color: rgba(127, 187, 219, 0.45); box-shadow: 0 10px 24px rgba(31, 41, 55, 0.07); }
+    .booking-summary img { border-radius: 0.85rem !important; }
+    .booking-summary hr { border-color: var(--jg-border); opacity: 1; }
+    .booking-page #addParticipant { border-color: var(--jg-blue); color: #315d78; }
+    .booking-page #addParticipant:hover { background: var(--jg-sky); }
+    .booking-page button[type="submit"] { box-shadow: 0 8px 18px rgba(245, 139, 5, 0.2); }
+    @media (max-width: 991.98px) { .booking-page { padding-top: 6rem !important; } .booking-summary { position: static !important; } }
 </style>
 <script>
     (() => {

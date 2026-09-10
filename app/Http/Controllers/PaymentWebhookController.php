@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pemesanan;
+use App\Services\BookingTicketService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PaymentWebhookController extends Controller
 {
@@ -16,8 +18,18 @@ class PaymentWebhookController extends Controller
 
         $data = $request->validate(['kode_booking' => ['required', 'string'], 'status' => ['required', 'in:PAID,FAILED,EXPIRED'], 'referensi_gateway' => ['nullable', 'string']]);
         $booking = Pemesanan::where('kode_booking', $data['kode_booking'])->firstOrFail();
-        $booking->update(['status_pemesanan' => $data['status']]);
-        $booking->pembayaran()->update(['status_pembayaran' => $data['status'], 'referensi_gateway' => $data['referensi_gateway'] ?? null, 'waktu_pembayaran' => $data['status'] === 'PAID' ? now() : null]);
+        DB::transaction(function () use ($booking, $data): void {
+            $booking->update(['status_pemesanan' => $data['status']]);
+            $booking->pembayaran()->update([
+                'status_pembayaran' => $data['status'],
+                'referensi_gateway' => $data['referensi_gateway'] ?? null,
+                'waktu_pembayaran' => $data['status'] === 'PAID' ? now() : null,
+            ]);
+
+            if ($data['status'] === 'PAID') {
+                app(BookingTicketService::class)->issue($booking);
+            }
+        });
 
         return response()->json(['message' => 'Webhook diterima.']);
     }

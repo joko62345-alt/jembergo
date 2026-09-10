@@ -17,7 +17,7 @@
                 <div class="card border-0 shadow-sm rounded-4">
                     <div class="card-body p-4 p-lg-5">
                         <h1 class="h3 fw-bold">Tulis artikel publik</h1>
-                        <p class="text-secondary">Artikel berstatus Published akan tampil di website publik dan customer.</p>
+                        <p class="text-secondary">Artikel berstatus Diterbitkan akan tampil di website publik dan customer.</p>
 
                         @if (session('success'))
                             <div class="alert alert-success">{{ session('success') }}</div>
@@ -41,8 +41,8 @@
 
                             <label class="form-label mt-3" for="status">Status</label>
                             <select id="status" name="status" class="form-select">
-                                <option value="DRAFT" @selected(old('status', 'DRAFT') === 'DRAFT')>Draft</option>
-                                <option value="PUBLISHED" @selected(old('status') === 'PUBLISHED')>Published</option>
+                                <option value="DRAFT" @selected(old('status', 'DRAFT') === 'DRAFT')>Draf</option>
+                                <option value="PUBLISHED" @selected(old('status') === 'PUBLISHED')>Diterbitkan</option>
                             </select>
 
                             <button class="btn btn-warning rounded-pill mt-4" type="submit">Simpan artikel</button>

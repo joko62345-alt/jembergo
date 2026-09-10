@@ -22,4 +22,11 @@ class Pemesanan extends Model
     public function detailPemesanan(): HasMany { return $this->hasMany(DetailPemesanan::class, 'id_pemesanan'); }
     public function tiket(): HasMany { return $this->hasMany(Tiket::class, 'id_pemesanan'); }
     public function pembayaran(): HasOne { return $this->hasOne(Pembayaran::class, 'id_pemesanan'); }
+
+    public function expireTicketsIfPastVisitDate(): void
+    {
+        if ($this->tanggal_kunjungan && date('Y-m-d', strtotime((string) $this->tanggal_kunjungan)) < today()->toDateString()) {
+            $this->tiket()->where('status_tiket', 'ACTIVE')->update(['status_tiket' => 'EXPIRED']);
+        }
+    }
 }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Artikel;
 use App\Models\DestinasiWisata;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
@@ -16,7 +17,7 @@ class PublicController extends Controller
 
         return view('welcome', [
             'destinations' => $hasDestinationTable
-                ? DestinasiWisata::query()->with(['galeri', 'jenisTiket'])->where('status_aktif', true)->latest('id_destinasi')->take(5)->get()
+                ? DestinasiWisata::query()->with(['galeri', 'jenisTiket'])->withAvg('review', 'rating')->where('status_aktif', true)->latest('id_destinasi')->take(5)->get()
                 : collect(),
             'articles' => $hasArticleTable
                 ? Artikel::query()->where('status', 'PUBLISHED')->latest('tanggal_publikasi')->take(3)->get()
@@ -24,12 +25,27 @@ class PublicController extends Controller
         ]);
     }
 
-    public function destinations(): View
+    public function destinations(Request $request): View
     {
+        $query = trim((string) $request->query('q', ''));
+        $category = trim((string) $request->query('kategori', ''));
+        $destinations = Schema::hasTable('destinasi_wisata')
+            ? DestinasiWisata::query()
+                ->with(['jenisTiket', 'galeri'])
+                ->where('status_aktif', true)
+                ->when($query !== '', fn ($builder) => $builder->where(function ($search) use ($query): void {
+                    $search->where('nama_wisata', 'like', '%' . $query . '%')
+                        ->orWhere('alamat', 'like', '%' . $query . '%')
+                        ->orWhere('deskripsi', 'like', '%' . $query . '%');
+                }))
+                ->when($category !== '', fn ($builder) => $builder->where('kategori', $category))
+                ->latest('id_destinasi')
+                ->paginate(9)
+                ->withQueryString()
+            : collect();
+
         return view('public.destinations', [
-            'destinations' => Schema::hasTable('destinasi_wisata')
-                ? DestinasiWisata::query()->with(['jenisTiket', 'galeri'])->where('status_aktif', true)->latest('id_destinasi')->paginate(9)
-                : collect(),
+            'destinations' => $destinations,
         ]);
     }
 

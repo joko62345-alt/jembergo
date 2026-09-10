@@ -3,8 +3,7 @@
         <div class="row g-4">
             <div class="col-lg-4">
                 <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('home') }}">
-                    <span class="brand-mark"><i class="bi bi-compass"></i></span>
-                    Jember<span class="brand-accent">Go</span>
+                    <span class="brand-wordmark footer-brand-wordmark">Jember<span class="brand-accent">Go</span></span>
                 </a>
                 <p class="mt-3">Platform informasi dan layanan pariwisata resmi Kabupaten Jember. Temukan, rencanakan, dan pesan tiket wisata dengan mudah.</p>
             </div>
@@ -22,6 +21,7 @@
                     <a href="#" class="fs-4" aria-label="Twitter"><i class="bi bi-twitter-x"></i></a>
                     <a href="#" class="fs-4" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
                 </div>
+                <p class="mt-3 small">Dapatkan update destinasi terbaru dan promo menarik.</p>
             </div>
         </div>
         <div class="footer-bottom mt-4">

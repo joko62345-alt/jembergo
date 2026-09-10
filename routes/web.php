@@ -13,6 +13,10 @@ use App\Http\Controllers\SuperAdminManagementController;
 use App\Http\Controllers\VerificationController;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/assets/jembergo-logo.png', fn () => response()->file(resource_path('images/logo.png')))->name('assets.logo');
+Route::get('/assets/jembergo-hero.png', fn () => response()->file(resource_path('images/hero.png')))->name('assets.hero');
+Route::get('/assets/jembergo-background.png', fn () => response()->file(resource_path('images/bg.png')))->name('assets.background');
+Route::get('/assets/jembergo-login.png', fn () => response()->file(resource_path('images/login.png')))->name('assets.login');
 Route::get('/', [PublicController::class, 'home'])->name('home');
 Route::get('/tentang', fn () => redirect('/#tentang'))->name('about');
 Route::get('/destinasi', [PublicController::class, 'destinations'])->name('destinations.index');
@@ -52,7 +56,6 @@ Route::middleware('role:CUSTOMER')->prefix('customer')->name('customer.')->group
 	Route::get('/pemesanan/{id}/checkout', [BookingController::class, 'checkout'])->whereNumber('id')->name('checkout');
 	Route::post('/pemesanan/{id}/bayar', [BookingController::class, 'pay'])->whereNumber('id')->name('payment');
 	Route::get('/pemesanan/{id}/e-ticket', [BookingController::class, 'ticket'])->whereNumber('id')->name('ticket');
-	Route::post('/pemesanan/{id}/batalkan', [BookingController::class, 'cancel'])->whereNumber('id')->name('cancel');
 	Route::get('/tiket/{id}/review', [ReviewController::class, 'create'])->whereNumber('id')->name('review.create');
 	Route::post('/tiket/{id}/review', [ReviewController::class, 'store'])->whereNumber('id')->name('review.store');
 });

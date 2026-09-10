@@ -81,10 +81,9 @@ class AuthController extends Controller
             'email' => ['required', 'email', 'max:150', 'unique:customer,email'],
             'no_hp' => ['nullable', 'string', 'max:30'],
             'alamat' => ['nullable', 'string', 'max:500'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', 'min:8'],
         ], [
             'email.unique' => 'Email tersebut sudah terdaftar.',
-            'password.confirmed' => 'Konfirmasi password belum sama.',
             'password.min' => 'Password minimal 8 karakter.',
         ]);
 
@@ -94,14 +93,7 @@ class AuthController extends Controller
             'auth_provider' => 'manual',
         ]);
 
-        $request->session()->regenerate();
-        $request->session()->put([
-            'jg_user_id' => $customer->id_customer,
-            'jg_user_name' => $customer->nama,
-            'jg_role' => 'CUSTOMER',
-        ]);
-
-        return redirect()->route('home')->with('success', 'Akun berhasil dibuat. Selamat datang di JemberGo.');
+        return redirect()->route('login')->with('success', 'Akun berhasil dibuat. Silakan masuk untuk melanjutkan.');
     }
 
     public function logout(Request $request): RedirectResponse

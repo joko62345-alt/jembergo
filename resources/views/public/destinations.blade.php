@@ -43,7 +43,6 @@
                         <div class="destination-body d-flex flex-column h-100">
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <h3 class="mb-0 fs-5">{{ $destination->nama_wisata }}</h3>
-                                <span class="rating"><i class="bi bi-star-fill"></i> 4.8</span>
                             </div>
                             <p class="text-muted small mb-3">
                                 <i class="bi bi-geo-alt-fill text-orange me-1"></i>
@@ -88,8 +87,7 @@
         <div class="row g-4">
             <div class="col-lg-4">
                 <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('home') }}">
-                    <span class="brand-mark"><i class="bi bi-compass"></i></span>
-                    Jember<span class="brand-accent">Go</span>
+                    <span class="brand-wordmark">Jember<span class="brand-accent">Go</span></span>
                 </a>
                 <p class="mt-3">Platform informasi dan layanan pariwisata resmi Kabupaten Jember.</p>
             </div>

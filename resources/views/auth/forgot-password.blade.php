@@ -11,7 +11,7 @@
 <body class="auth-page">
     <main class="container min-vh-100 d-flex align-items-center justify-content-center py-5">
         <div class="col-md-6 col-lg-4">
-            <a href="{{ route('home') }}" class="auth-brand d-inline-flex align-items-center gap-2 mb-4 fw-bold fs-4"><span class="brand-mark"><i class="bi bi-compass"></i></span> Jember<span class="brand-accent">Go</span></a>
+            <a href="{{ route('home') }}" class="auth-brand d-inline-flex align-items-center gap-2 mb-4 fw-bold fs-4"><span class="brand-wordmark fs-4">Jember<span class="brand-accent">Go</span></span></a>
             <div class="auth-card bg-white">
                 <div class="card-body p-4 p-lg-5">
                     <h1 class="h3 fw-bold">Reset password</h1>

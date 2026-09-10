@@ -19,7 +19,7 @@
                 <label class="form-label mt-3" for="judul">Judul artikel</label><input id="judul" name="judul" value="{{ old('judul', $article->judul) }}" class="form-control" required>
                 <label class="form-label mt-3" for="isi">Isi artikel</label><textarea id="isi" name="isi" rows="10" class="form-control" required>{{ old('isi', $article->isi) }}</textarea>
                 <label class="form-label mt-3" for="gambar">Ganti gambar</label>@if($article->gambar)<img src="{{ $article->gambar }}" alt="{{ $article->judul }}" class="d-block rounded mb-2" width="140" height="90" style="object-fit:cover">@endif<input id="gambar" name="gambar" type="file" accept="image/jpeg,image/png,image/webp" class="form-control"><small class="text-secondary">Kosongkan jika gambar tidak ingin diganti. Maksimal 5 MB.</small>
-                <label class="form-label mt-3" for="status">Status</label><select id="status" name="status" class="form-select"><option value="DRAFT" @selected(old('status', $article->status) === 'DRAFT')>Draft</option><option value="PUBLISHED" @selected(old('status', $article->status) === 'PUBLISHED')>Published</option></select>
+                <label class="form-label mt-3" for="status">Status</label><select id="status" name="status" class="form-select"><option value="DRAFT" @selected(old('status', $article->status) === 'DRAFT')>Draf</option><option value="PUBLISHED" @selected(old('status', $article->status) === 'PUBLISHED')>Diterbitkan</option></select>
                 <button class="btn btn-warning rounded-pill mt-4" type="submit">Simpan perubahan</button>
             </form>
         </div></div></div></div>

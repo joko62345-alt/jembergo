@@ -2,8 +2,7 @@
     <div class="d-flex align-items-center justify-content-between w-100 px-3">
         <!-- Logo -->
         <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('home') }}">
-            <span class="brand-mark"><i class="bi bi-compass"></i></span>
-            Jember<span class="brand-accent">Go</span>
+            <img src="{{ route('assets.logo') }}" class="jg-logo jg-logo-navbar" alt="JemberGo">
         </a>
 
         <!-- Mobile Toggle -->
@@ -21,6 +20,11 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" href="{{ route('home') }}#tentang">
+                        Tentang
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('destinations.*') ? 'active' : '' }}" href="{{ route('destinations.index') }}">
                         Destinasi
                     </a>
@@ -28,11 +32,6 @@
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('articles.*') ? 'active' : '' }}" href="{{ route('articles.index') }}">
                         Artikel
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('home') }}#tentang">
-                        Tentang
                     </a>
                 </li>
 

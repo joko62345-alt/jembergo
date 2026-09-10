@@ -9,6 +9,7 @@ use App\Models\DestinasiWisata;
 use App\Models\Fasilitas;
 use App\Models\GaleriDestinasi;
 use App\Models\SuperAdmin;
+use App\Support\StatusLabel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -132,7 +133,7 @@ class SuperAdminManagementController extends Controller
             foreach ($orders as $order) {
                 $statuses = $order->tiket->pluck('status_tiket');
                 $ticketStatus = $statuses->isNotEmpty() && $statuses->every(fn ($status) => $status === 'USED') ? 'USED' : ($statuses->contains('USED') ? 'PARTIAL' : $order->status_pemesanan);
-                fputcsv($handle, [$order->kode_booking, $order->destinasi->nama_wisata, $order->tanggal_pemesanan->format('Y-m-d H:i'), $ticketStatus, $order->status_pemesanan, $order->total_harga]);
+                fputcsv($handle, [$order->kode_booking, $order->destinasi->nama_wisata, $order->tanggal_pemesanan->format('Y-m-d H:i'), StatusLabel::ticket($ticketStatus), StatusLabel::order($order->status_pemesanan), $order->total_harga]);
             }
             fclose($handle);
         }, $filename, ['Content-Type' => 'text/csv']);

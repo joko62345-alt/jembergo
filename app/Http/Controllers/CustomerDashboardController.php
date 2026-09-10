@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Customer;
 use App\Models\Pemesanan;
+use App\Models\Tiket;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -15,6 +16,9 @@ class CustomerDashboardController extends Controller
     public function orders(?string $filter = null): View
     {
         $filter ??= 'all';
+        Tiket::where('status_tiket', 'ACTIVE')
+            ->whereHas('pemesanan', fn ($query) => $query->whereDate('tanggal_kunjungan', '<', today()))
+            ->update(['status_tiket' => 'EXPIRED']);
         $orders = Pemesanan::with(['destinasi', 'tiket', 'pembayaran'])
             ->where('id_customer', session('jg_user_id'))
             ->when($filter === 'active', fn ($query) => $query->whereHas('tiket', fn ($tickets) => $tickets->where('status_tiket', 'ACTIVE')))

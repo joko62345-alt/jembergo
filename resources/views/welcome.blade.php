@@ -7,24 +7,16 @@
 
 <main class="landing-main">
     <!-- Hero Section -->
-    <section id="beranda" class="hero-section">
+    <section id="beranda" class="hero-section" style="background-image: url('{{ route('assets.background') }}');">
         <div class="container position-relative z-1">
-            <div class="row align-items-center g-4">
-                <div class="col-lg-6 hero-copy">
+            <div class="row align-items-center">
+                <div class="col-lg-7 hero-copy">
                     <span class="eyebrow"><i class="bi bi-geo-alt-fill"></i> Kabupaten Jember</span>
                     <h1 class="mt-3">Jelajahi pesona yang <em>lebih dekat.</em></h1>
                     <p class="lead">Temukan destinasi terbaik, rencanakan kunjunganmu, dan pesan tiket wisata Jember dalam satu langkah sederhana.</p>
                     <div class="d-flex flex-wrap gap-3 mt-4">
                         <a href="{{ route('destinations.index') }}" class="btn btn-jg-primary btn-lg">Mulai Eksplorasi <i class="bi bi-arrow-right"></i></a>
                         <a href="#tentang" class="btn btn-outline-jg btn-lg">Tentang JemberGo</a>
-                    </div>
-                </div>
-                <div class="col-lg-6 hero-visual">
-                    <div class="hero-photo">
-                        <img src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=85" alt="Pemandangan alam Jember">
-                        <div class="floating-stamp">
-                            <i class="bi bi-stars me-1"></i> Jember itu indah
-                        </div>
                     </div>
                 </div>
             </div>
@@ -49,22 +41,22 @@
                 <div class="col-lg-7">
                     <div class="category-grid">
                         <a href="{{ route('destinations.index', ['kategori' => 'Alam']) }}" class="category-item">
-                            <i class="bi bi-tree"></i>
+                            <span class="category-icon"><i class="bi bi-tree-fill"></i></span>
                             <strong>Wisata Alam</strong>
                             <small>Air Terjun Tancak, Kali Jompo, dan perbukitan hijau</small>
-                            <span><i class="bi bi-arrow-up-right"></i></span>
+                            <span class="category-arrow"><i class="bi bi-arrow-up-right"></i></span>
                         </a>
                         <a href="{{ route('destinations.index', ['kategori' => 'Bahari']) }}" class="category-item">
-                            <i class="bi bi-water"></i>
+                            <span class="category-icon"><i class="bi bi-water"></i></span>
                             <strong>Wisata Bahari</strong>
                             <small>Pantai Papuma, Teluk Love, dan keindahan laut selatan</small>
-                            <span><i class="bi bi-arrow-up-right"></i></span>
+                            <span class="category-arrow"><i class="bi bi-arrow-up-right"></i></span>
                         </a>
                         <a href="{{ route('destinations.index', ['kategori' => 'Buatan']) }}" class="category-item">
-                            <i class="bi bi-building"></i>
+                            <span class="category-icon"><i class="bi bi-buildings-fill"></i></span>
                             <strong>Wisata Buatan</strong>
                             <small>Taman Botani, kebun raya, dan wisata edukasi</small>
-                            <span><i class="bi bi-arrow-up-right"></i></span>
+                            <span class="category-arrow"><i class="bi bi-arrow-up-right"></i></span>
                         </a>
                     </div>
                 </div>
@@ -98,7 +90,6 @@
                             <div class="destination-body d-flex flex-column">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                     <h3 class="mb-0" style="font-size: 1.1rem;">{{ $destination->nama_wisata }}</h3>
-                                    <span class="rating"><i class="bi bi-star-fill"></i> 4.8</span>
                                 </div>
                                 <p class="mb-3" style="flex-grow: 1;">
                                     <i class="bi bi-geo-alt-fill text-orange me-1"></i>
@@ -190,8 +181,7 @@
         <div class="row g-4">
             <div class="col-lg-4">
                 <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('home') }}">
-                    <span class="brand-mark"><i class="bi bi-compass"></i></span>
-                    Jember<span class="brand-accent">Go</span>
+                    <span class="brand-wordmark">Jember<span class="brand-accent">Go</span></span>
                 </a>
                 <p class="mt-3">Platform informasi dan layanan pariwisata resmi Kabupaten Jember. Temukan, rencanakan, dan pesan tiket wisata dengan mudah.</p>
             </div>

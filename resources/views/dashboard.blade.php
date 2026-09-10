@@ -23,7 +23,7 @@
 <body>
 <div class="app-shell d-flex">
     <aside class="app-sidebar flex-shrink-0 p-3">
-        <a href="{{ route('home') }}" class="text-white text-decoration-none d-flex align-items-center gap-2 mb-5"><span class="brand-mark"><i class="bi bi-compass"></i></span><span class="brand-label fw-bold fs-5">Jember<span class="brand-accent">Go</span></span></a>
+        <a href="{{ route('home') }}" class="text-white text-decoration-none d-flex align-items-center gap-2 mb-5"><span class="brand-wordmark fs-5">Jember<span class="brand-accent">Go</span></span></a>
         <small class="sidebar-caption text-uppercase text-white-50 px-2">Menu utama</small>
         <nav class="nav flex-column gap-2 mt-2">
             <a href="{{ route('dashboard') }}" class="nav-link active"><i class="bi bi-grid-1x2 me-2"></i><span class="nav-label">Dashboard</span></a>

@@ -8,7 +8,7 @@
     @media (max-width: 767.98px) { .superadmin-sidebar { width: 72px; padding: .75rem; } .superadmin-sidebar .brand-label, .superadmin-sidebar .nav-label, .superadmin-sidebar .sidebar-caption { display: none; } .superadmin-sidebar .nav-link { text-align: center; padding: .8rem .4rem; } .superadmin-sidebar .nav-link i { margin: 0 !important; font-size: 1.15rem; } .superadmin-main, body > main.container { margin-left: 72px; max-width: calc(100% - 72px); } }
 </style>
 <aside class="superadmin-sidebar">
-    <a href="{{ route('home') }}" class="text-white text-decoration-none d-flex align-items-center gap-2 mb-5"><i class="bi bi-compass"></i><span class="brand-label fw-bold fs-5">Jember<span class="text-warning">Go</span></span></a>
+    <a href="{{ route('home') }}" class="text-white text-decoration-none d-flex align-items-center gap-2 mb-5"><span class="brand-wordmark fs-5">Jember<span class="brand-accent">Go</span></span></a>
     <small class="sidebar-caption text-uppercase text-white-50 px-2">Super Admin</small>
     <nav class="nav flex-column gap-2 mt-2">
         <a href="{{ route('dashboard') }}" class="nav-link"><i class="bi bi-grid-1x2 me-2"></i><span class="nav-label">Dashboard</span></a>

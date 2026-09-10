@@ -10,14 +10,34 @@
     @if (file_exists(public_path('build/manifest.json')) || file_exists(public_path('hot')))
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     @endif
-    <style>#map { height: 330px; border-radius: 1rem; }</style>
+    <style>
+        #map { height: 280px; border-radius: 1rem; }
+        .destination-detail-page main { padding-top: 2rem; padding-bottom: 4rem; }
+        .destination-hero-image { min-height: 320px; height: min(58vw, 520px); border-radius: 1.25rem; overflow: hidden; box-shadow: 0 16px 36px rgba(31, 41, 55, 0.12); }
+        .destination-hero-copy { padding: 1.25rem 0; }
+        .destination-hero-copy h1 { max-width: 14ch; }
+        .route-stat { height: 100%; border: 1px solid rgba(226, 232, 240, 0.9); box-shadow: 0 8px 20px rgba(31, 41, 55, 0.05); }
+        .route-stat-icon { width: 2rem; height: 2rem; display: inline-grid; place-items: center; border-radius: 0.7rem; background: rgba(245, 139, 5, 0.12); color: #f58b05; }
+        .destination-locate-button { display: inline-flex; align-items: center; gap: 0.55rem; border: 0; border-radius: 0.85rem; padding: 0.8rem 1.1rem; background: linear-gradient(135deg, #f58b05, #ffad1f); box-shadow: 0 8px 18px rgba(245, 139, 5, 0.2); color: #fff; font-weight: 600; transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease; }
+        .destination-locate-button:hover { color: #fff; filter: brightness(0.97); transform: translateY(-2px); box-shadow: 0 11px 22px rgba(245, 139, 5, 0.28); }
+        .destination-locate-button:active { transform: translateY(0); }
+        .destination-locate-button:disabled { cursor: wait; opacity: 0.75; transform: none; }
+        .destination-locate-button i { font-size: 1.1rem; }
+        .destination-gallery-scroller { display: flex; gap: 1rem; overflow-x: auto; padding: 0 0.25rem 0.75rem; scroll-snap-type: x mandatory; scrollbar-width: thin; }
+        .destination-gallery-item { flex: 0 0 min(78vw, 520px); scroll-snap-align: start; }
+        .destination-gallery-item figure { position: relative; height: 300px; background: #e9ecef; }
+        .destination-gallery-item figure::after { position: absolute; inset: 35% 0 0; background: linear-gradient(transparent, rgba(0, 0, 0, 0.72)); content: ''; }
+        .destination-gallery-image { width: 100%; height: 100%; display: block; object-fit: contain; }
+        .destination-gallery-caption { position: absolute; right: 1.25rem; bottom: 1rem; left: 1.25rem; z-index: 1; color: #fff; }
+        @media (min-width: 768px) { .destination-gallery-item { flex-basis: min(42vw, 520px); } }
+    </style>
 </head>
-<body class="public-page">
+<body class="public-page destination-detail-page">
 <x-public-navbar />
 @php($mainImage = $destination->foto_utama ?: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=85')
-<main class="container"><div class="row g-5"><div class="col-lg-7"><div class="destination-hero-image"><img class="w-100 h-100 object-fit-cover" src="{{ $mainImage }}" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=85';" alt="{{ $destination->nama_wisata }}"></div></div><div class="col-lg-5"><span class="badge text-bg-warning rounded-pill">{{ $destination->kategori }}</span><h1 class="display-5 fw-bold mt-3">{{ $destination->nama_wisata }}</h1><p class="text-secondary">{{ $destination->alamat }}</p><p class="lead">{{ $destination->deskripsi }}</p><p class="text-secondary"><i class="bi bi-clock me-1"></i>{{ $destination->jam_operasional }} · <i class="bi bi-star-fill text-warning"></i> {{ number_format($destination->review->avg('rating') ?: 0, 1) }}</p>@if(session('jg_role') === 'CUSTOMER')<a href="{{ route('customer.booking.create', $destination->id_destinasi) }}" class="btn btn-warning rounded-pill">Pesan tiket</a>@else<a href="{{ route('login') }}" class="btn btn-warning rounded-pill">Masuk untuk memesan</a>@endif</div></div>
-<div class="row g-5 mt-2"><div class="col-lg-7"><h2 class="h4 fw-bold">Lokasi & rute</h2><div id="map"></div><button id="locate" class="btn btn-outline-secondary rounded-pill mt-3">Gunakan lokasi saya</button><p id="location-status" class="small text-secondary mt-2"></p><div id="route-estimate" class="d-none row g-2 mt-2"><div class="col-6"><div class="bg-white rounded-3 p-3"><small class="text-secondary d-block">Jarak</small><strong id="route-distance">-</strong></div></div><div class="col-6"><div class="bg-white rounded-3 p-3"><small class="text-secondary d-block">Estimasi waktu</small><strong id="route-duration">-</strong></div></div></div></div><div class="col-lg-5"><h2 class="h4 fw-bold">Fasilitas</h2><div class="d-flex flex-wrap gap-2">@forelse($destination->fasilitas as $facility)<span class="badge bg-white text-dark border rounded-pill p-2">{{ $facility->nama_fasilitas }}</span>@empty<span class="text-secondary">Belum tersedia.</span>@endforelse</div><h2 class="h4 fw-bold mt-5">Jenis tiket</h2>@foreach($destination->jenisTiket as $ticket)<div class="d-flex justify-content-between border-bottom py-2"><span>{{ $ticket->nama_jenis }}</span><strong>Rp {{ number_format($ticket->harga, 0, ',', '.') }}</strong></div>@endforeach</div></div>
-<section class="mt-5"><div class="d-flex justify-content-between align-items-end mb-3"><div><span class="text-warning text-uppercase small fw-bold">Jelajahi lebih dekat</span><h2 class="h4 fw-bold mt-2 mb-0">Galeri {{ $destination->nama_wisata }}</h2></div></div><div class="row g-3">@forelse($destination->galeri as $gallery)<div class="col-6 col-md-4"><figure class="bg-white rounded-4 overflow-hidden shadow-sm h-100 mb-0"><img src="{{ $gallery->url_foto }}" class="w-100" style="height:190px;object-fit:cover" alt="{{ $gallery->keterangan ?: $destination->nama_wisata }}"><figcaption class="p-3 small text-secondary">{{ $gallery->keterangan ?: 'Foto destinasi' }}</figcaption></figure></div>@empty<div class="col-12"><p class="text-secondary">Galeri destinasi belum tersedia.</p></div>@endforelse</div></section>
+<main class="container"><div class="row g-4 align-items-center"><div class="col-lg-7"><div class="destination-hero-image"><img class="w-100 h-100 object-fit-cover" src="{{ $mainImage }}" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1200&q=85';" alt="{{ $destination->nama_wisata }}"></div></div><div class="col-lg-5"><div class="destination-hero-copy"><span class="badge text-bg-warning rounded-pill">{{ $destination->kategori }}</span><h1 class="display-5 fw-bold mt-3">{{ $destination->nama_wisata }}</h1><p class="text-secondary">{{ $destination->alamat }}</p><p class="lead">{{ $destination->deskripsi }}</p><p class="text-secondary"><i class="bi bi-clock me-1"></i>{{ $destination->jam_operasional }}@if($destination->review->isNotEmpty()) · <i class="bi bi-star-fill text-warning"></i> {{ number_format($destination->review->avg('rating'), 1) }}@endif</p>@if(session('jg_role') === 'CUSTOMER')<a href="{{ route('customer.booking.create', $destination->id_destinasi) }}" class="btn btn-warning rounded-pill">Pesan tiket</a>@else<a href="{{ route('login') }}" class="btn btn-warning rounded-pill">Masuk untuk memesan</a>@endif</div></div></div>
+<div class="row g-4 mt-2"><div class="col-lg-7"><h2 class="h4 fw-bold">Lokasi & rute</h2><div id="map"></div><button id="locate" class="destination-locate-button mt-3" type="button"><i class="bi bi-crosshair2" aria-hidden="true"></i><span id="locate-label">Lihat estimasi jarak & waktu</span></button><p id="location-status" class="small text-secondary mt-2"></p><div id="route-estimate" class="d-none row g-2 mt-2"><div class="col-6"><div class="route-stat bg-white rounded-3 p-3"><span class="route-stat-icon mb-2"><i class="bi bi-signpost-2"></i></span><small class="text-secondary d-block">Jarak</small><strong id="route-distance">-</strong></div></div><div class="col-6"><div class="route-stat bg-white rounded-3 p-3"><span class="route-stat-icon mb-2"><i class="bi bi-clock"></i></span><small class="text-secondary d-block">Estimasi waktu</small><strong id="route-duration">-</strong></div></div></div></div><div class="col-lg-5"><h2 class="h4 fw-bold">Fasilitas</h2><div class="d-flex flex-wrap gap-2">@forelse($destination->fasilitas as $facility)<span class="badge bg-white text-dark border rounded-pill p-2">{{ $facility->nama_fasilitas }}</span>@empty<span class="text-secondary">Belum tersedia.</span>@endforelse</div><h2 class="h4 fw-bold mt-4">Jenis tiket</h2>@foreach($destination->jenisTiket as $ticket)<div class="d-flex justify-content-between border-bottom py-2"><span>{{ $ticket->nama_jenis }}</span><strong>Rp {{ number_format($ticket->harga, 0, ',', '.') }}</strong></div>@endforeach</div></div>
+<section class="mt-5"><div class="d-flex justify-content-between align-items-end mb-3"><div><span class="text-warning text-uppercase small fw-bold">Jelajahi lebih dekat</span><h2 class="h4 fw-bold mt-2 mb-0">Galeri {{ $destination->nama_wisata }}</h2></div></div><div class="destination-gallery-scroller">@forelse($destination->galeri as $gallery)<div class="destination-gallery-item"><figure class="rounded-4 overflow-hidden shadow-sm mb-0"><img src="{{ $gallery->url_foto }}" class="destination-gallery-image" alt="{{ $gallery->keterangan ?: $destination->nama_wisata }}"><figcaption class="destination-gallery-caption small">{{ $gallery->keterangan ?: 'Foto destinasi' }}</figcaption></figure></div>@empty<div><p class="text-secondary mb-0">Galeri destinasi belum tersedia.</p></div>@endforelse</div></section>
 <section class="mt-5"><h2 class="h4 fw-bold">Ulasan pengunjung</h2>@forelse($destination->review->sortByDesc('tanggal_review')->take(5) as $review)<article class="bg-white rounded-4 p-3 mt-3"><div class="d-flex justify-content-between"><strong>{{ $review->customer->nama }}</strong><span class="text-warning">{{ str_repeat('★', $review->rating) }}</span></div><p class="mb-1 mt-2 text-secondary">{{ $review->ulasan }}</p></article>@empty<p class="text-secondary">Belum ada ulasan.</p>@endforelse</section></main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
@@ -26,11 +46,15 @@ const map = L.map('map').setView(coordinate, 13);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
 L.marker(coordinate).addTo(map).bindPopup(@json($destination->nama_wisata)).openPopup();
 document.getElementById('locate').addEventListener('click', () => {
+    const locateButton = document.getElementById('locate');
+    const locateLabel = document.getElementById('locate-label');
     const status = document.getElementById('location-status');
     const estimate = document.getElementById('route-estimate');
     const distanceOutput = document.getElementById('route-distance');
     const durationOutput = document.getElementById('route-duration');
     if (!navigator.geolocation) { status.textContent = 'Browser tidak mendukung lokasi.'; return; }
+    locateButton.disabled = true;
+    locateLabel.textContent = 'Menghitung rute...';
     status.textContent = 'Menghitung jarak dan estimasi waktu perjalanan...';
     navigator.geolocation.getCurrentPosition(async position => {
         const user = [position.coords.latitude, position.coords.longitude];
@@ -49,7 +73,13 @@ document.getElementById('locate').addEventListener('click', () => {
         durationOutput.textContent = minutes >= 60 ? `${Math.floor(minutes / 60)} jam ${minutes % 60} menit` : `${minutes} menit`;
         status.textContent = 'Rute berhasil dihitung dari lokasi Anda.';
         estimate.classList.remove('d-none');
-    }, () => { status.textContent = 'Lokasi tidak dapat diakses. Anda tetap dapat melihat lokasi wisata pada peta.'; });
+        locateButton.disabled = false;
+        locateLabel.textContent = 'Perbarui estimasi rute';
+    }, () => {
+        status.textContent = 'Lokasi tidak dapat diakses. Anda tetap dapat melihat lokasi wisata pada peta.';
+        locateButton.disabled = false;
+        locateLabel.textContent = 'Coba lagi';
+    });
 });
 </script>
 </body></html>

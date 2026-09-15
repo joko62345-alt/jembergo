@@ -10,6 +10,6 @@ class PaymentServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->bind(PaymentGateway::class, DemoPaymentGateway::class);
+        $this->app->singleton(PaymentGateway::class, DemoPaymentGateway::class);
     }
 }

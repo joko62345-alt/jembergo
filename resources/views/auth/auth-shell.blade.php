@@ -28,8 +28,13 @@
         .auth-field .form-control { min-height: 42px; border: 1px solid #dbe6ee; border-radius: .65rem; background: #f9fcfd; font-size: .82rem; }
         .auth-field .form-control:focus { border-color: #7fbbdb; background: #fff; box-shadow: 0 0 0 3px rgba(127, 187, 221, .16); }
         .auth-field .input-group .btn { border-color: #dbe6ee; background: #f9fcfd; color: #7890a1; }
-        .auth-submit { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-top: .5rem; padding: .78rem 1rem; border: 0; border-radius: .7rem; background: #e77d00; color: #fff; font-size: .86rem; font-weight: 600; box-shadow: 0 8px 18px rgba(231, 125, 0, .2); }
+        .auth-submit { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; margin-top: .5rem; padding: .78rem 1rem; border: 0; border-radius: .7rem; background: #e77d00; color: #fff; font-size: .86rem; font-weight: 600; box-shadow: 0 8px 18px rgba(231, 125, 0, .2); }
+        .auth-submit i { position: absolute; right: 1rem; }
         .auth-submit:hover { background: #cc6d00; }
+        .auth-google { display: flex; align-items: center; justify-content: center; gap: .5rem; width: 100%; margin-top: .75rem; padding: .72rem 1rem; border: 1px solid #dbe6ee; border-radius: .7rem; background: #fff; color: #31516b; font-size: .82rem; font-weight: 600; text-decoration: none; }
+        .auth-google:hover { border-color: #a9c5d6; background: #f7fbfc; color: #173b60; }
+        .auth-google .google-mark { width: 1.1rem; height: 1.1rem; flex: 0 0 auto; }
+        .auth-divider { display: flex; align-items: center; gap: .65rem; margin-top: .9rem; color: #9aabb7; font-size: .7rem; }.auth-divider::before, .auth-divider::after { flex: 1; height: 1px; background: #e5edf2; content: ''; }
         .auth-extra { display: flex; justify-content: flex-end; margin-top: .7rem; }
         .auth-extra a, .auth-switch { color: #e77d00; font-size: .8rem; text-decoration: none; }
         .auth-extra a:hover, .auth-switch:hover { color: #b75e00; text-decoration: underline; }
@@ -37,6 +42,9 @@
         .auth-switch { border: 0; background: none; padding: 0; font-weight: 600; }
         .auth-error { margin-bottom: 1rem; border: 0; border-radius: .7rem; background: #fff0f1; color: #a43b49; font-size: .78rem; }
         .auth-error ul { padding-left: 1.1rem; }
+        .auth-success { display: flex; align-items: center; gap: .5rem; margin-bottom: 1rem; border: 0; border-radius: .7rem; background: #e8f7ee; color: #237245; font-size: .78rem; }
+        .auth-success a { color: #185c37; font-weight: 600; }
+        .auth-success .auth-alert-close { margin-left: auto; padding: .1rem .25rem; border: 0; background: transparent; color: #237245; font-size: 1rem; line-height: 1; }
         .auth-photo-content { position: absolute; right: 2rem; bottom: 2.2rem; left: 2rem; z-index: 1; color: #fff; }
         .auth-photo-content .auth-location { display: inline-flex; align-items: center; gap: .4rem; padding: .45rem .7rem; border: 1px solid rgba(255, 255, 255, .28); border-radius: 999px; background: rgba(255, 255, 255, .13); backdrop-filter: blur(10px); font-size: .7rem; }
         .auth-photo-content h2 { max-width: 12ch; margin: .9rem 0 .35rem; color: #fff; font-size: clamp(1.8rem, 2.7vw, 2.7rem); font-weight: 500; }
@@ -73,6 +81,7 @@
                 <h1 data-login-title></h1>
                 <p class="auth-subtitle" data-login-subtitle>Masuk untuk menikmati informasi dan layanan pariwisata Kabupaten Jember</p>
                 @if(session('error'))<div class="alert auth-error">{{ session('error') }}</div>@endif
+                @if(session('success'))<div class="alert auth-success" role="status"><i class="bi bi-check-circle"></i><span>{{ session('success') }} <a href="{{ route('login') }}">Halaman login</a></span><button type="button" class="auth-alert-close" data-dismiss-auth-alert aria-label="Tutup pesan"><i class="bi bi-x-lg"></i></button></div>@endif
                 @if($errors->any())<div class="alert auth-error"><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
                 <div data-login-form>
                     <form action="{{ route('login.store') }}" method="POST">
@@ -81,6 +90,8 @@
                         <div class="auth-field"><label for="login-password">Password</label><div class="input-group"><input id="login-password" type="password" name="password" class="form-control" placeholder="Masukkan password" required><button type="button" class="btn password-toggle" data-target="login-password" aria-label="Tampilkan password"><i class="bi bi-eye"></i></button></div></div>
                         <button class="auth-submit" type="submit"><span>Masuk</span><i class="bi bi-arrow-right"></i></button>
                     </form>
+                    <div class="auth-divider"><span>atau</span></div>
+                    <a href="{{ route('google.redirect') }}" class="auth-google"><svg class="google-mark" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.35 12.27c0-.78-.07-1.53-.2-2.27H12v4.3h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.7 2.91-4.2 2.91-7.42Z"/><path fill="#34A853" d="M12 21.8c2.63 0 4.84-.87 6.45-2.36l-3.14-2.45c-.87.58-1.98.93-3.31.93-2.54 0-4.7-1.72-5.47-4.03H3.28v2.53A9.74 9.74 0 0 0 12 21.8Z"/><path fill="#FBBC05" d="M6.53 13.89a5.86 5.86 0 0 1 0-3.78V7.58H3.28a9.8 9.8 0 0 0 0 8.84l3.25-2.53Z"/><path fill="#EA4335" d="M12 6.08c1.43 0 2.72.49 3.73 1.45l2.8-2.8C16.84 3.17 14.63 2.2 12 2.2a9.74 9.74 0 0 0-8.72 5.38l3.25 2.53C7.3 7.8 9.46 6.08 12 6.08Z"/></svg><span>Lanjutkan dengan Google</span></a>
                     <div class="auth-extra"><a href="{{ route('password.request') }}">Lupa password?</a></div>
                 </div>
                 <div data-register-form>
@@ -123,6 +134,7 @@
     };
     document.querySelectorAll('[data-switch]').forEach(button => button.addEventListener('click', () => setMode(button.dataset.switch)));
     document.querySelectorAll('.password-toggle').forEach(button => button.addEventListener('click', () => { const input = document.getElementById(button.dataset.target); const visible = input.type === 'text'; input.type = visible ? 'password' : 'text'; button.innerHTML = `<i class="bi bi-eye${visible ? '' : '-slash'}"></i>`; }));
+    document.querySelector('[data-dismiss-auth-alert]')?.addEventListener('click', event => event.currentTarget.closest('.auth-success').remove());
     setMode('{{ $authMode }}');
 </script>
 </body>

@@ -24,7 +24,6 @@
                 <div class="customer-card">
                     <div class="card-body p-4 p-lg-5">
                         <div class="page-intro mb-4">
-                            <span class="eyebrow text-orange">Pemesanan kelompok</span>
                             <h1 class="booking-title mt-3">Data ketua dan anggota</h1>
                             <p class="text-secondary mb-0">Maksimal 10 orang termasuk ketua. Setiap peserta dapat memilih jenis tiketnya sendiri.</p>
                         </div>
@@ -33,17 +32,17 @@
                             @csrf
 
                             <section class="booking-section mb-4">
-                                <div class="d-flex align-items-center gap-2 mb-3"><span class="step-number">1</span><h2 class="h5 mb-0">Ketua kelompok</h2></div>
+                                <div class="d-flex align-items-center gap-2 mb-3"><h2 class="h5 mb-0">Ketua kelompok</h2></div>
                                 <div class="row g-3">
                                     <div class="col-md-6"><label class="form-label" for="ketua_nama">Nama lengkap</label><input id="ketua_nama" name="ketua_nama" value="{{ old('ketua_nama') }}" class="form-control" required></div>
                                     <div class="col-md-6"><label class="form-label" for="ketua_email">Email</label><input id="ketua_email" name="ketua_email" type="email" value="{{ old('ketua_email') }}" class="form-control" required></div>
                                     <div class="col-md-6"><label class="form-label" for="ketua_no_hp">Nomor WhatsApp</label><input id="ketua_no_hp" name="ketua_no_hp" value="{{ old('ketua_no_hp') }}" class="form-control" placeholder="08xxxxxxxxxx" required></div>
-                                    <div class="col-md-6"><label class="form-label" for="tanggal_kunjungan">Tanggal kunjungan</label><input id="tanggal_kunjungan" type="date" name="tanggal_kunjungan" value="{{ old('tanggal_kunjungan') }}" class="form-control" min="{{ date('Y-m-d') }}" required></div>
+                                    <div class="col-md-6"><label class="form-label" for="tanggal_kunjungan">Tanggal kunjungan</label><input id="tanggal_kunjungan" type="date" name="tanggal_kunjungan" value="{{ old('tanggal_kunjungan') }}" class="form-control" min="{{ date('Y-m-d') }}" required><small id="quotaAvailability" class="form-text text-secondary">Pilih tanggal untuk melihat sisa tiket.</small></div>
                                 </div>
                             </section>
 
                             <section>
-                                <div class="d-flex justify-content-between align-items-center gap-3 mb-3"><div class="d-flex align-items-center gap-2"><span class="step-number">2</span><h2 class="h5 mb-0">Peserta dan jenis tiket</h2></div><span class="small text-secondary"><span id="participantCount">1</span>/10 orang</span></div>
+                                <div class="d-flex justify-content-between align-items-center gap-3 mb-3"><div class="d-flex align-items-center gap-2"><h2 class="h5 mb-0">Peserta dan jenis tiket</h2></div><span class="small text-secondary"><span id="participantCount">1</span>/10 orang</span></div>
                                 <div id="participants" class="d-grid gap-3">
                                     <div class="participant-row public-card p-3" data-index="0">
                                         <div class="d-flex justify-content-between align-items-center mb-3"><strong>Peserta 1 · Ketua</strong><span class="badge text-bg-light">Ketua kelompok</span></div>
@@ -63,7 +62,6 @@
             <div class="col-lg-4">
                 <div class="customer-card booking-summary sticky-top" style="top: 100px;">
                     <div class="card-body p-4">
-                        <span class="eyebrow text-orange">Ringkasan</span>
                         <div class="d-flex gap-3 align-items-center mt-3 mb-3"><img src="{{ $destination->foto_utama ?: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=200&q=80' }}" class="rounded-3" style="width: 80px; height: 80px; object-fit: cover;" alt="{{ $destination->nama_wisata }}"><div><h2 class="h6 mb-1">{{ $destination->nama_wisata }}</h2><small class="text-muted"><i class="bi bi-geo-alt me-1"></i>{{ Str::limit($destination->alamat, 32) }}</small></div></div>
                         <hr>
                         <div class="d-flex justify-content-between"><span class="text-secondary">Ketua kelompok</span><strong><span id="summaryLeader">0</span> orang</strong></div>
@@ -78,15 +76,20 @@
 </main>
 
 <style>
+    .booking-page { font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif; color: #173b60; font-size: .92rem; line-height: 1.5; }
     .booking-page .breadcrumb { font-size: 0.9rem; }
-    .booking-title { font-size: clamp(2rem, 3.5vw, 2.8rem); font-weight: 500; letter-spacing: 0; }
-    .booking-page .page-intro p { max-width: 44rem; font-size: 0.95rem; }
+    .booking-title { font-size: clamp(1.15rem, 1.4vw, 1.35rem) !important; font-weight: 650; letter-spacing: 0; line-height: 1.2; }
+    .booking-page .page-intro p { max-width: 44rem; font-size: 0.86rem; }
     .booking-section { padding-bottom: 1.25rem; border-bottom: 1px solid var(--jg-border); }
     .step-number { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--jg-orange); color: #fff; font-size: 0.9rem; font-weight: 600; }
-    .booking-page .form-label { font-size: 0.88rem; font-weight: 500; }
+    .booking-page h2 { font-size: 1rem !important; font-weight: 650; }
+    .booking-page .form-label { font-size: 0.78rem; font-weight: 650; color: #385872; }
     .booking-page .form-control, .booking-page .form-select { min-height: 48px; border-radius: 0.75rem; }
     .participant-row { border-color: var(--jg-border); border-radius: 1rem; background: #fff; box-shadow: 0 5px 16px rgba(31, 41, 55, 0.04); }
-    .participant-row strong { font-weight: 600; }
+    .participant-row strong { font-size: .84rem; font-weight: 650; }
+    .booking-page .form-control, .booking-page .form-select { font-size: .86rem; }
+    .booking-summary h2 { font-size: 1rem; font-weight: 650; }
+    .booking-summary { font-size: .82rem; }
     .booking-summary { border-color: rgba(127, 187, 219, 0.45); box-shadow: 0 10px 24px rgba(31, 41, 55, 0.07); }
     .booking-summary img { border-radius: 0.85rem !important; }
     .booking-summary hr { border-color: var(--jg-border); opacity: 1; }
@@ -103,7 +106,25 @@
         const summaryLeader = document.getElementById('summaryLeader');
         const summaryMembers = document.getElementById('summaryMembers');
         const summaryTotal = document.getElementById('summaryTotal');
+        const visitDate = document.getElementById('tanggal_kunjungan');
+        const quotaAvailability = document.getElementById('quotaAvailability');
         let nextIndex = 1;
+
+        const updateQuotaAvailability = async () => {
+            if (!visitDate.value) {
+                quotaAvailability.textContent = 'Pilih tanggal untuk melihat sisa tiket.';
+                return;
+            }
+
+            quotaAvailability.textContent = 'Memeriksa sisa tiket...';
+            try {
+                const response = await fetch('{{ route('customer.booking.quota', $destination->id_destinasi) }}?date=' + encodeURIComponent(visitDate.value), { headers: { Accept: 'application/json' } });
+                const data = await response.json();
+                quotaAvailability.textContent = data.enabled ? 'Sisa tiket pada tanggal ini: ' + Number(data.remaining).toLocaleString('id-ID') + ' peserta.' : 'Destinasi ini tidak menerapkan batas kuota tiket.';
+            } catch (error) {
+                quotaAvailability.textContent = 'Sisa tiket akan diperiksa saat pesanan dikirim.';
+            }
+        };
 
         const updateCount = () => {
             const leaderReady = ['ketua_nama', 'ketua_email', 'ketua_no_hp', 'tanggal_kunjungan'].every(name => document.querySelector(`[name="${name}"]`)?.value.trim());
@@ -124,6 +145,7 @@
             if (input.name === 'ketua_nama') document.getElementById('participant-name-0').value = input.value;
             updateCount();
         }));
+        visitDate.addEventListener('change', updateQuotaAvailability);
 
         addButton.addEventListener('click', () => {
             if (participants.children.length >= 10) return;
@@ -148,6 +170,7 @@
         });
 
         updateCount();
+        updateQuotaAvailability();
     })();
 </script>
 @endsection

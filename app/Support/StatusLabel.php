@@ -31,7 +31,7 @@ final class StatusLabel
     {
         return match ($status) {
             'PENDING' => 'Menunggu pembayaran',
-            'ACTIVE' => 'Aktif',
+            'ACTIVE' => 'Terkonfirmasi',
             'USED' => 'Sudah digunakan',
             'PARTIAL' => 'Sebagian digunakan',
             'CANCELLED' => 'Dibatalkan',

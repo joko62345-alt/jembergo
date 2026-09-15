@@ -9,12 +9,30 @@ use App\Models\Pemesanan;
 use App\Models\Tiket;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
+    public function updateQuota(Request $request): RedirectResponse
+    {
+        $admin = AdminPariwisata::findOrFail(session('jg_user_id'));
+        $data = $request->validate([
+            'kuota_harian_aktif' => ['nullable', 'boolean'],
+            'kuota_harian' => ['nullable', 'integer', 'min:1', 'max:100000', 'required_if:kuota_harian_aktif,1'],
+        ]);
+        $destination = DestinasiWisata::findOrFail($admin->id_destinasi);
+        $destination->update([
+            'kuota_harian_aktif' => $request->boolean('kuota_harian_aktif'),
+            'kuota_harian' => $request->boolean('kuota_harian_aktif') ? $data['kuota_harian'] : null,
+        ]);
+
+        return back()->with('success', 'Pengaturan kuota harian berhasil disimpan.');
+    }
+
     public function index(): View
     {
         $role = session('jg_role');

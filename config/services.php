@@ -5,6 +5,8 @@ return [
     'payment_gateway' => [
         'driver' => env('PAYMENT_GATEWAY', 'demo'),
         'midtrans_server_key' => env('MIDTRANS_SERVER_KEY'),
+        'midtrans_client_key' => env('MIDTRANS_CLIENT_KEY'),
+        'midtrans_is_production' => env('MIDTRANS_IS_PRODUCTION', false),
         'xendit_secret_key' => env('XENDIT_SECRET_KEY'),
         'webhook_secret' => env('PAYMENT_WEBHOOK_SECRET'),
     ],
@@ -40,6 +42,12 @@ return [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
+    ],
+
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URI', '/auth/google/callback'),
     ],
 
 ];

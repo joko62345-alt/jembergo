@@ -71,9 +71,9 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--jg-dark);
 }
 
-h1 { font-size: clamp(2rem, 4vw, 3.2rem) !important; }
-h2 { font-size: clamp(1.65rem, 3vw, 2.4rem) !important; }
-h3 { font-size: clamp(1.25rem, 2.5vw, 1.75rem) !important; }
+h1 { font-size: clamp(1.35rem, 2.4vw, 2rem) !important; }
+h2 { font-size: clamp(1.2rem, 2vw, 1.65rem) !important; }
+h3 { font-size: clamp(1.05rem, 1.7vw, 1.35rem) !important; }
 
 p {
     color: var(--jg-text);
@@ -965,8 +965,8 @@ em {
 }
 
 @media (max-width: 575px) {
-    h1 { font-size: 2.5rem; }
-    h2 { font-size: 2rem; }
+    h1 { font-size: 1.8rem; }
+    h2 { font-size: 1.5rem; }
     
     .hero-photo {
         height: 300px;

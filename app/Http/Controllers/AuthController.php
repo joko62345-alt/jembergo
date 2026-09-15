@@ -8,7 +8,9 @@ use App\Models\SuperAdmin;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class AuthController extends Controller
@@ -70,6 +72,67 @@ class AuthController extends Controller
         return back()->withInput($request->only('email'))->with('error', 'Email atau password tidak sesuai.');
     }
 
+    public function redirectToGoogle(Request $request): RedirectResponse
+    {
+        if (! $this->googleIsConfigured()) {
+            return redirect()->route('login')->with('error', 'Login Google belum dikonfigurasi oleh administrator.');
+        }
+
+        $state = Str::random(40);
+        $request->session()->put('google_oauth_state', $state);
+        $redirectUri = $this->googleRedirectUri();
+        $query = http_build_query([
+            'client_id' => config('services.google.client_id'),
+            'redirect_uri' => $redirectUri,
+            'response_type' => 'code',
+            'scope' => 'openid email profile',
+            'state' => $state,
+            'access_type' => 'online',
+            'prompt' => 'select_account',
+        ]);
+
+        return redirect()->away('https://accounts.google.com/o/oauth2/v2/auth?'.$query);
+    }
+
+    public function handleGoogleCallback(Request $request): RedirectResponse
+    {
+        $state = $request->session()->pull('google_oauth_state');
+        if (! $state || ! hash_equals($state, (string) $request->query('state'))) {
+            return redirect()->route('login')->with('error', 'Sesi login Google sudah kedaluwarsa. Silakan coba lagi.');
+        }
+
+        if ($request->filled('error') || ! $request->filled('code')) {
+            return redirect()->route('login')->with('error', 'Login dengan Google dibatalkan.');
+        }
+
+        try {
+            $tokenResponse = Http::asForm()->post('https://oauth2.googleapis.com/token', [
+                'code' => $request->string('code')->toString(),
+                'client_id' => config('services.google.client_id'),
+                'client_secret' => config('services.google.client_secret'),
+                'redirect_uri' => $this->googleRedirectUri(),
+                'grant_type' => 'authorization_code',
+            ])->throw()->json();
+            $profile = Http::withToken($tokenResponse['access_token'] ?? '')->get('https://openidconnect.googleapis.com/v1/userinfo')->throw()->json();
+        } catch (\Throwable) {
+            return redirect()->route('login')->with('error', 'Login dengan Google gagal. Silakan coba lagi.');
+        }
+
+        if (empty($profile['email']) || ($profile['email_verified'] ?? false) !== true) {
+            return redirect()->route('login')->with('error', 'Email Google belum terverifikasi.');
+        }
+
+        $customer = Customer::query()->firstOrCreate(
+            ['email' => $profile['email']],
+            ['nama' => $profile['name'] ?? $profile['email'], 'password' => null, 'auth_provider' => 'google']
+        );
+        $customer->update(['auth_provider' => 'google']);
+        $request->session()->regenerate();
+        $request->session()->put(['jg_user_id' => $customer->id_customer, 'jg_user_name' => $customer->nama, 'jg_role' => 'CUSTOMER']);
+
+        return redirect()->to($request->session()->pull('customer_redirect', route('home')));
+    }
+
     public function register(Request $request): RedirectResponse
     {
         if (! Schema::hasTable('customer') || ! Schema::hasTable('sessions')) {
@@ -93,7 +156,7 @@ class AuthController extends Controller
             'auth_provider' => 'manual',
         ]);
 
-        return redirect()->route('login')->with('success', 'Akun berhasil dibuat. Silakan masuk untuk melanjutkan.');
+        return redirect()->route('register')->with('success', 'Registrasi berhasil. Silakan ke halaman login.');
     }
 
     public function logout(Request $request): RedirectResponse
@@ -103,5 +166,23 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('home');
+    }
+
+    private function googleRedirectUri(): string
+    {
+        return str_starts_with((string) config('services.google.redirect'), 'http')
+            ? (string) config('services.google.redirect')
+            : url((string) config('services.google.redirect'));
+    }
+
+    private function googleIsConfigured(): bool
+    {
+        $clientId = (string) config('services.google.client_id');
+        $clientSecret = (string) config('services.google.client_secret');
+
+        return filled($clientId)
+            && filled($clientSecret)
+            && str_ends_with($clientId, '.apps.googleusercontent.com')
+            && ! in_array($clientSecret, ['...', 'your-client-secret'], true);
     }
 }

@@ -17,11 +17,18 @@ class PaymentWebhookController extends Controller
     {
         $data = $request->validate([
             'order_id' => ['required', 'string'],
+            'status_code' => ['required', 'string'],
             'transaction_status' => ['required', 'string'],
             'transaction_id' => ['nullable', 'string'],
             'payment_type' => ['nullable', 'string'],
-            'gross_amount' => ['nullable', 'numeric'],
+            'gross_amount' => ['required', 'numeric'],
+            'signature_key' => ['required', 'string'],
         ]);
+
+        $expectedSignature = hash('sha512', $data['order_id'].$data['status_code'].$data['gross_amount'].config('services.midtrans.server_key'));
+        if (! hash_equals($expectedSignature, $data['signature_key'])) {
+            return response()->json(['message' => 'Invalid notification signature.'], 403);
+        }
 
         try {
             $verified = app(MidtransGateway::class)->verify($data['order_id']);
@@ -33,9 +40,6 @@ class PaymentWebhookController extends Controller
 
         $transactionStatus = strtolower((string) ($verified['transaction_status'] ?? $data['transaction_status']));
         $paymentType = strtolower((string) ($verified['payment_type'] ?? $data['payment_type'] ?? ''));
-        if ($paymentType !== 'qris') {
-            return response()->json(['message' => 'Only QRIS transactions are accepted.'], 422);
-        }
         $status = $this->mapStatus($transactionStatus, $verified['fraud_status'] ?? null);
         $transactionId = $verified['transaction_id'] ?? $data['transaction_id'] ?? null;
         $change = PerubahanPemesanan::where('order_id', $data['order_id'])->with('pemesanan')->first();
@@ -66,14 +70,18 @@ class PaymentWebhookController extends Controller
             return response()->json(['message' => 'Order not found.'], 404);
         }
         $booking = $payment->pemesanan;
+        $verifiedAmount = (float) ($verified['gross_amount'] ?? $data['gross_amount'] ?? 0);
+        if (abs($verifiedAmount - (float) $payment->nominal) > 0.01) {
+            return response()->json(['message' => 'Transaction amount mismatch.'], 422);
+        }
         if ($payment->status_pembayaran === 'PAID') {
             return response()->json(['message' => 'Already processed.']);
         }
-        DB::transaction(function () use ($booking, $payment, $status, $transactionStatus, $transactionId, $verified): void {
+        DB::transaction(function () use ($booking, $payment, $status, $transactionStatus, $paymentType, $transactionId, $verified): void {
             $payment->update([
                 'status_pembayaran' => $status,
                 'transaction_status' => $transactionStatus,
-                'payment_type' => 'qris',
+                'payment_type' => $paymentType ?: null,
                 'transaction_id' => $transactionId,
                 'gross_amount' => $verified['gross_amount'] ?? $payment->gross_amount,
                 'referensi_gateway' => $transactionId,

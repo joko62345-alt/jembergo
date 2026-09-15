@@ -13,7 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->validateCsrfTokens(except: ['payment/midtrans/notification']);
+        $middleware->validateCsrfTokens(except: ['payment/midtrans/notification', 'api/midtrans/notification']);
         $middleware->alias([
             'role' => RoleMiddleware::class,
         ]);

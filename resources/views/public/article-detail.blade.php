@@ -17,5 +17,6 @@
     <article class="public-card overflow-hidden mt-4"><div class="p-4 p-lg-5"><small class="text-warning text-uppercase fw-bold">Cerita perjalanan</small><h1 class="display-5 fw-bold mt-3">{{ $article->judul }}</h1><p class="text-secondary">{{ optional($article->tanggal_publikasi)->translatedFormat('d F Y') }}</p>@if($article->gambar)<img src="{{ $article->gambar }}" class="article-cover-image article-detail-image rounded-4 my-4" alt="{{ $article->judul }}">@endif<div class="lead" style="white-space:pre-line">{{ $article->isi }}</div></div></article>
 </main>
 <x-public-footer />
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

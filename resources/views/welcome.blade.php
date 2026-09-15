@@ -7,27 +7,55 @@
 
 <main class="landing-main">
     <!-- Hero Section -->
-    <section id="beranda" class="hero-section" style="background-image: url('{{ route('assets.background') }}');">
-        <div class="container position-relative z-1">
-            <div class="row align-items-center">
-                <div class="col-lg-7 hero-copy">
-                    <span class="eyebrow"><i class="bi bi-geo-alt-fill"></i> Kabupaten Jember</span>
-                    <h1 class="mt-3">Jelajahi pesona yang <em>lebih dekat.</em></h1>
-                    <p class="lead">Temukan destinasi terbaik, rencanakan kunjunganmu, dan pesan tiket wisata Jember dalam satu langkah sederhana.</p>
-                    <div class="d-flex flex-wrap gap-3 mt-4">
-                        <a href="{{ route('destinations.index') }}" class="btn btn-jg-primary btn-lg">Mulai Eksplorasi <i class="bi bi-arrow-right"></i></a>
-                        <a href="#tentang" class="btn btn-outline-jg btn-lg">Tentang JemberGo</a>
-                    </div>
-                </div>
+    <section id="beranda" class="hero-section hero-carousel-section">
+        <div id="homeHeroCarousel" class="carousel slide carousel-fade" data-bs-ride="carousel" data-bs-interval="6500">
+            <div class="carousel-indicators">
+                <button type="button" data-bs-target="#homeHeroCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+                <button type="button" data-bs-target="#homeHeroCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+                <button type="button" data-bs-target="#homeHeroCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+                <button type="button" data-bs-target="#homeHeroCarousel" data-bs-slide-to="3" aria-label="Slide 4"></button>
+                <button type="button" data-bs-target="#homeHeroCarousel" data-bs-slide-to="4" aria-label="Slide 5"></button>
             </div>
+            <div class="carousel-inner">
+                @php
+                    $heroSlides = [
+                    ['image' => route('assets.hero2'), 'icon' => 'bi-sunrise-fill', 'eyebrow' => 'Panorama Jember', 'title' => 'Pagi yang tak ingin kau lewatkan.', 'copy' => 'Hirup udara pegunungan, nikmati hamparan hijau, dan biarkan Jember menyambut langkahmu.'],
+                    ['image' => route('assets.hero3'), 'icon' => 'bi-tree-fill', 'eyebrow' => 'Petualangan Alam', 'title' => 'Temukan sisi luar Jember.', 'copy' => 'Air terjun, hutan, dan jalan baru siap mengantarmu pada cerita yang berbeda.'],
+                    ['image' => route('assets.hero4'), 'icon' => 'bi-water', 'eyebrow' => 'Ruang Untuk Berhenti', 'title' => 'Berhenti sejenak, rasakan lebih banyak.', 'copy' => 'Temukan ruang tenang di antara bukit dan danau untuk bernapas lebih lega.'],
+                    ['image' => route('assets.hero6'), 'icon' => 'bi-compass-fill', 'eyebrow' => 'Jember Penuh Cerita', 'title' => 'Setiap perjalanan punya cerita.', 'copy' => 'Jelajahi alam, bahari, dan pengalaman lokal yang membuat Jember terasa dekat.'],
+                    ['image' => route('assets.background'), 'icon' => 'bi-stars', 'eyebrow' => 'The Real Hidden Paradise', 'title' => 'Jember, kejutan indah di setiap langkah.', 'copy' => 'Biarkan pesona Jember membawamu menemukan tempat-tempat yang belum pernah kamu bayangkan.'],
+                    ];
+                @endphp
+                @foreach($heroSlides as $index => $slide)
+                    <div class="carousel-item hero-carousel-item {{ $index === 0 ? 'active' : '' }}">
+                        <img src="{{ $slide['image'] }}" class="hero-carousel-image" alt="{{ $slide['title'] }}" loading="{{ $index === 0 ? 'eager' : 'lazy' }}">
+                        <div class="hero-carousel-overlay"></div>
+                        <div class="container position-relative z-1 h-100">
+                            <div class="row align-items-center h-100">
+                                <div class="col-lg-7 hero-copy">
+                                    <span class="eyebrow"><i class="bi {{ $slide['icon'] }}"></i> {{ $slide['eyebrow'] }}</span>
+                                    <h1 class="hero-title mt-3">“{{ $slide['title'] }}”</h1>
+                                    <p class="lead">{{ $slide['copy'] }}</p>
+                                    <div class="d-flex flex-wrap gap-3 mt-4">
+                                        <a href="{{ route('destinations.index') }}" class="btn btn-jg-primary btn-lg">Mulai Eksplorasi <i class="bi bi-arrow-right"></i></a>
+                                        <a href="#tentang" class="btn btn-outline-light btn-lg">Tentang JemberGo</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+            <button class="carousel-control-prev hero-carousel-control" type="button" data-bs-target="#homeHeroCarousel" data-bs-slide="prev" aria-label="Slide sebelumnya"><span class="carousel-control-prev-icon" aria-hidden="true"></span></button>
+            <button class="carousel-control-next hero-carousel-control" type="button" data-bs-target="#homeHeroCarousel" data-bs-slide="next" aria-label="Slide berikutnya"><span class="carousel-control-next-icon" aria-hidden="true"></span></button>
         </div>
     </section>
 
     <!-- Tentang Section -->
-    <section id="tentang" class="section-pad" style="background: linear-gradient(135deg, var(--jg-sky) 0%, var(--jg-white) 100%);">
+    <section id="tentang" class="section-pad" data-reveal-section style="background: linear-gradient(135deg, var(--jg-sky) 0%, var(--jg-white) 100%);">
         <div class="container">
             <div class="row align-items-center g-4">
-                <div class="col-lg-5">
+                <div class="col-lg-5" data-reveal-item>
                     <span class="eyebrow text-orange">Tentang Kami</span>
                     <h2 class="mt-3">Apa itu <em>JemberGo?</em></h2>
                     <p class="mt-3">JemberGo adalah platform informasi dan layanan pariwisata resmi Kabupaten Jember yang membantu wisatawan menemukan, merencanakan, dan memesan tiket wisata dengan mudah.</p>
@@ -38,7 +66,7 @@
                         </a>
                     </div>
                 </div>
-                <div class="col-lg-7">
+                <div class="col-lg-7" data-reveal-item style="--reveal-delay: 120ms;">
                     <div class="category-grid">
                         <a href="{{ route('destinations.index', ['kategori' => 'Alam']) }}" class="category-item">
                             <span class="category-icon"><i class="bi bi-tree-fill"></i></span>
@@ -65,7 +93,7 @@
     </section>
 
     <!-- Destinations Section -->
-    <section id="destinasi" class="section-pad destinations-section">
+    <section id="destinasi" class="section-pad destinations-section" data-reveal-section>
         <div class="container">
             <div class="section-heading d-flex justify-content-between align-items-end mb-4">
                 <div>
@@ -81,7 +109,7 @@
                         $image = $destination->foto_utama ?: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80';
                         $minPrice = $destination->jenisTiket && $destination->jenisTiket->count() > 0 ? $destination->jenisTiket->min('harga') : 0;
                     @endphp
-                    <div class="col-md-6 col-lg-4">
+                    <div class="col-md-6 col-lg-4" data-reveal-item style="--reveal-delay: {{ ($loop->index % 3) * 90 }}ms;">
                         <article class="destination-card h-100">
                             <div class="destination-image">
                                 <img src="{{ $image }}" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80';" alt="{{ $destination->nama_wisata }}">
@@ -121,7 +149,7 @@
     </section>
 
     <!-- Articles Section -->
-    <section id="artikel" class="section-pad">
+    <section id="artikel" class="section-pad" data-reveal-section>
         <div class="container">
             <div class="section-heading d-flex justify-content-between align-items-end mb-4">
                 <div>
@@ -133,7 +161,7 @@
 
             <div class="row g-4">
                 @forelse ($articles as $article)
-                    <div class="col-md-4">
+                    <div class="col-md-4" data-reveal-item style="--reveal-delay: {{ ($loop->index % 3) * 90 }}ms;">
                         <article class="article-card h-100">
                             <div class="article-image">
                                 <img src="{{ $article->gambar ?: 'https://images.unsplash.com/photo-1500534623283-312aade485b7?auto=format&fit=crop&w=800&q=80' }}" 
@@ -162,7 +190,7 @@
     </section>
 
     <!-- CTA Section -->
-    <section class="section-pad">
+    <section class="section-pad" data-reveal-section>
         <div class="container">
             <div class="cta-box">
                 <div>
@@ -207,4 +235,19 @@
         </div>
     </div>
 </footer>
+<script>
+    (() => {
+        const revealItems = document.querySelectorAll('[data-reveal-section], [data-reveal-item]');
+        if (!('IntersectionObserver' in window)) {
+            revealItems.forEach((item) => item.classList.add('is-revealed'));
+            return;
+        }
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => entry.target.classList.toggle('is-revealed', entry.isIntersecting));
+        }, { threshold: 0.14, rootMargin: '0px 0px -8% 0px' });
+
+        revealItems.forEach((item) => observer.observe(item));
+    })();
+</script>
 @endsection

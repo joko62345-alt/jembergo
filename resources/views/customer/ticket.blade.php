@@ -7,6 +7,7 @@
 
 @php
     $participants = collect($booking->anggota_names ?? [])->prepend(['nama' => $booking->ketua_nama, 'id_jenis_tiket' => (int) $booking->ketua_jenis_tiket])->values();
+    $reviewableTicket = $booking->tiket->firstWhere('status_tiket', 'USED');
 @endphp
 
 <main class="section-pad ticket-page" style="padding-top: 8rem; background: var(--jg-bg); min-height: 100vh;">
@@ -27,7 +28,7 @@
                 <div class="row g-4 align-items-start">
                     <div class="col-lg-8">
                         @php($paymentStatus = match ($booking->pembayaran?->status_pembayaran) { 'PAID' => 'Lunas', 'PENDING' => 'Menunggu pembayaran', 'FAILED' => 'Gagal', 'EXPIRED' => 'Kedaluwarsa', default => 'Belum dibayar' })
-                        <div class="ticket-statuses mb-3"><span class="badge ticket-neutral-badge"><i class="bi bi-wallet2 me-1"></i>{{ $paymentStatus }}</span><span class="badge ticket-neutral-badge"><i class="bi bi-calendar-event me-1"></i>{{ $booking->tanggal_kunjungan->format('d/m/Y') }}</span><a href="{{ route('customer.ticket.pdf', $booking->id_pemesanan) }}" class="btn btn-outline-dark btn-sm"><i class="bi bi-file-earmark-pdf me-1"></i>Download PDF</a></div>
+                        <div class="ticket-statuses mb-3"><span class="badge ticket-neutral-badge"><i class="bi bi-wallet2 me-1"></i>{{ $paymentStatus }}</span><span class="badge ticket-neutral-badge"><i class="bi bi-calendar-event me-1"></i>{{ $booking->tanggal_kunjungan->format('d/m/Y') }}</span><a href="{{ route('customer.ticket.pdf', $booking->id_pemesanan) }}" class="btn btn-outline-dark btn-sm"><i class="bi bi-file-earmark-pdf me-1"></i>Download PDF</a>@if($reviewableTicket && ! $reviewableTicket->review)<a href="{{ route('customer.review.create', $reviewableTicket->id_tiket) }}" class="btn btn-warning btn-sm"><i class="bi bi-star me-1"></i>Beri Review</a>@endif</div>
                         <div class="ticket-booking-code"><small>Kode booking</small><strong>{{ $booking->kode_booking }}</strong></div>
                         <div class="row g-3 mt-2"><div class="col-md-6"><small class="text-secondary d-block">Ketua kelompok</small><strong>{{ $booking->ketua_nama }}</strong><span class="d-block small text-secondary">{{ $booking->ketua_email }} · {{ $booking->ketua_no_hp }}</span></div><div class="col-md-3"><small class="text-secondary d-block">Total peserta</small><strong>{{ $participants->count() }} orang</strong></div><div class="col-md-3"><small class="text-secondary d-block">Total dibayar</small><strong class="text-orange">Rp {{ number_format($booking->total_harga, 0, ',', '.') }}</strong></div></div>
                     </div>

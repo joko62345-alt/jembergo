@@ -9,7 +9,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement('DROP INDEX IF EXISTS pembayaran_status_refund_index');
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            DB::statement('DROP INDEX IF EXISTS pembayaran_status_refund_index');
+        }
 
         Schema::table('pembayaran', function (Blueprint $table): void {
             $table->dropColumn([

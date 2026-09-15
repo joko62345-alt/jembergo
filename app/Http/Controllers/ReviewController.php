@@ -13,6 +13,7 @@ class ReviewController extends Controller
     public function create(int $id): View
     {
         $ticket = $this->usedOwnedTicket($id);
+        abort_if(Review::where('id_tiket', $ticket->id_tiket)->exists(), 422, 'Tiket ini sudah memiliki ulasan.');
 
         return view('customer.review', compact('ticket'));
     }
@@ -20,6 +21,7 @@ class ReviewController extends Controller
     public function store(Request $request, int $id): RedirectResponse
     {
         $ticket = $this->usedOwnedTicket($id);
+        abort_if(Review::where('id_tiket', $ticket->id_tiket)->exists(), 422, 'Tiket ini sudah memiliki ulasan.');
         $data = $request->validate([
             'rating' => ['required', 'integer', 'between:1,5'],
             'ulasan' => ['required', 'string', 'max:1000'],
@@ -39,7 +41,11 @@ class ReviewController extends Controller
 
     private function usedOwnedTicket(int $id): Tiket
     {
-        $ticket = Tiket::with('pemesanan')->where('id_tiket', $id)->where('status_tiket', 'USED')->whereHas('pemesanan', fn ($query) => $query->where('id_customer', session('jg_user_id')))->firstOrFail();
+        $ticket = Tiket::with('pemesanan')
+            ->where('id_tiket', $id)
+            ->where('status_tiket', 'USED')
+            ->whereHas('pemesanan', fn ($query) => $query->where('id_customer', session('jg_user_id')))
+            ->firstOrFail();
         abort_if(Review::where('id_tiket', $ticket->id_tiket)->exists(), 422, 'Tiket ini sudah memiliki ulasan.');
 
         return $ticket;

@@ -30,11 +30,8 @@
                 @if(in_array($payment->status_pembayaran ?? $payment->status, ['FAILED', 'EXPIRED'], true))
                     <form method="POST" action="{{ $isChange ? route('customer.change.payment', [$booking->id_pemesanan, $change->id_perubahan]) : route('customer.payment', $booking->id_pemesanan) }}">@csrf<button class="qris-retry" type="submit">Buat QRIS baru</button></form>
                 @endif
-                <form method="POST" action="{{ $isChange ? route('customer.change.qris.simulate', [$booking->id_pemesanan, $change->id_perubahan]) : route('customer.qris.simulate', $booking->id_pemesanan) }}" class="demo-payment-form">
-                    @csrf
-                    <button type="submit" class="demo-payment-button"><i class="bi bi-check-circle me-1"></i>Simulasikan Pembayaran Berhasil</button>
-                </form>
-                <div class="qris-refresh" id="refreshMessage">Setelah simulasi berhasil, status menjadi PAID dan E-ticket aktif.</div>
+                <button type="button" class="qris-check-status" id="checkPaymentStatus">Cek status pembayaran</button>
+                <div class="qris-refresh" id="refreshMessage">Status pembayaran diperbarui otomatis dari Midtrans Sandbox.</div>
             </section>
             <aside class="qris-card qris-summary"><span class="summary-label">Ringkasan pesanan</span><h2>{{ $booking->destinasi->nama_wisata }}</h2><div class="summary-row"><span>Tanggal kunjungan</span><strong>{{ $booking->tanggal_kunjungan->translatedFormat('d F Y') }}</strong></div><div class="summary-row"><span>Jumlah tiket</span><strong>{{ 1 + count($booking->anggota_names ?? []) + ($isChange ? count($change->anggota_baru['anggota'] ?? []) : 0) }} tiket</strong></div><div class="summary-row"><span>Kode pesanan</span><strong>{{ $booking->kode_booking }}</strong></div><div class="summary-total"><span>Total pembayaran</span><strong>Rp {{ number_format($amount, 0, ',', '.') }}</strong></div><div class="only-qris"><i class="bi bi-qr-code-scan"></i><span>Metode pembayaran: <strong>QRIS</strong></span></div></aside>
         </div>
@@ -53,15 +50,36 @@
     .qris-header h1 { font-size: clamp(1.7rem, 2.8vw, 2.25rem); line-height: 1.2; }
     .qris-main-card h2, .qris-summary h2 { font-size: 1rem !important; line-height: 1.35; }
     .qris-instruction { font-size: .8rem !important; }
+    .qris-check-status{margin-top:1rem;padding:.7rem 1rem;border:1px solid #315d78;border-radius:.65rem;background:#fff;color:#315d78;font-weight:600}.qris-check-status:disabled{opacity:.6;cursor:wait}
 </style>
 <script>
 (() => {
     const output = document.getElementById('countdown');
     const status = document.getElementById('paymentStatus');
+    const checkButton = document.getElementById('checkPaymentStatus');
+    const refreshMessage = document.getElementById('refreshMessage');
     const expiresAt = {{ $expiresAt }} * 1000;
     const tick = () => { const remaining = Math.max(0, expiresAt - Date.now()); const seconds = Math.floor(remaining / 1000); output.textContent = [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), seconds % 60].map(value => String(value).padStart(2, '0')).join(':'); if (!remaining) { status.textContent = 'QRIS kedaluwarsa'; clearInterval(timer); } };
     const timer = setInterval(tick, 1000); tick();
-    setInterval(async () => { try { const response = await fetch(window.location.href, { headers: { Accept: 'application/json' } }); if (response.ok) { const data = await response.json(); if (data.status === 'PAID') window.location.href = @json(route('customer.ticket', $booking->id_pemesanan)); } } catch (error) {} }, 10000);
+    const checkStatus = async () => {
+        checkButton.disabled = true;
+        refreshMessage.textContent = 'Memeriksa status pembayaran ke Midtrans...';
+        try {
+            const response = await fetch(window.location.href, { cache: 'no-store', headers: { Accept: 'application/json' } });
+            const data = response.ok ? await response.json() : {};
+            if (data.status === 'PAID') {
+                window.location.href = @json(route('customer.ticket', $booking->id_pemesanan));
+                return;
+            }
+            refreshMessage.textContent = 'Pembayaran masih menunggu konfirmasi Midtrans.';
+        } catch (error) {
+            refreshMessage.textContent = 'Status belum dapat diperiksa. Coba lagi.';
+        } finally {
+            checkButton.disabled = false;
+        }
+    };
+    checkButton.addEventListener('click', checkStatus);
+    setInterval(checkStatus, 10000);
 })();
 </script>
 @endsection

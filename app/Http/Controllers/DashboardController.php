@@ -39,16 +39,16 @@ class DashboardController extends Controller
 
         if ($role === 'ADMIN_PARIWISATA') {
             $admin = AdminPariwisata::findOrFail(session('jg_user_id'));
+            Pemesanan::expirePendingPayments($admin->id_destinasi);
             $destination = DestinasiWisata::findOrFail($admin->id_destinasi);
-            $destinationOrders = Pemesanan::query()->where('id_destinasi', $admin->id_destinasi);
+            $destinationOrders = Pemesanan::query()
+                ->where('id_destinasi', $admin->id_destinasi)
+                ->where('status_pemesanan', 'PAID');
             $recentBookings = (clone $destinationOrders)->with(['customer', 'pembayaran', 'tiket'])->latest('tanggal_pemesanan')->limit(6)->get();
             $pendingVerification = (clone $destinationOrders)
                 ->with(['customer', 'pembayaran', 'tiket'])
                 ->whereHas('tiket', fn ($query) => $query->where('status_tiket', 'ACTIVE'))
-                ->where(function ($query) {
-                    $query->whereHas('pembayaran', fn ($payment) => $payment->where('status_pembayaran', 'PAID'))
-                        ->orWhereHas('pembayaran', fn ($payment) => $payment->where('metode_pembayaran', 'CASH')->where('status_pembayaran', 'PENDING'));
-                })
+                ->whereHas('pembayaran', fn ($payment) => $payment->where('status_pembayaran', 'PAID'))
                 ->latest('tanggal_kunjungan')
                 ->limit(5)
                 ->get();

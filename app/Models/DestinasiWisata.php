@@ -60,13 +60,7 @@ class DestinasiWisata extends Model
             ->whereHas('pemesanan', function ($query) use ($date): void {
                 $query->where('id_destinasi', $this->id_destinasi)
                     ->whereDate('tanggal_kunjungan', $date)
-                    ->where(function ($statusQuery): void {
-                        $statusQuery->where('status_pemesanan', 'PAID')
-                            ->orWhere(function ($pendingQuery): void {
-                                $pendingQuery->where('status_pemesanan', 'PENDING')
-                                    ->where('batas_waktu_pembayaran', '>=', now());
-                            });
-                    });
+                    ->where('status_pemesanan', 'PAID');
             })
             ->sum('jumlah');
     }

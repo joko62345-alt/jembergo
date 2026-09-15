@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Carbon;
 
 class Pemesanan extends Model
 {
@@ -48,6 +49,25 @@ class Pemesanan extends Model
     public function perubahan(): HasMany
     {
         return $this->hasMany(PerubahanPemesanan::class, 'id_pemesanan');
+    }
+
+    public static function expirePendingPayments(?int $destinationId = null): void
+    {
+        $expiredBookings = static::query()
+            ->where('status_pemesanan', 'PENDING')
+            ->whereNotNull('batas_waktu_pembayaran')
+            ->where('batas_waktu_pembayaran', '<', Carbon::now())
+            ->when($destinationId, fn ($query) => $query->where('id_destinasi', $destinationId))
+            ->pluck('id_pemesanan');
+
+        if ($expiredBookings->isEmpty()) {
+            return;
+        }
+
+        static::whereIn('id_pemesanan', $expiredBookings)->update(['status_pemesanan' => 'EXPIRED']);
+        Pembayaran::whereIn('id_pemesanan', $expiredBookings)
+            ->where('status_pembayaran', 'PENDING')
+            ->update(['status_pembayaran' => 'EXPIRED', 'transaction_status' => 'expire']);
     }
 
     public function expireTicketsIfPastVisitDate(): void

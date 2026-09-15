@@ -16,6 +16,7 @@ class CustomerDashboardController extends Controller
     public function orders(?string $filter = null): View
     {
         $filter ??= 'all';
+        Pemesanan::expirePendingPayments();
         Tiket::where('status_tiket', 'ACTIVE')
             ->whereHas('pemesanan', fn ($query) => $query->whereDate('tanggal_kunjungan', '<', today()))
             ->update(['status_tiket' => 'EXPIRED']);

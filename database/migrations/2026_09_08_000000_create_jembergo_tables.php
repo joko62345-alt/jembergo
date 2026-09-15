@@ -112,7 +112,7 @@ return new class extends Migration
         Schema::create('tiket', function (Blueprint $table) {
             $table->id('id_tiket');
             $table->foreignId('id_pemesanan')->constrained('pemesanan', 'id_pemesanan')->cascadeOnDelete();
-            $table->string('kode_qr')->unique();
+            $table->string('kode_qr', 740)->unique();
             $table->string('status_tiket')->default('ACTIVE')->index();
             $table->dateTime('waktu_verifikasi')->nullable();
             $table->dateTime('waktu_pembatalan')->nullable();

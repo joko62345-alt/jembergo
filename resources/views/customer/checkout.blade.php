@@ -21,14 +21,44 @@
         <div class="checkout-facts"><div><small>Ketua kelompok</small><strong>{{ $booking->ketua_nama }}</strong></div><div><small>Total peserta</small><strong>{{ $participants->count() }} orang</strong></div><div><small>Total pesanan</small><strong class="text-orange">Rp {{ number_format($booking->total_harga, 0, ',', '.') }}</strong></div></div>
         <div class="checkout-participants"><strong><i class="bi bi-people me-2"></i>Rincian peserta</strong>@foreach($participants as $participant)<div><span>{{ $participant['nama'] }} @if($loop->first)<small>(Ketua)</small>@endif</span><span>{{ $booking->detailPemesanan->firstWhere('id_jenis_tiket', (int) $participant['id_jenis_tiket'])?->jenisTiket?->nama_jenis ?? 'Tiket' }}</span></div>@endforeach</div>
         <div class="alert alert-warning"><i class=""></i><strong></strong>E-ticket diterbitkan setelah pembayaran berhasil dikonfirmasi.</div>
+        @if($errors->has('payment'))
+            <div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>{{ $errors->first('payment') }}</div>
+        @endif
        
-        <form method="POST" action="{{ route('customer.payment', $booking->id_pemesanan) }}"><button class="checkout-submit" type="submit"><span>Bayar Sekarang</span></button></form>
+        @if($booking->pembayaran?->snap_token)
+            <button class="checkout-submit" id="pay-button" type="button"><span>Bayar Sekarang</span></button>
+        @else
+            <form method="POST" action="{{ route('customer.payment', $booking->id_pemesanan) }}"><button class="checkout-submit" type="submit"><span>Bayar Sekarang</span></button></form>
+        @endif
     </div></div></div><div class="col-lg-5"><aside class="checkout-side"><div class="checkout-side-icon"><i class="bi bi-shield-check"></i></div><h2>Pemesanan aman</h2><p>Data pesananmu tercatat dan e-ticket akan diterbitkan.</p><div class="checkout-side-line"><i class="bi bi-lock"></i><span>Pembayaran diproses dengan aman</span></div><div class="checkout-side-line"><i class="bi bi-headset"></i><span>Butuh bantuan? Hubungi pengelola destinasi</span></div></aside></div></div>
     </div>
 </main>
 <x-public-footer />
 </body>
 </html>
+@if($booking->pembayaran?->snap_token)
+    <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('services.midtrans.client_key') }}"></script>
+    <script>
+        const payButton = document.getElementById('pay-button');
+        const openSnap = () => window.snap.pay(@json($booking->pembayaran->snap_token), {
+            onSuccess: () => { window.location.href = @json(route('customer.ticket', $booking->id_pemesanan)); },
+            onPending: () => { window.alert('Pembayaran masih menunggu konfirmasi.'); },
+            onError: () => { window.alert('Pembayaran gagal. Silakan coba lagi.'); },
+            onClose: () => { window.alert('Pembayaran belum selesai.'); },
+        });
+        payButton.addEventListener('click', openSnap);
+        @if(session('open_snap'))
+            openSnap();
+        @endif
+        setInterval(async () => {
+            try {
+                const response = await fetch(window.location.href, { cache: 'no-store', headers: { Accept: 'application/json' } });
+                const data = response.ok ? await response.json() : {};
+                if (data.status === 'PAID') window.location.href = @json(route('customer.ticket', $booking->id_pemesanan));
+            } catch (error) {}
+        }, 10000);
+    </script>
+@endif
 <style>
     .checkout-page { font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif; color: #173b60; font-size: .9rem; line-height: 1.5; }
     .checkout-page { padding-top: 3rem; padding-bottom: 5rem; }

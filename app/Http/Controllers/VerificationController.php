@@ -129,6 +129,7 @@ class VerificationController extends Controller
     public function bookings(): View
     {
         $admin = AdminPariwisata::findOrFail(session('jg_user_id'));
+        Pemesanan::expirePendingPayments($admin->id_destinasi);
         $destinationBooking = fn ($query) => $query->where('id_destinasi', $admin->id_destinasi);
         $verifiedBookingIds = Tiket::where('status_tiket', 'USED')
             ->whereHas('pemesanan', $destinationBooking)
@@ -145,6 +146,7 @@ class VerificationController extends Controller
             'tiket' => fn ($query) => $query->orderBy('id_tiket'),
         ])
             ->where('id_destinasi', $admin->id_destinasi)
+            ->where('status_pemesanan', 'PAID')
             ->latest('tanggal_pemesanan')
             ->paginate(20);
 

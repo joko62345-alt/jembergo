@@ -6,6 +6,7 @@ use App\Models\DestinasiWisata;
 use App\Models\Pemesanan;
 use App\Models\PerubahanPemesanan;
 use App\Services\BookingTicketService;
+use App\Services\PaymentGateway\MidtransGateway;
 use App\Services\PaymentGateway\PaymentGateway;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\DatabaseManager;
@@ -13,6 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -93,12 +95,19 @@ class BookingController extends Controller
         }
         $booking->pembayaran()->create(['nominal' => $booking->total_harga, 'status_pembayaran' => 'PENDING']);
 
-        return redirect()->route('customer.checkout', $booking->id_pemesanan);
+        return redirect()->route('customer.checkout', $booking->id_pemesanan)->with('open_snap', true);
     }
 
-    public function checkout(int $id): View
+    public function checkout(int $id): View|JsonResponse
     {
-        return view('customer.checkout', ['booking' => $this->ownedBooking($id)]);
+        $booking = $this->ownedBooking($id);
+        if (request()->expectsJson()) {
+            $this->syncPaymentStatus($booking);
+
+            return response()->json(['status' => $booking->pembayaran?->fresh()->status_pembayaran ?? 'PENDING']);
+        }
+
+        return view('customer.checkout', compact('booking'));
     }
 
     public function pay(Request $request, int $id): RedirectResponse
@@ -106,19 +115,27 @@ class BookingController extends Controller
         $booking = $this->ownedBooking($id);
         abort_if($booking->status_pemesanan === 'PAID' || $booking->tiket()->exists(), 422, 'Pesanan ini sudah dibayar dan e-ticket sudah dibuat.');
         $existingPayment = $booking->pembayaran;
-        if ($existingPayment?->status_pembayaran === 'PENDING' && $existingPayment->order_id && $existingPayment->qris_url && $existingPayment->qris_expires_at?->isFuture()) {
-            return redirect()->route('customer.qris', $id);
+        if ($existingPayment?->status_pembayaran === 'PENDING' && $existingPayment->snap_token) {
+            return redirect()->route('customer.checkout', $id);
         }
-        $payment = app(PaymentGateway::class)->createPayment($booking, 'QRIS');
+        try {
+            $payment = app(PaymentGateway::class)->createPayment($booking, 'QRIS');
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return redirect()->route('customer.checkout', $id)->withErrors([
+                'payment' => 'Pembayaran Midtrans belum dapat dibuat: '.$exception->getMessage(),
+            ]);
+        }
         $booking->pembayaran()->update([
-            'order_id' => $payment['order_id'], 'transaction_id' => $payment['transaction_id'],
+            'order_id' => $payment['order_id'], 'snap_token' => $payment['snap_token'] ?? null, 'transaction_id' => $payment['transaction_id'],
             'metode_pembayaran' => 'QRIS', 'status_pembayaran' => 'PENDING',
-            'transaction_status' => $payment['transaction_status'], 'payment_type' => 'qris',
+            'transaction_status' => $payment['transaction_status'], 'payment_type' => $payment['payment_type'],
             'gross_amount' => $payment['gross_amount'], 'referensi_gateway' => $payment['reference'],
-            'qris_url' => $payment['qris_url'], 'qris_expires_at' => $payment['qris_expires_at'],
+            'qris_url' => null, 'qris_expires_at' => null,
         ]);
 
-        return redirect()->route('customer.qris', $booking->id_pemesanan);
+        return redirect()->route('customer.checkout', $booking->id_pemesanan)->with('open_snap', true);
     }
 
     public function reschedule(Request $request, int $id): RedirectResponse
@@ -176,12 +193,17 @@ class BookingController extends Controller
         return redirect()->route('customer.change.checkout', [$id, $change->id_perubahan]);
     }
 
-    public function additionalCheckout(int $id, int $change): View
+    public function additionalCheckout(int $id, int $change): View|JsonResponse
     {
         $booking = $this->ownedBooking($id);
         $this->ensureActivePaidBooking($booking);
         $change = $this->ownedChange($booking, $change);
         abort_if(! in_array($change->status, ['PENDING', 'FAILED', 'EXPIRED'], true), 422, 'Tagihan tambahan ini sudah diproses.');
+        if (request()->expectsJson()) {
+            $this->syncChangePaymentStatus($booking, $change);
+
+            return response()->json(['status' => $change->fresh()->status]);
+        }
         $changeData = $this->changeData($change);
 
         return view('customer.change-checkout', compact('booking', 'change', 'changeData'));
@@ -193,8 +215,8 @@ class BookingController extends Controller
         $this->ensureActivePaidBooking($booking);
         $change = $this->ownedChange($booking, $change);
         abort_if(! in_array($change->status, ['PENDING', 'FAILED', 'EXPIRED'], true), 422, 'Tagihan tambahan ini sudah diproses.');
-        if ($change->order_id && $change->qris_url && $change->qris_expires_at?->isFuture()) {
-            return redirect()->route('customer.change.qris', [$id, $change->id_perubahan]);
+        if ($change->status === 'PENDING' && $change->snap_token) {
+            return redirect()->route('customer.change.checkout', [$id, $change->id_perubahan]);
         }
         if ((float) $change->nominal <= 0) {
             $this->applyChange($booking, $change, ['status' => 'CONFIRMED', 'method' => null, 'reference' => null]);
@@ -204,14 +226,14 @@ class BookingController extends Controller
         $gateway = app(PaymentGateway::class);
         $payment = call_user_func([$gateway, 'createPaymentForAmount'], $booking, 'QRIS', (float) $change->nominal);
         $change->update([
-            'order_id' => $payment['order_id'], 'transaction_id' => $payment['transaction_id'],
+            'order_id' => $payment['order_id'], 'snap_token' => $payment['snap_token'] ?? null, 'transaction_id' => $payment['transaction_id'],
             'metode_pembayaran' => 'QRIS', 'status' => 'PENDING',
             'transaction_status' => $payment['transaction_status'], 'payment_type' => 'qris',
             'gross_amount' => $payment['gross_amount'], 'referensi_gateway' => $payment['reference'],
-            'qris_url' => $payment['qris_url'], 'qris_expires_at' => $payment['qris_expires_at'],
+            'qris_url' => null, 'qris_expires_at' => null,
         ]);
 
-        return redirect()->route('customer.change.qris', [$id, $change->id_perubahan]);
+        return redirect()->route('customer.change.checkout', [$id, $change->id_perubahan])->with('open_snap', true);
     }
 
     public function qrisPayment(int $id): View|JsonResponse
@@ -219,11 +241,102 @@ class BookingController extends Controller
         $booking = $this->ownedBooking($id);
         $payment = $booking->pembayaran;
         if (request()->expectsJson()) {
-            return response()->json(['status' => $payment?->status_pembayaran ?? 'PENDING']);
+            $this->syncPaymentStatus($booking);
+
+            return response()->json(['status' => $payment?->fresh()->status_pembayaran ?? 'PENDING']);
         }
         abort_if(! $payment || $payment->status_pembayaran === 'PAID', 422, 'Transaksi QRIS ini sudah selesai.');
 
         return view('customer.qris-payment', ['booking' => $booking, 'payment' => $payment, 'change' => null]);
+    }
+
+    private function syncPaymentStatus(Pemesanan $booking): void
+    {
+        $payment = $booking->pembayaran;
+        if (! $payment || ! $payment->order_id || $payment->status_pembayaran === 'PAID') {
+            return;
+        }
+
+        try {
+            $verified = app(MidtransGateway::class)->verify($payment->order_id);
+        } catch (\Throwable $exception) {
+            Log::warning('Midtrans status check failed.', ['order_id' => $payment->order_id, 'error' => $exception->getMessage()]);
+
+            return;
+        }
+        $transactionStatus = strtolower((string) ($verified['transaction_status'] ?? 'pending'));
+        $status = match ($transactionStatus) {
+            'settlement', 'capture' => 'PAID',
+            'expire' => 'EXPIRED',
+            'deny', 'cancel', 'failure' => 'FAILED',
+            default => 'PENDING',
+        };
+
+        if ($status === 'PENDING' && $payment->status_pembayaran === 'PENDING') {
+            return;
+        }
+
+        app(DatabaseManager::class)->transaction(function () use ($booking, $payment, $verified, $status, $transactionStatus): void {
+            $payment->update([
+                'status_pembayaran' => $status,
+                'transaction_status' => $transactionStatus,
+                'transaction_id' => $verified['transaction_id'] ?? $payment->transaction_id,
+                'payment_type' => $verified['payment_type'] ?? $payment->payment_type,
+                'gross_amount' => $verified['gross_amount'] ?? $payment->gross_amount,
+                'referensi_gateway' => $verified['transaction_id'] ?? $payment->referensi_gateway,
+                'paid_at' => $status === 'PAID' ? now() : null,
+                'waktu_pembayaran' => $status === 'PAID' ? now() : null,
+            ]);
+            $booking->update(['status_pemesanan' => $status]);
+            if ($status === 'PAID') {
+                app(BookingTicketService::class)->issue($booking->fresh());
+            }
+        });
+    }
+
+    private function syncChangePaymentStatus(Pemesanan $booking, PerubahanPemesanan $change): void
+    {
+        if (! $change->order_id || $change->status === 'PAID') {
+            return;
+        }
+
+        try {
+            $verified = app(MidtransGateway::class)->verify($change->order_id);
+        } catch (\Throwable $exception) {
+            Log::warning('Midtrans additional payment check failed.', ['order_id' => $change->order_id, 'error' => $exception->getMessage()]);
+
+            return;
+        }
+        $transactionStatus = strtolower((string) ($verified['transaction_status'] ?? 'pending'));
+        $status = match ($transactionStatus) {
+            'settlement', 'capture' => 'PAID',
+            'expire' => 'EXPIRED',
+            'deny', 'cancel', 'failure' => 'FAILED',
+            default => 'PENDING',
+        };
+
+        if ($status === 'PENDING' && $change->status === 'PENDING') {
+            return;
+        }
+
+        $change->update([
+            'status' => $status,
+            'transaction_status' => $transactionStatus,
+            'transaction_id' => $verified['transaction_id'] ?? $change->transaction_id,
+            'payment_type' => $verified['payment_type'] ?? 'qris',
+            'gross_amount' => $verified['gross_amount'] ?? $change->gross_amount,
+            'referensi_gateway' => $verified['transaction_id'] ?? $change->referensi_gateway,
+            'paid_at' => $status === 'PAID' ? now() : null,
+            'waktu_pembayaran' => $status === 'PAID' ? now() : null,
+        ]);
+
+        if ($status === 'PAID') {
+            $this->applyChange($booking->fresh(['destinasi', 'detailPemesanan.jenisTiket']), $change->fresh(), [
+                'status' => 'PAID',
+                'method' => 'QRIS',
+                'reference' => $change->transaction_id,
+            ]);
+        }
     }
 
     public function additionalQrisPayment(int $id, int $change): View|JsonResponse
@@ -236,37 +349,6 @@ class BookingController extends Controller
         abort_if($change->status === 'PAID', 422, 'Transaksi QRIS ini sudah selesai.');
 
         return view('customer.qris-payment', ['booking' => $booking, 'payment' => $change, 'change' => $change]);
-    }
-
-    public function simulatePayment(int $id): RedirectResponse
-    {
-        $booking = $this->ownedBooking($id);
-        $payment = $booking->pembayaran;
-        abort_if(! $payment || $payment->status_pembayaran === 'PAID', 422, 'Pembayaran ini sudah diproses.');
-
-        app(DatabaseManager::class)->transaction(function () use ($booking, $payment): void {
-            $payment->update([
-                'status_pembayaran' => 'PAID',
-                'transaction_status' => 'settlement',
-                'payment_type' => 'qris',
-                'paid_at' => now(),
-                'waktu_pembayaran' => now(),
-            ]);
-            $booking->update(['status_pemesanan' => 'PAID']);
-            app(BookingTicketService::class)->issue($booking->fresh());
-        });
-
-        return redirect()->route('customer.ticket', $id)->with('success', 'Pembayaran berhasil disimulasikan. E-ticket sudah aktif.');
-    }
-
-    public function simulateAdditionalPayment(int $id, int $change): RedirectResponse
-    {
-        $booking = $this->ownedBooking($id);
-        $change = $this->ownedChange($booking, $change);
-        abort_if($change->status === 'PAID', 422, 'Pembayaran ini sudah diproses.');
-        $this->applyChange($booking, $change, ['status' => 'PAID', 'method' => 'QRIS', 'reference' => $change->transaction_id]);
-
-        return redirect()->route('customer.ticket', $id)->with('success', 'Pembayaran berhasil disimulasikan. Perjalanan sudah diperbarui.');
     }
 
     public function ticket(int $id): View

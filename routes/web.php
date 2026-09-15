@@ -15,6 +15,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/assets/jembergo-logo.png', fn () => response()->file(resource_path('images/logo.png')))->name('assets.logo');
 Route::get('/assets/jembergo-hero.png', fn () => response()->file(resource_path('images/hero.png')))->name('assets.hero');
+Route::get('/assets/jembergo-hero-2.png', fn () => response()->file(resource_path('images/hero2.png')))->name('assets.hero2');
+Route::get('/assets/jembergo-hero-3.png', fn () => response()->file(resource_path('images/hero3.png')))->name('assets.hero3');
+Route::get('/assets/jembergo-hero-4.png', fn () => response()->file(resource_path('images/hero4.png')))->name('assets.hero4');
+Route::get('/assets/jembergo-hero-6.png', fn () => response()->file(resource_path('images/hero6.png')))->name('assets.hero6');
 Route::get('/assets/jembergo-background.png', fn () => response()->file(resource_path('images/bg.png')))->name('assets.background');
 Route::get('/assets/jembergo-login.png', fn () => response()->file(resource_path('images/login.png')))->name('assets.login');
 Route::get('/', [PublicController::class, 'home'])->name('home');
@@ -25,6 +29,7 @@ Route::get('/destinasi/{id}', [PublicController::class, 'destination'])->whereNu
 Route::get('/artikel', [PublicController::class, 'articles'])->name('articles.index');
 Route::get('/artikel/{id}', [PublicController::class, 'article'])->whereNumber('id')->name('articles.show');
 Route::post('/payment/midtrans/notification', [PaymentWebhookController::class, 'handle'])->name('payment.midtrans.notification');
+Route::post('/api/midtrans/notification', [PaymentWebhookController::class, 'handle'])->name('api.midtrans.notification');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -59,7 +64,6 @@ Route::middleware('role:CUSTOMER')->prefix('customer')->name('customer.')->group
     Route::get('/pemesanan/{id}/checkout', [BookingController::class, 'checkout'])->whereNumber('id')->name('checkout');
     Route::post('/pemesanan/{id}/bayar', [BookingController::class, 'pay'])->whereNumber('id')->name('payment');
     Route::get('/pemesanan/{id}/qris', [BookingController::class, 'qrisPayment'])->whereNumber('id')->name('qris');
-    Route::post('/pemesanan/{id}/qris/simulate', [BookingController::class, 'simulatePayment'])->whereNumber('id')->name('qris.simulate');
     Route::post('/pemesanan/{id}/reschedule', [BookingController::class, 'reschedule'])->whereNumber('id')->name('reschedule');
     Route::post('/pemesanan/{id}/anggota', [BookingController::class, 'addMembers'])->whereNumber('id')->name('members.add');
     Route::get('/pemesanan/{id}/kelola', [BookingController::class, 'manage'])->whereNumber('id')->name('manage');
@@ -67,7 +71,6 @@ Route::middleware('role:CUSTOMER')->prefix('customer')->name('customer.')->group
     Route::get('/pemesanan/{id}/perubahan/{change}/bayar', [BookingController::class, 'additionalCheckout'])->whereNumber('id')->whereNumber('change')->name('change.checkout');
     Route::post('/pemesanan/{id}/perubahan/{change}/bayar', [BookingController::class, 'payAdditional'])->whereNumber('id')->whereNumber('change')->name('change.payment');
     Route::get('/pemesanan/{id}/perubahan/{change}/qris', [BookingController::class, 'additionalQrisPayment'])->whereNumber('id')->whereNumber('change')->name('change.qris');
-    Route::post('/pemesanan/{id}/perubahan/{change}/qris/simulate', [BookingController::class, 'simulateAdditionalPayment'])->whereNumber('id')->whereNumber('change')->name('change.qris.simulate');
     Route::get('/pemesanan/{id}/e-ticket', [BookingController::class, 'ticket'])->whereNumber('id')->name('ticket');
     Route::get('/pemesanan/{id}/e-ticket/pdf', [BookingController::class, 'ticketPdf'])->whereNumber('id')->name('ticket.pdf');
     Route::get('/tiket/{id}/review', [ReviewController::class, 'create'])->whereNumber('id')->name('review.create');

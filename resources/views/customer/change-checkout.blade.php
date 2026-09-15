@@ -21,7 +21,7 @@
                 <article class="review-card"><div class="review-card-title"><i class="bi bi-calendar2-week"></i><div><span>Perubahan perjalanan</span><h2>{{ $booking->destinasi->nama_wisata }}</h2></div></div><div class="date-change"><div><small>Jadwal lama</small><strong>{{ $booking->tanggal_kunjungan->translatedFormat('d F Y') }}</strong></div><i class="bi bi-arrow-right"></i><div class="new-date"><small>Jadwal baru</small><strong>{{ \Carbon\Carbon::parse($newDate)->translatedFormat('d F Y') }}</strong></div></div></article>
                 <article class="review-card"><div class="review-card-title"><i class="bi bi-ticket-perforated"></i><div><span>Data tiket</span><h2>Peserta perjalanan</h2></div></div><div class="ticket-counts"><div><small>Tiket lama</small><strong>{{ 1 + count($booking->anggota_names ?? []) }} tiket</strong></div><div><small>Tiket tambahan</small><strong>+{{ $newMembers->count() }} tiket</strong></div><div><small>Total tiket</small><strong>{{ $totalTickets }} tiket</strong></div></div>@if($newMembers->isNotEmpty())<div class="new-members"><strong>Anggota yang ditambahkan</strong>@foreach($newMembers as $member)<div><span>{{ $member['nama'] }}</span><span>{{ $booking->destinasi->jenisTiket->firstWhere('id_jenis_tiket', (int) $member['id_jenis_tiket'])?->nama_jenis }} · Rp {{ number_format($member['harga'], 0, ',', '.') }}</span></div>@endforeach</div>@endif</article>
             </section>
-            <aside class="review-summary"><div class="review-summary-card"><span class="summary-label">Ringkasan biaya</span><h2>{{ $booking->destinasi->nama_wisata }}</h2><div class="summary-row"><span>Tanggal kunjungan</span><strong>{{ \Carbon\Carbon::parse($newDate)->format('d/m/Y') }}</strong></div><div class="summary-row"><span>Jumlah tiket</span><strong>{{ $totalTickets }} tiket</strong></div><div class="summary-row"><span>Biaya tambahan</span><strong>Rp {{ number_format($change->nominal, 0, ',', '.') }}</strong></div><div class="summary-total"><span>TOTAL PEMBAYARAN</span><strong>Rp {{ number_format($change->nominal, 0, ',', '.') }}</strong></div>@if((float) $change->nominal > 0)<form method="POST" action="{{ route('customer.change.payment', [$booking->id_pemesanan, $change->id_perubahan]) }}">@csrf<input type="hidden" name="metode_pembayaran" value="QRIS"><button class="review-action" type="submit">Lanjut ke Pembayaran <i class="bi bi-arrow-right"></i></button></form><small class="summary-note">Pembayaran diproses melalui QRIS. Booking diperbarui setelah berhasil.</small>@else<form method="POST" action="{{ route('customer.change.payment', [$booking->id_pemesanan, $change->id_perubahan]) }}">@csrf<button class="review-action" type="submit">Konfirmasi Perubahan <i class="bi bi-check2"></i></button></form><small class="summary-note">Tidak ada biaya tambahan untuk perubahan ini.</small>@endif</div></aside>
+            <aside class="review-summary"><div class="review-summary-card"><span class="summary-label">Ringkasan biaya</span><h2>{{ $booking->destinasi->nama_wisata }}</h2><div class="summary-row"><span>Tanggal kunjungan</span><strong>{{ \Carbon\Carbon::parse($newDate)->format('d/m/Y') }}</strong></div><div class="summary-row"><span>Jumlah tiket</span><strong>{{ $totalTickets }} tiket</strong></div><div class="summary-row"><span>Biaya tambahan</span><strong>Rp {{ number_format($change->nominal, 0, ',', '.') }}</strong></div><div class="summary-total"><span>TOTAL PEMBAYARAN</span><strong>Rp {{ number_format($change->nominal, 0, ',', '.') }}</strong></div>@if((float) $change->nominal > 0)@if($change->snap_token)<button class="review-action" id="change-pay-button" type="button">Lanjut ke Pembayaran <i class="bi bi-arrow-right"></i></button>@else<form method="POST" action="{{ route('customer.change.payment', [$booking->id_pemesanan, $change->id_perubahan]) }}">@csrf<input type="hidden" name="metode_pembayaran" value="QRIS"><button class="review-action" type="submit">Lanjut ke Pembayaran <i class="bi bi-arrow-right"></i></button></form>@endif<small class="summary-note">Pembayaran diproses melalui QRIS. Booking diperbarui setelah berhasil.</small>@else<form method="POST" action="{{ route('customer.change.payment', [$booking->id_pemesanan, $change->id_perubahan]) }}">@csrf<button class="review-action" type="submit">Konfirmasi Perubahan <i class="bi bi-check2"></i></button></form><small class="summary-note">Tidak ada biaya tambahan untuk perubahan ini.</small>@endif</div></aside>
         </div>
     </div>
 </main>
@@ -37,4 +37,26 @@
     .review-header h1 { font-size: clamp(1.7rem, 2.8vw, 2.25rem); line-height: 1.2; }
     .review-card-title h2, .review-summary-card h2 { font-size: 1.05rem; line-height: 1.3; }
 </style>
+@if($change->snap_token)
+    <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('services.midtrans.client_key') }}"></script>
+    <script>
+        const openChangeSnap = () => window.snap.pay(@json($change->snap_token), {
+            onSuccess: () => { window.location.href = @json(route('customer.ticket', $booking->id_pemesanan)); },
+            onPending: () => { window.alert('Pembayaran masih menunggu konfirmasi.'); },
+            onError: () => { window.alert('Pembayaran gagal. Silakan coba lagi.'); },
+            onClose: () => { window.alert('Pembayaran belum selesai.'); },
+        });
+        document.getElementById('change-pay-button').addEventListener('click', openChangeSnap);
+        @if(session('open_snap'))
+            openChangeSnap();
+        @endif
+        setInterval(async () => {
+            try {
+                const response = await fetch(window.location.href, { cache: 'no-store', headers: { Accept: 'application/json' } });
+                const data = response.ok ? await response.json() : {};
+                if (data.status === 'PAID') window.location.href = @json(route('customer.ticket', $booking->id_pemesanan));
+            } catch (error) {}
+        }, 10000);
+    </script>
+@endif
 @endsection

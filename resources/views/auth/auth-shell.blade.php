@@ -98,6 +98,7 @@
                     <h1></h1><p class="auth-subtitle">Daftar untuk mendapatkan akses ke layanan pariwisata Kabupaten Jember</p>
                     <form action="{{ route('register.store') }}" method="POST">@csrf
                         <div class="auth-field"><label for="register-name">Nama Lengkap</label><input id="register-name" name="nama" class="form-control" placeholder="Nama lengkap" value="{{ old('nama') }}" required></div>
+                        <div class="auth-field"><label for="register-phone">Nomor Telepon</label><input id="register-phone" name="no_hp" type="tel" class="form-control" placeholder="Contoh: 081234567890" value="{{ old('no_hp') }}" inputmode="tel"></div>
                         <div class="auth-field"><label for="register-email">Email</label><input id="register-email" name="email" type="email" class="form-control" placeholder="nama@email.com" value="{{ old('email') }}" required></div>
                         <div class="auth-field"><label for="register-password">Password</label><input id="register-password" name="password" type="password" class="form-control" placeholder="Minimal 8 karakter" required></div>
                         <button class="auth-submit" type="submit"><span>Daftar</span><i class="bi bi-arrow-right"></i></button>

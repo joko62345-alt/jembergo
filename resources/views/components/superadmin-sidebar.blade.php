@@ -1,21 +1,43 @@
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-<style>
-    .superadmin-shell { min-height: 100vh; background: #f6fafb; }
-    .superadmin-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 1030; width: 250px; padding: 1.5rem; background: #263238; }
-    .superadmin-sidebar .nav-link { color: #b8c8cb; border-radius: .75rem; padding: .75rem 1rem; }
-    .superadmin-sidebar .nav-link:hover { color: #263238; background: #ffc22f; }
-    .superadmin-main, body > main.container { min-height: 100vh; margin-left: 250px; max-width: calc(100% - 250px); }
-    @media (max-width: 767.98px) { .superadmin-sidebar { width: 72px; padding: .75rem; } .superadmin-sidebar .brand-label, .superadmin-sidebar .nav-label, .superadmin-sidebar .sidebar-caption { display: none; } .superadmin-sidebar .nav-link { text-align: center; padding: .8rem .4rem; } .superadmin-sidebar .nav-link i { margin: 0 !important; font-size: 1.15rem; } .superadmin-main, body > main.container { margin-left: 72px; max-width: calc(100% - 72px); } }
-</style>
-<aside class="superadmin-sidebar">
-    <a href="{{ route('home') }}" class="text-white text-decoration-none d-flex align-items-center gap-2 mb-5"><span class="brand-wordmark fs-5">Jember<span class="brand-accent">Go</span></span></a>
-    <small class="sidebar-caption text-uppercase text-white-50 px-2">Super Admin</small>
-    <nav class="nav flex-column gap-2 mt-2">
-        <a href="{{ route('dashboard') }}" class="nav-link"><i class="bi bi-grid-1x2 me-2"></i><span class="nav-label">Dashboard</span></a>
-        <a href="{{ route('superadmin.destinations') }}" class="nav-link"><i class="bi bi-geo-alt me-2"></i><span class="nav-label">Destinasi</span></a>
-        <a href="{{ route('superadmin.management') }}" class="nav-link"><i class="bi bi-sliders me-2"></i><span class="nav-label">Management</span></a>
-        <a href="{{ route('superadmin.articles') }}" class="nav-link"><i class="bi bi-journal-text me-2"></i><span class="nav-label">Artikel</span></a>
-        <a href="{{ route('superadmin.report') }}" class="nav-link"><i class="bi bi-bar-chart me-2"></i><span class="nav-label">Laporan</span></a>
+<aside id="superadmin-sidebar" class="superadmin-sidebar">
+    <a href="{{ route('home') }}" class="superadmin-brand">
+        <span class="superadmin-brand-mark">J</span>
+        <span class="superadmin-brand-name">Jember<span>Go</span></span>
+    </a>
+    <small class="superadmin-caption">{{ session('jg_role') === 'SUPER_ADMIN' ? 'Workspace' : 'Menu utama' }}</small>
+    <nav class="superadmin-nav" aria-label="Navigasi Super Admin">
+        <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"><i class="bi bi-grid-1x2" aria-hidden="true"></i><span>Dashboard</span></a>
+        @if(session('jg_role') === 'SUPER_ADMIN')
+            <a href="{{ route('superadmin.destinations') }}" class="nav-link {{ request()->routeIs('superadmin.destinations*') ? 'active' : '' }}"><i class="bi bi-geo-alt" aria-hidden="true"></i><span>Destinasi wisata</span></a>
+            @php($managementOpen = request()->routeIs('superadmin.management*'))
+            <div class="sidebar-dropdown {{ $managementOpen ? 'is-open' : '' }}">
+                <button type="button" class="nav-link sidebar-dropdown-toggle {{ $managementOpen ? 'active' : '' }}" aria-expanded="{{ $managementOpen ? 'true' : 'false' }}" aria-controls="management-submenu">
+                    <i class="bi bi-people" aria-hidden="true"></i><span>Manajemen akun</span><i class="bi bi-chevron-down sidebar-chevron" aria-hidden="true"></i>
+                </button>
+                <div class="sidebar-submenu" id="management-submenu">
+                    <a href="{{ route('superadmin.management.admins') }}" class="nav-link {{ request()->routeIs('superadmin.management.admins') ? 'active' : '' }}"><i class="bi bi-person" aria-hidden="true"></i><span>Admin Pariwisata</span></a>
+                    <a href="{{ route('superadmin.management.customers') }}" class="nav-link {{ request()->routeIs('superadmin.management.customers') ? 'active' : '' }}"><i class="bi bi-person" aria-hidden="true"></i><span>Customer</span></a>
+                </div>
+            </div>
+            <a href="{{ route('superadmin.articles') }}" class="nav-link {{ request()->routeIs('superadmin.articles*') ? 'active' : '' }}"><i class="bi bi-journal-text" aria-hidden="true"></i><span>Artikel</span></a>
+            <a href="{{ route('superadmin.report') }}" class="nav-link {{ request()->routeIs('superadmin.report*') ? 'active' : '' }}"><i class="bi bi-bar-chart" aria-hidden="true"></i><span>Laporan</span></a>
+        @elseif(session('jg_role') === 'ADMIN_PARIWISATA')
+            <a href="{{ route('admin.verification') }}" class="nav-link {{ request()->routeIs('admin.verification') ? 'active' : '' }}"><i class="bi bi-qr-code-scan" aria-hidden="true"></i><span>Verifikasi</span></a>
+            <a href="{{ route('admin.bookings') }}" class="nav-link {{ request()->routeIs('admin.bookings') ? 'active' : '' }}"><i class="bi bi-calendar-check" aria-hidden="true"></i><span>Pemesanan destinasi</span></a>
+            <a href="{{ route('admin.verification.history') }}" class="nav-link {{ request()->routeIs('admin.verification.history') ? 'active' : '' }}"><i class="bi bi-clock-history" aria-hidden="true"></i><span>Riwayat verifikasi</span></a>
+        @else
+            <a href="{{ route('destinations.index') }}" class="nav-link"><i class="bi bi-compass" aria-hidden="true"></i><span>Destinasi</span></a>
+            <a href="{{ route('customer.orders') }}" class="nav-link"><i class="bi bi-ticket-perforated" aria-hidden="true"></i><span>Pesanan saya</span></a>
+            <a href="{{ route('customer.profile') }}" class="nav-link"><i class="bi bi-person" aria-hidden="true"></i><span>Profil</span></a>
+        @endif
     </nav>
-    <form method="POST" action="{{ route('logout') }}" class="mt-5">@csrf<button class="nav-link w-100 border-0 bg-transparent text-start"><i class="bi bi-box-arrow-left me-2"></i><span class="nav-label">Keluar</span></button></form>
+    <form method="POST" action="{{ route('logout') }}" class="superadmin-logout">@csrf<button class="nav-link" type="submit"><i class="bi bi-box-arrow-left" aria-hidden="true"></i><span>Keluar</span></button></form>
 </aside>
+<script>
+    document.querySelectorAll('.sidebar-dropdown-toggle').forEach((toggle) => {
+        toggle.addEventListener('click', () => {
+            const dropdown = toggle.closest('.sidebar-dropdown');
+            const open = dropdown.classList.toggle('is-open');
+            toggle.setAttribute('aria-expanded', open);
+        });
+    });
+</script>

@@ -28,14 +28,14 @@ class VerificationController extends Controller
             : Tiket::with('pemesanan')->where('kode_qr', $rawInput)->first();
 
         if ($scannedTicket) {
-            $inputDetails = ['booking_code' => $scannedTicket->pemesanan->kode_booking, 'ticket_id' => $scannedTicket->id_tiket];
+            $inputDetails = ['booking_code' => $scannedTicket->pemesanan->kode_booking, 'ticket_id' => null];
         } else {
             $inputDetails = $this->bookingDetailsFromInput($rawInput);
         }
         $bookingCode = $inputDetails['booking_code'];
 
         if (! $bookingCode) {
-            return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Kode tiket tidak valid. Gunakan QR tiket atau kode booking yang benar.');
+            return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Kode booking atau QR grup tidak valid.');
         }
 
         $booking = Pemesanan::with(['customer', 'destinasi', 'pembayaran', 'tiket', 'detailPemesanan.jenisTiket'])
@@ -44,16 +44,14 @@ class VerificationController extends Controller
             ->first();
 
         if (! $booking) {
-            return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Tiket tidak valid atau bukan milik destinasi ini. Periksa kembali kode tiket atau kode booking.');
+            return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Booking tidak valid atau bukan milik destinasi ini. Periksa kembali QR grup atau kode booking.');
         }
 
         $booking->expireTicketsIfPastVisitDate();
         if (date('Y-m-d', strtotime((string) $booking->tanggal_kunjungan)) < today()->toDateString()) {
             return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Tiket sudah kadaluarsa karena tanggal kunjungan telah lewat.');
         }
-        $cashPending = $booking->pembayaran?->metode_pembayaran === 'CASH'
-            && $booking->pembayaran->status_pembayaran === 'PENDING';
-        if (! $booking->pembayaran || ($booking->pembayaran->status_pembayaran !== 'PAID' && ! $cashPending)) {
+        if (! $booking->pembayaran || $booking->pembayaran->status_pembayaran !== 'PAID') {
             return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Tiket belum dibayar.');
         }
 
@@ -94,7 +92,7 @@ class VerificationController extends Controller
 
         return [
             'booking_code' => is_string($bookingCode) && str_starts_with(strtoupper($bookingCode), 'JGO-') ? strtoupper($bookingCode) : null,
-            'ticket_id' => isset($payload['ticket_id']) && is_numeric($payload['ticket_id']) ? (int) $payload['ticket_id'] : null,
+            'ticket_id' => null,
         ];
     }
 
@@ -111,9 +109,7 @@ class VerificationController extends Controller
         if (date('Y-m-d', strtotime((string) $booking->tanggal_kunjungan)) < today()->toDateString()) {
             return redirect()->route('admin.verification')->with('verification_error', 'Tiket sudah kadaluarsa karena tanggal kunjungan telah lewat.');
         }
-        $cashPending = $booking->pembayaran?->metode_pembayaran === 'CASH'
-            && $booking->pembayaran->status_pembayaran === 'PENDING';
-        abort_if(! $booking->pembayaran || ($booking->pembayaran->status_pembayaran !== 'PAID' && ! $cashPending), 422, 'Tiket belum dibayar.');
+        abort_if(! $booking->pembayaran || $booking->pembayaran->status_pembayaran !== 'PAID', 422, 'Tiket belum dibayar.');
         if (today()->lt($booking->tanggal_kunjungan)) {
             return redirect()->route('admin.verification')->with('verification_error', 'Tiket belum dapat diverifikasi. Jadwal kunjungan baru pada ' . date('d/m/Y', strtotime((string) $booking->tanggal_kunjungan)) . '.');
         }
@@ -122,11 +118,6 @@ class VerificationController extends Controller
             $ticketQuery->where('id_tiket', $data['id_tiket']);
         }
         abort_if(! $ticketQuery->exists(), 422, 'Tiket sudah digunakan atau dibatalkan.');
-
-        if ($cashPending) {
-            $booking->update(['status_pemesanan' => 'PAID']);
-            $booking->pembayaran->update(['status_pembayaran' => 'PAID', 'waktu_pembayaran' => now()]);
-        }
 
         $ticketQuery->update(['status_tiket' => 'USED', 'waktu_verifikasi' => now('UTC')]);
 

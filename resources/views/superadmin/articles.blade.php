@@ -1,30 +1,36 @@
-@include('components.superadmin-sidebar')
-<!doctype html>
-<html lang="id">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Artikel | JemberGo</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="{{ asset('css/jembergo-fallback.css') }}" rel="stylesheet">
-</head>
-<body class="bg-light">
-    <main class="container py-5">
-        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-            <div><a href="{{ route('dashboard') }}" class="text-dark text-decoration-none">Dashboard</a><h1 class="h2 fw-bold mt-2 mb-1">Artikel Publik</h1><p class="text-secondary mb-0">Kelola artikel yang diterbitkan dan draf.</p></div>
-            <a href="{{ route('superadmin.management.article.create') }}" class="btn btn-warning rounded-pill"><i class="bi bi-plus-lg me-1"></i>Tulis artikel</a>
-        </div>
-        @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-        @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
-        <div class="card border-0 shadow-sm rounded-4"><div class="card-body p-4">
-            <div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Artikel</th><th>Status</th><th>Publikasi</th><th class="text-end">Aksi</th></tr></thead><tbody>
-                @forelse($articles as $article)
-                    <tr><td><div class="d-flex align-items-center gap-3">@if($article->gambar)<img src="{{ $article->gambar }}" alt="{{ $article->judul }}" width="72" height="52" class="rounded" style="object-fit:cover">@endif<div><strong>{{ $article->judul }}</strong><small class="d-block text-secondary">{{ \Illuminate\Support\Str::limit($article->isi, 100) }}</small></div></div></td><td><span class="badge {{ $article->status === 'PUBLISHED' ? 'text-bg-success' : 'text-bg-secondary' }}">{{ \App\Support\StatusLabel::article($article->status) }}</span></td><td>{{ $article->tanggal_publikasi?->format('d/m/Y H:i') ?? '-' }}</td><td class="text-end"><a href="{{ route('superadmin.articles.edit', $article->id_artikel) }}" class="btn btn-outline-dark btn-sm rounded-pill me-1"><i class="bi bi-pencil"></i> Edit</a><form method="POST" action="{{ route('superadmin.management.article.destroy', $article->id_artikel) }}" class="d-inline" onsubmit="return confirm('Hapus artikel ini?')">@csrf @method('DELETE')<button class="btn btn-outline-danger btn-sm rounded-pill" type="submit"><i class="bi bi-trash"></i> Hapus</button></form></td></tr>
-                @empty
-                    <tr><td colspan="4" class="text-center text-secondary py-5">Belum ada artikel.</td></tr>
-                @endforelse
-            </tbody></table></div>
-        </div></div>
-    </main>
-</body>
-</html>
+@extends('layouts.superadmin')
+@section('title', 'Artikel')
+@section('page_label', 'Artikel publik')
+@section('content')
+    <div class="article-page-heading"><div><span class="page-kicker">Content management</span><h1>Artikel</h1><p>Kelola artikel dan informasi pariwisata JemberGo.</p></div><a href="{{ route('superadmin.articles.create') }}" class="btn btn-warning"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Tambah artikel</a></div>
+    @if(session('success'))<div class="alert alert-success article-alert"><i class="bi bi-check-circle me-2" aria-hidden="true"></i>{{ session('success') }}</div>@endif
+    @if($errors->any())<div class="alert alert-danger article-alert"><i class="bi bi-exclamation-circle me-2" aria-hidden="true"></i>{{ $errors->first() }}</div>@endif
+    <section class="article-toolbar"><div class="article-search"><i class="bi bi-search" aria-hidden="true"></i><input id="article-search" type="search" placeholder="Cari artikel..." aria-label="Cari artikel"></div><select id="article-status-filter" class="form-select" aria-label="Filter status"><option value="">Semua status</option><option value="PUBLISHED">Diterbitkan</option><option value="DRAFT">Draf</option></select></section>
+    <section class="article-list-card"><div class="table-responsive"><table class="table article-table align-middle mb-0"><thead><tr><th>Artikel</th><th>Status</th><th>Publikasi</th><th class="text-end">Aksi</th></tr></thead><tbody id="article-list">
+        @forelse($articles as $article)
+            <tr data-article-row data-title="{{ strtolower($article->judul) }}" data-status="{{ $article->status }}"><td><div class="article-list-item">@if($article->gambar)<img src="{{ $article->gambar }}" alt="{{ $article->judul }}" class="article-list-image">@else<div class="article-list-image article-list-image-empty"><i class="bi bi-image" aria-hidden="true"></i></div>@endif<div><strong>{{ $article->judul }}</strong><small>{{ \Illuminate\Support\Str::limit($article->isi, 115) }}</small></div></div></td><td><span class="article-status-badge {{ $article->status === 'PUBLISHED' ? 'is-published' : 'is-draft' }}"><span></span>{{ \App\Support\StatusLabel::article($article->status) }}</span></td><td class="article-date">{{ $article->tanggal_publikasi?->format('d/m/Y H:i') ?? 'Belum diterbitkan' }}</td><td class="text-end"><div class="article-row-actions"><a href="{{ route('superadmin.articles.edit', $article->id_artikel) }}" class="btn btn-outline-dark btn-sm"><i class="bi bi-pencil me-1" aria-hidden="true"></i>Edit</a><button type="button" class="btn btn-outline-danger btn-sm" data-delete-article data-article-title="{{ $article->judul }}" data-delete-action="{{ route('superadmin.articles.destroy', $article->id_artikel) }}"><i class="bi bi-trash3 me-1" aria-hidden="true"></i>Hapus</button></div></td></tr>
+        @empty
+            <tr><td colspan="4"><div class="article-empty"><i class="bi bi-journal-text" aria-hidden="true"></i><h2>Belum ada artikel</h2><p>Mulai tulis artikel pertama untuk pembaca JemberGo.</p><a href="{{ route('superadmin.articles.create') }}" class="btn btn-warning">Tambah artikel</a></div></td></tr>
+        @endforelse
+    </tbody></table></div></section>
+    <p class="article-no-results" id="article-no-results" hidden>Tidak ada artikel yang sesuai.</p>
+
+    <dialog class="article-delete-dialog" id="article-delete-dialog" aria-labelledby="article-delete-title"><div class="article-dialog-panel"><div class="dialog-header"><div><span class="page-kicker text-danger">Tindakan permanen</span><h2 id="article-delete-title">Hapus artikel?</h2><p>Artikel <strong id="article-delete-name"></strong> akan dihapus dan tidak dapat dikembalikan.</p></div><button type="button" class="dialog-close" data-close-article-dialog aria-label="Tutup dialog"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div><div class="dialog-actions"><button type="button" class="btn btn-outline-dark" data-close-article-dialog>Batal</button><form method="POST" id="article-delete-form">@csrf @method('DELETE')<button type="submit" class="btn btn-danger"><i class="bi bi-trash3 me-1" aria-hidden="true"></i>Hapus artikel</button></form></div></div></dialog>
+@endsection
+@push('scripts')
+<script>
+    (() => {
+        const search = document.getElementById('article-search');
+        const status = document.getElementById('article-status-filter');
+        const empty = document.getElementById('article-no-results');
+        const filter = () => { const query = search.value.toLowerCase().trim(); let visible = 0; document.querySelectorAll('[data-article-row]').forEach((row) => { const match = (!query || row.dataset.title.includes(query)) && (!status.value || row.dataset.status === status.value); row.hidden = !match; if (match) visible++; }); empty.hidden = visible > 0; };
+        [search, status].forEach((control) => control.addEventListener('input', filter));
+        const dialog = document.getElementById('article-delete-dialog');
+        const name = document.getElementById('article-delete-name');
+        const form = document.getElementById('article-delete-form');
+        document.querySelectorAll('[data-delete-article]').forEach((button) => button.addEventListener('click', () => { name.textContent = button.dataset.articleTitle; form.action = button.dataset.deleteAction; dialog.showModal(); }));
+        document.querySelectorAll('[data-close-article-dialog]').forEach((button) => button.addEventListener('click', () => dialog.close()));
+        dialog?.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); });
+    })();
+</script>
+@endpush

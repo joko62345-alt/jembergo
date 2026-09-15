@@ -60,11 +60,20 @@ class SuperAdminController extends Controller
         $to = $request->date('to')?->endOfDay();
         $destinationId = $request->integer('id_destinasi') ?: null;
         $destinations = DestinasiWisata::orderBy('nama_wisata')->get(['id_destinasi', 'nama_wisata']);
-        $orders = Schema::hasTable('pemesanan')
-            ? Pemesanan::with(['destinasi', 'tiket'])->when($destinationId, fn ($query) => $query->where('id_destinasi', $destinationId))->when($from, fn ($query) => $query->where('tanggal_pemesanan', '>=', $from))->when($to, fn ($query) => $query->where('tanggal_pemesanan', '<=', $to))->latest('tanggal_pemesanan')->paginate(20)->withQueryString()
-            : collect();
+        $totalPendapatan = 0;
 
-        return view('superadmin.report', compact('orders', 'from', 'to', 'destinationId', 'destinations'));
+        if (Schema::hasTable('pemesanan')) {
+            $ordersQuery = Pemesanan::query()
+                ->when($destinationId, fn ($query) => $query->where('id_destinasi', $destinationId))
+                ->when($from, fn ($query) => $query->where('tanggal_pemesanan', '>=', $from))
+                ->when($to, fn ($query) => $query->where('tanggal_pemesanan', '<=', $to));
+            $totalPendapatan = (clone $ordersQuery)->sum('total_harga');
+            $orders = $ordersQuery->with(['destinasi', 'tiket'])->latest('tanggal_pemesanan')->paginate(20)->withQueryString();
+        } else {
+            $orders = collect();
+        }
+
+        return view('superadmin.report', compact('orders', 'from', 'to', 'destinationId', 'destinations', 'totalPendapatan'));
     }
 
     private function validatedDestination(Request $request): array

@@ -1,56 +1,20 @@
-@include('components.superadmin-sidebar')
-<!doctype html>
-<html lang="id">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Tulis Artikel | JemberGo</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="{{ asset('css/jembergo-fallback.css') }}" rel="stylesheet">
-</head>
-<body class="bg-light">
-    <main class="container py-5">
-        <a href="{{ route('superadmin.management') }}" class="text-dark text-decoration-none">Kembali ke Management</a>
-
-        <div class="row justify-content-center mt-4">
-            <div class="col-lg-8">
-                <div class="card border-0 shadow-sm rounded-4">
-                    <div class="card-body p-4 p-lg-5">
-                        <h1 class="h3 fw-bold">Tulis artikel publik</h1>
-                        <p class="text-secondary">Artikel berstatus Diterbitkan akan tampil di website publik dan customer.</p>
-
-                        @if (session('success'))
-                            <div class="alert alert-success">{{ session('success') }}</div>
-                        @endif
-
-                        @if ($errors->any())
-                            <div class="alert alert-danger">{{ $errors->first() }}</div>
-                        @endif
-
-                        <form method="POST" action="{{ route('superadmin.management.article') }}" enctype="multipart/form-data">
-                            @csrf
-                            <label class="form-label mt-3" for="judul">Judul artikel</label>
-                            <input id="judul" name="judul" value="{{ old('judul') }}" class="form-control" required>
-
-                            <label class="form-label mt-3" for="isi">Isi artikel</label>
-                            <textarea id="isi" name="isi" rows="10" class="form-control" required>{{ old('isi') }}</textarea>
-
-                            <label class="form-label mt-3" for="gambar">Upload gambar</label>
-                            <input id="gambar" name="gambar" type="file" accept="image/jpeg,image/png,image/webp" class="form-control">
-                            <small class="text-secondary">JPG, PNG, atau WEBP, maksimal 5 MB.</small>
-
-                            <label class="form-label mt-3" for="status">Status</label>
-                            <select id="status" name="status" class="form-select">
-                                <option value="DRAFT" @selected(old('status', 'DRAFT') === 'DRAFT')>Draf</option>
-                                <option value="PUBLISHED" @selected(old('status') === 'PUBLISHED')>Diterbitkan</option>
-                            </select>
-
-                            <button class="btn btn-warning rounded-pill mt-4" type="submit">Simpan artikel</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-</body>
-</html>
+@extends('layouts.superadmin')
+@section('title', 'Tulis Artikel')
+@section('page_label', 'Artikel / Tulis artikel')
+@section('content')
+    <div class="article-page-heading"><div><span class="page-kicker">Content management</span><h1>Artikel</h1><p>Kelola artikel dan informasi pariwisata JemberGo.</p></div><a href="{{ route('superadmin.articles') }}" class="btn btn-outline-dark"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Kembali ke artikel</a></div>
+    <div class="article-breadcrumb"><a href="{{ route('superadmin.articles') }}">Artikel</a><i class="bi bi-chevron-right" aria-hidden="true"></i><span>Tulis artikel</span></div>
+    @if(session('success'))<div class="alert alert-success article-alert"><i class="bi bi-check-circle me-2" aria-hidden="true"></i>{{ session('success') }}</div>@endif
+    @if($errors->any())<div class="alert alert-danger article-alert"><i class="bi bi-exclamation-circle me-2" aria-hidden="true"></i>{{ $errors->first() }}</div>@endif
+    <section class="article-editor-card"><div class="article-editor-card-heading"><div><span class="page-kicker">Artikel baru</span><h2>Tulis artikel</h2><p>Buat informasi baru untuk pembaca JemberGo.</p></div></div>@include('superadmin.partials.article-form', ['article' => null, 'formAction' => route('superadmin.articles.store'), 'formMethod' => 'POST', 'submitLabel' => 'Simpan artikel', 'cancelUrl' => route('superadmin.articles')])</section>
+@endsection
+@push('scripts')
+<script>
+    (() => {
+        const input = document.querySelector('[data-article-image-input]');
+        const preview = document.querySelector('[data-article-image-preview]');
+        input?.addEventListener('change', () => { const file = input.files?.[0]; if (!file) return; const image = document.createElement('img'); image.alt = 'Preview gambar baru'; image.src = URL.createObjectURL(file); preview.replaceChildren(image); });
+        document.querySelector('.article-editor-form')?.addEventListener('submit', (event) => { const button = event.currentTarget.querySelector('.article-submit-button'); if (button) { button.disabled = true; button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Menyimpan...'; } });
+    })();
+</script>
+@endpush

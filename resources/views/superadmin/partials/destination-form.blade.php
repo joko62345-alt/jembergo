@@ -1,0 +1,37 @@
+@php
+    $isEdit = (bool) $destination;
+    $prefix = $formId;
+    $ticketItems = $isEdit && $destination->jenisTiket->isNotEmpty() ? $destination->jenisTiket : [null];
+    $facilityItems = $isEdit && $destination->fasilitas->isNotEmpty() ? $destination->fasilitas : [null];
+    $galleryItems = $isEdit && $destination->galeri->isNotEmpty() ? $destination->galeri : [null];
+@endphp
+<div class="form-section">
+    <div class="form-section-heading"><span class="form-section-number">01</span><div><h3>Informasi dasar</h3><p>Identitas utama yang tampil di katalog wisata.</p></div></div>
+    <div class="row g-3">
+        <div class="col-md-8"><label class="form-label" for="{{ $prefix }}-nama">Nama destinasi</label><input id="{{ $prefix }}-nama" name="nama_wisata" value="{{ old('nama_wisata', $destination?->nama_wisata) }}" class="form-control" required></div>
+        <div class="col-md-4"><label class="form-label" for="{{ $prefix }}-kategori">Kategori</label><select id="{{ $prefix }}-kategori" name="kategori" class="form-select" required>@foreach(['Alam', 'Bahari', 'Buatan'] as $category)<option value="{{ $category }}" @selected(old('kategori', $destination?->kategori ?? 'Alam') === $category)>{{ $category }}</option>@endforeach</select></div>
+        <div class="col-12 photo-upload"><label class="form-label" for="{{ $prefix }}-foto">Foto utama</label><div class="photo-upload-row">@if($destination?->foto_utama)<img src="{{ $destination->foto_utama }}" alt="Foto {{ $destination->nama_wisata }}" class="photo-preview">@else<img src="" alt="Preview foto baru" class="photo-preview is-empty">@endif<div><input id="{{ $prefix }}-foto" name="foto_utama" type="file" accept="image/jpeg,image/png,image/webp" class="form-control"><small class="form-helper">JPG, PNG, atau WEBP, maksimal 5 MB. Foto lama tetap tersimpan sampai perubahan disimpan.</small></div></div></div>
+    </div>
+</div>
+<div class="form-section">
+    <div class="form-section-heading"><span class="form-section-number">02</span><div><h3>Lokasi</h3><p>Bantu pengunjung menemukan destinasi dengan tepat.</p></div></div>
+    <div class="row g-3">
+        <div class="col-12"><label class="form-label" for="{{ $prefix }}-alamat">Alamat</label><input id="{{ $prefix }}-alamat" name="alamat" value="{{ old('alamat', $destination?->alamat) }}" class="form-control" required></div>
+        <div class="col-md-6"><label class="form-label" for="{{ $prefix }}-latitude">Latitude</label><input id="{{ $prefix }}-latitude" name="latitude" type="number" step="any" value="{{ old('latitude', $destination?->latitude) }}" class="form-control" required></div>
+        <div class="col-md-6"><label class="form-label" for="{{ $prefix }}-longitude">Longitude</label><input id="{{ $prefix }}-longitude" name="longitude" type="number" step="any" value="{{ old('longitude', $destination?->longitude) }}" class="form-control" required></div>
+    </div>
+</div>
+<div class="form-section">
+    <div class="form-section-heading"><span class="form-section-number">03</span><div><h3>Operasional</h3><p>Informasi waktu kunjungan untuk pengunjung.</p></div></div>
+    <div class="row g-3"><div class="col-md-6"><label class="form-label" for="{{ $prefix }}-jam">Jam operasional</label><input id="{{ $prefix }}-jam" name="jam_operasional" value="{{ old('jam_operasional', $destination?->jam_operasional) }}" class="form-control" placeholder="08:00 - 17:00" required></div><div class="col-md-6 d-flex align-items-end"><div class="form-check form-switch mb-2"><input id="{{ $prefix }}-status" name="status_aktif" value="1" type="checkbox" class="form-check-input" @checked(old('status_aktif', $destination?->status_aktif ?? true))><label for="{{ $prefix }}-status" class="form-check-label">Destinasi aktif</label></div></div></div>
+</div>
+<div class="form-section">
+    <div class="form-section-heading"><span class="form-section-number">04</span><div><h3>Deskripsi dan fasilitas</h3><p>Ceritakan pengalaman yang ditawarkan destinasi.</p></div></div>
+    <label class="form-label" for="{{ $prefix }}-deskripsi">Deskripsi destinasi</label><textarea id="{{ $prefix }}-deskripsi" name="deskripsi" rows="4" class="form-control mb-4" required>{{ old('deskripsi', $destination?->deskripsi) }}</textarea>
+    <label class="form-label">Fasilitas</label><div class="repeater-list" data-repeater="facility-{{ $prefix }}">@foreach($facilityItems as $facility)<input name="fasilitas[]" value="{{ $facility?->nama_fasilitas }}" class="form-control mb-2" placeholder="Contoh: Parkir">@endforeach</div><button type="button" class="btn btn-sm btn-outline-dark repeater-add" data-repeater-add="facility-{{ $prefix }}" data-repeater-type="facility"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Tambah fasilitas</button>
+</div>
+<div class="form-section form-section-last">
+    <div class="form-section-heading"><span class="form-section-number">05</span><div><h3>Tiket dan galeri</h3><p>Kelola tiket masuk serta foto pendukung destinasi.</p></div></div>
+    <label class="form-label">Jenis tiket dan harga</label><div class="repeater-list" data-repeater="ticket-{{ $prefix }}">@foreach($ticketItems as $ticket)<div class="row g-2 mb-2 repeater-row">@if($ticket)<input type="hidden" name="jenis_tiket[{{ $loop->index }}][id]" value="{{ $ticket->id_jenis_tiket }}">@endif<div class="col-md-6"><input name="jenis_tiket[{{ $loop->index }}][nama_jenis]" value="{{ $ticket?->nama_jenis }}" class="form-control" placeholder="Contoh: Tiket Dewasa" required></div><div class="col-md-6"><div class="input-group"><span class="input-group-text">Rp</span><input name="jenis_tiket[{{ $loop->index }}][harga]" type="number" min="0" step="0.01" value="{{ $ticket?->harga }}" class="form-control" placeholder="Harga" required></div></div></div>@endforeach</div><button type="button" class="btn btn-sm btn-outline-dark repeater-add mb-4" data-repeater-add="ticket-{{ $prefix }}" data-repeater-type="ticket"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Tambah jenis tiket</button>
+    <label class="form-label">Galeri foto</label><div class="repeater-list gallery-repeater" data-repeater="gallery-{{ $prefix }}">@foreach($galleryItems as $gallery)<div class="gallery-row repeater-row"><div class="gallery-row-preview">@if($gallery?->url_foto)<img src="{{ $gallery->url_foto }}" alt="Galeri {{ $destination?->nama_wisata }}" class="gallery-preview">@else<span class="gallery-empty"><i class="bi bi-image" aria-hidden="true"></i>Foto baru</span>@endif</div><div class="gallery-row-fields"><div><label class="form-label" for="{{ $prefix }}-gallery-{{ $loop->index }}-foto">File foto</label><input id="{{ $prefix }}-gallery-{{ $loop->index }}-foto" name="galeri[{{ $loop->index }}][foto]" type="file" accept="image/jpeg,image/png,image/webp" class="form-control"></div><div><label class="form-label" for="{{ $prefix }}-gallery-{{ $loop->index }}-caption">Keterangan</label><input id="{{ $prefix }}-gallery-{{ $loop->index }}-caption" name="galeri[{{ $loop->index }}][keterangan]" value="{{ $gallery?->keterangan }}" class="form-control" placeholder="Contoh: Area taman utama"></div></div></div>@endforeach</div><button type="button" class="btn btn-sm btn-outline-dark repeater-add" data-repeater-add="gallery-{{ $prefix }}" data-repeater-type="gallery"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Tambah foto</button><small class="form-helper d-block mt-2">Foto baru akan menggantikan galeri lama saat disimpan.</small>
+</div>

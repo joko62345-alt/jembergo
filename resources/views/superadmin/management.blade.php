@@ -1,14 +1,8 @@
-@include('components.superadmin-sidebar')
-<!doctype html>
-<html lang="id">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Management | JemberGo</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body class="bg-light">
-    <main class="container py-5">
+@extends('layouts.superadmin')
+@section('title', 'Manajemen')
+@section('page_label', 'Manajemen')
+@section('content')
+    <div class="page-heading"><span class="page-kicker">Administrasi sistem</span><h1>Manajemen JemberGo</h1><p>Kelola akun dan data utama aplikasi pariwisata.</p></div>
         <h1 class="h2 fw-bold mb-1">Management JemberGo</h1>
         <p class="text-secondary mb-4">Kelola data utama aplikasi.</p>
 
@@ -24,6 +18,4 @@
             <div class="col-md-6"><div class="card border-0 shadow-sm rounded-4 h-100"><div class="card-body p-4"><h2 class="h5">Akun Customer</h2><p class="text-secondary">Lihat customer terdaftar.</p><a href="{{ route('superadmin.management.customers') }}" class="btn btn-outline-dark rounded-pill">Lihat customer</a></div></div></div>
             <div class="col-md-6"><div class="card border-0 shadow-sm rounded-4 h-100"><div class="card-body p-4"><h2 class="h5">Laporan transaksi</h2><p class="text-secondary">Pantau transaksi dan pendapatan.</p><a href="{{ route('superadmin.report') }}" class="btn btn-outline-dark rounded-pill">Buka laporan</a></div></div></div>
         </div>
-    </main>
-</body>
-</html>
+@endsection

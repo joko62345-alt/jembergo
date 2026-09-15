@@ -1,109 +1,120 @@
-<!doctype html>
-<html lang="id">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Destinasi | Super Admin JemberGo</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="{{ asset('css/jembergo-fallback.css') }}" rel="stylesheet">
-</head>
-<body class="bg-light"><x-superadmin-sidebar />
-<main class="container py-5">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+@extends('layouts.superadmin')
+@section('title', 'Destinasi')
+@section('page_label', 'Destinasi wisata')
+@section('content')
+    <div class="page-heading destination-heading">
         <div>
-            <a href="{{ route('dashboard') }}" class="text-dark text-decoration-none">Dashboard</a>
-            <h1 class="h2 fw-bold mt-2 mb-0">Kelola destinasi</h1>
+            <span class="page-kicker">Katalog pariwisata</span>
+            <h1>Destinasi wisata</h1>
+            <p>Kelola informasi destinasi pariwisata Jember dalam satu tempat.</p>
         </div>
-        <a href="{{ route('superadmin.management') }}" class="btn btn-outline-dark rounded-pill">Management</a>
+        <button type="button" class="btn btn-warning" data-open-dialog="create-destination-dialog"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Tambah destinasi</button>
     </div>
 
     @if (session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
+        <div class="destination-toast" role="status"><i class="bi bi-check-circle-fill" aria-hidden="true"></i><span>{{ session('success') }}</span><button type="button" class="toast-close" data-dismiss-toast aria-label="Tutup notifikasi"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
     @endif
 
     @if ($errors->any())
-        <div class="alert alert-danger">{{ $errors->first() }}</div>
+        <div class="alert alert-danger mb-4">{{ $errors->first() }}</div>
     @endif
 
-    <section class="card border-0 shadow-sm rounded-4 mb-4">
-        <div class="card-body p-4">
-            <h2 class="h5 fw-bold">Tambah destinasi</h2>
-            <form method="POST" action="{{ route('superadmin.destinations.store') }}" enctype="multipart/form-data" class="row g-3">
-                @csrf
-                <div class="col-md-6"><label class="form-label" for="nama_wisata">Nama wisata</label><input id="nama_wisata" name="nama_wisata" class="form-control" required></div>
-                <div class="col-md-6"><label class="form-label" for="foto_utama">Foto utama</label><input id="foto_utama" name="foto_utama" type="file" accept="image/jpeg,image/png,image/webp" class="form-control"><small class="text-secondary">JPG, PNG, WEBP, maksimal 5 MB.</small></div>
-                <div class="col-md-6"><label class="form-label" for="kategori">Kategori</label><select id="kategori" name="kategori" class="form-select" required><option value="Alam">Alam</option><option value="Bahari">Bahari</option><option value="Buatan">Buatan</option></select></div>
-                <div class="col-md-6"><label class="form-label" for="alamat">Alamat</label><input id="alamat" name="alamat" class="form-control" required></div>
-                <div class="col-md-3"><label class="form-label" for="latitude">Latitude</label><input id="latitude" name="latitude" type="number" step="any" class="form-control" required></div>
-                <div class="col-md-3"><label class="form-label" for="longitude">Longitude</label><input id="longitude" name="longitude" type="number" step="any" class="form-control" required></div>
-                <div class="col-md-6"><label class="form-label" for="jam_operasional">Jam operasional</label><input id="jam_operasional" name="jam_operasional" class="form-control" placeholder="08:00 - 17:00" required></div>
-                <div class="col-md-6"><label class="form-label" for="deskripsi">Deskripsi</label><textarea id="deskripsi" name="deskripsi" class="form-control" required></textarea></div>
-                <div class="col-12"><label class="form-label">Jenis tiket dan harga</label><div id="new-tickets"><div class="row g-2 mb-2"><div class="col-md-5"><input name="jenis_tiket[0][nama_jenis]" class="form-control" placeholder="Contoh: Tiket Dewasa" required></div><div class="col-md-5"><div class="input-group"><span class="input-group-text">Rp</span><input name="jenis_tiket[0][harga]" type="number" min="0" step="0.01" class="form-control" placeholder="Harga" required></div></div></div></div><button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="addTicket('new-tickets')">Tambah jenis tiket</button></div>
-                <div class="col-12"><label class="form-label">Fasilitas</label><div id="new-facilities"><input name="fasilitas[]" class="form-control mb-2" placeholder="Contoh: Parkir"></div><button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="addFacility('new-facilities')">Tambah fasilitas</button></div>
-                <div class="col-12"><label class="form-label">Galeri foto</label><div id="new-gallery"><div class="row g-2 mb-2"><div class="col-md-7"><input name="galeri[0][foto]" type="file" accept="image/jpeg,image/png,image/webp" class="form-control"></div><div class="col-md-5"><input name="galeri[0][keterangan]" class="form-control" placeholder="Keterangan"></div></div></div><button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="addGallery('new-gallery')">Tambah foto</button><small class="d-block text-secondary mt-1">JPG, PNG, atau WEBP, maksimal 5 MB per foto.</small></div>
-                <div class="col-12"><input type="hidden" name="status_aktif" value="1"><button class="btn btn-warning rounded-pill" type="submit">Simpan destinasi</button></div>
-            </form>
-        </div>
+    <section class="destination-toolbar" aria-label="Pencarian destinasi">
+        <div class="search-field"><i class="bi bi-search" aria-hidden="true"></i><input type="search" id="destination-search" placeholder="Cari destinasi..." aria-label="Cari destinasi"></div>
+        <select id="destination-category-filter" class="form-select" aria-label="Filter kategori"><option value="">Semua kategori</option><option value="Alam">Alam</option><option value="Bahari">Bahari</option><option value="Buatan">Buatan</option></select>
+        <select id="destination-status-filter" class="form-select" aria-label="Filter status"><option value="">Semua status</option><option value="aktif">Aktif</option><option value="nonaktif">Nonaktif</option></select>
     </section>
 
-    <section class="row g-4">
+    <section class="destination-grid" id="destination-grid" aria-label="Daftar destinasi">
         @forelse ($destinations as $destination)
-            <div class="col-lg-6">
-                <article class="card border-0 shadow-sm rounded-4 h-100">
-                    <div class="card-body p-4">
-                        <div class="d-flex justify-content-between gap-3">
-                            <div>
-                                <span class="badge text-bg-warning rounded-pill">{{ $destination->kategori }}</span>
-                                <h2 class="h5 fw-bold mt-2">{{ $destination->nama_wisata }}</h2>
-                                <p class="small text-secondary mb-0">{{ $destination->alamat }}</p>
-                            </div>
-                            <span class="badge {{ $destination->status_aktif ? 'text-bg-success' : 'text-bg-secondary' }}">{{ $destination->status_aktif ? 'Aktif' : 'Nonaktif' }}</span>
-                        </div>
-
-                        <details class="mt-4">
-                            <summary class="text-warning fw-semibold">Edit destinasi</summary>
-                            <form method="POST" action="{{ route('superadmin.destinations.update', $destination->id_destinasi) }}" enctype="multipart/form-data" class="row g-2 mt-2">
-                                @csrf
-                                @method('PUT')
-                                <div class="col-md-6"><input name="nama_wisata" value="{{ $destination->nama_wisata }}" class="form-control" required></div>
-                                <div class="col-md-6">@if($destination->foto_utama)<img src="{{ $destination->foto_utama }}" width="80" height="60" class="rounded mb-2" style="object-fit:cover" alt="Foto utama"><br>@endif<input name="foto_utama" type="file" accept="image/jpeg,image/png,image/webp" class="form-control"><small class="text-secondary">Kosongkan jika tidak ingin mengganti foto utama.</small></div>
-                                <div class="col-md-6"><select name="kategori" class="form-select" required>@foreach (['Alam', 'Bahari', 'Buatan'] as $category)<option value="{{ $category }}" @selected($destination->kategori === $category)>{{ $category }}</option>@endforeach</select></div>
-                                <div class="col-12"><input name="alamat" value="{{ $destination->alamat }}" class="form-control" required></div>
-                                <div class="col-6"><input name="latitude" type="number" step="any" value="{{ $destination->latitude }}" class="form-control" required></div>
-                                <div class="col-6"><input name="longitude" type="number" step="any" value="{{ $destination->longitude }}" class="form-control" required></div>
-                                <div class="col-12"><input name="jam_operasional" value="{{ $destination->jam_operasional }}" class="form-control" required></div>
-                                <div class="col-12"><textarea name="deskripsi" class="form-control" required>{{ $destination->deskripsi }}</textarea></div>
-                                <div class="col-12"><label class="form-label">Jenis tiket dan harga</label><div id="tickets-{{ $destination->id_destinasi }}">@forelse($destination->jenisTiket as $ticket)<div class="row g-2 mb-2"><input type="hidden" name="jenis_tiket[{{ $loop->index }}][id]" value="{{ $ticket->id_jenis_tiket }}"><div class="col-md-5"><input name="jenis_tiket[{{ $loop->index }}][nama_jenis]" value="{{ $ticket->nama_jenis }}" class="form-control" required></div><div class="col-md-5"><div class="input-group"><span class="input-group-text">Rp</span><input name="jenis_tiket[{{ $loop->index }}][harga]" type="number" min="0" step="0.01" value="{{ $ticket->harga }}" class="form-control" required></div></div></div>@empty<div class="row g-2 mb-2"><div class="col-md-5"><input name="jenis_tiket[0][nama_jenis]" class="form-control" placeholder="Contoh: Tiket Dewasa" required></div><div class="col-md-5"><div class="input-group"><span class="input-group-text">Rp</span><input name="jenis_tiket[0][harga]" type="number" min="0" step="0.01" class="form-control" placeholder="Harga" required></div></div></div>@endforelse</div><button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="addTicket('tickets-{{ $destination->id_destinasi }}')">Tambah jenis tiket</button></div>
-                                <div class="col-12"><label class="form-label">Fasilitas</label><div id="facilities-{{ $destination->id_destinasi }}">@forelse($destination->fasilitas as $facility)<input name="fasilitas[]" value="{{ $facility->nama_fasilitas }}" class="form-control mb-2">@empty<input name="fasilitas[]" class="form-control mb-2" placeholder="Contoh: Parkir">@endforelse</div><button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="addFacility('facilities-{{ $destination->id_destinasi }}')">Tambah fasilitas</button></div>
-                                <div class="col-12"><label class="form-label">Galeri foto baru</label><div id="gallery-{{ $destination->id_destinasi }}">@forelse($destination->galeri as $gallery)<div class="row g-2 mb-2"><div class="col-md-7"><img src="{{ $gallery->url_foto }}" class="rounded mb-2" width="80" height="60" style="object-fit:cover" alt="Galeri"><input name="galeri[{{ $loop->index }}][foto]" type="file" accept="image/jpeg,image/png,image/webp" class="form-control"></div><div class="col-md-5"><input name="galeri[{{ $loop->index }}][keterangan]" value="{{ $gallery->keterangan }}" class="form-control" placeholder="Keterangan"></div></div>@empty<div class="row g-2 mb-2"><div class="col-md-7"><input name="galeri[0][foto]" type="file" accept="image/jpeg,image/png,image/webp" class="form-control"></div><div class="col-md-5"><input name="galeri[0][keterangan]" class="form-control" placeholder="Keterangan"></div></div>@endforelse</div><button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="addGallery('gallery-{{ $destination->id_destinasi }}')">Tambah foto</button></div>
-                                <div class="col-12"><div class="form-check"><input id="active-{{ $destination->id_destinasi }}" name="status_aktif" value="1" type="checkbox" class="form-check-input" @checked($destination->status_aktif)><label for="active-{{ $destination->id_destinasi }}" class="form-check-label">Destinasi aktif</label></div></div>
-                                <div class="col-12"><button class="btn btn-warning rounded-pill btn-sm" type="submit">Simpan perubahan</button></div>
-                            </form>
-                        </details>
-
-                        <div class="d-flex justify-content-end mt-3">
-                            <form method="POST" action="{{ route('superadmin.destinations.destroy', $destination->id_destinasi) }}" onsubmit="return confirm('Hapus destinasi ini?')">
-                                @csrf
-                                @method('DELETE')
-                                <button class="btn btn-outline-danger btn-sm rounded-pill" type="submit">Hapus</button>
-                            </form>
-                        </div>
+            <article class="destination-card" data-destination-card data-name="{{ strtolower($destination->nama_wisata) }}" data-category="{{ $destination->kategori }}" data-status="{{ $destination->status_aktif ? 'aktif' : 'nonaktif' }}">
+                <div class="destination-card-media">
+                    @if($destination->foto_utama)
+                        <img src="{{ $destination->foto_utama }}" alt="Foto {{ $destination->nama_wisata }}">
+                    @else
+                        <div class="destination-placeholder"><i class="bi bi-image" aria-hidden="true"></i><span>Belum ada foto</span></div>
+                    @endif
+                    <span class="destination-status {{ $destination->status_aktif ? 'is-active' : 'is-inactive' }}"><span aria-hidden="true"></span>{{ $destination->status_aktif ? 'Aktif' : 'Nonaktif' }}</span>
+                </div>
+                <div class="destination-card-body">
+                    <span class="destination-category">{{ $destination->kategori }}</span>
+                    <h2>{{ $destination->nama_wisata }}</h2>
+                    <p><i class="bi bi-geo-alt" aria-hidden="true"></i>{{ $destination->alamat }}</p>
+                    <div class="destination-card-actions">
+                        <button type="button" class="btn btn-outline-dark" data-open-dialog="edit-destination-{{ $destination->id_destinasi }}"><i class="bi bi-pencil me-1" aria-hidden="true"></i>Edit destinasi</button>
+                        <button type="button" class="btn btn-outline-danger" data-delete-destination="{{ $destination->nama_wisata }}" data-delete-action="{{ route('superadmin.destinations.destroy', $destination->id_destinasi) }}"><i class="bi bi-trash3 me-1" aria-hidden="true"></i>Hapus</button>
                     </div>
-                </article>
-            </div>
+                </div>
+            </article>
         @empty
-            <div class="col-12"><div class="alert alert-light">Belum ada destinasi.</div></div>
+            <div class="destination-empty"><i class="bi bi-map" aria-hidden="true"></i><h2>Belum ada destinasi</h2><p>Tambahkan destinasi pertama untuk mulai mengelola katalog wisata Jember.</p><button type="button" class="btn btn-warning" data-open-dialog="create-destination-dialog">Tambah destinasi</button></div>
         @endforelse
     </section>
-
+    <p class="destination-no-results" id="destination-no-results" hidden>Tidak ada destinasi yang sesuai dengan pencarian.</p>
     <div class="mt-4">{{ $destinations->links() }}</div>
-</main>
+
+    <dialog class="destination-dialog" id="create-destination-dialog" aria-labelledby="create-destination-title">
+        <div class="dialog-panel dialog-panel-wide">
+            <div class="dialog-header"><div><span class="page-kicker">Katalog pariwisata</span><h2 id="create-destination-title">Tambah destinasi</h2><p>Isi informasi destinasi baru untuk katalog JemberGo.</p></div><button type="button" class="dialog-close" data-close-dialog aria-label="Tutup dialog"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
+            <form method="POST" action="{{ route('superadmin.destinations.store') }}" enctype="multipart/form-data" class="destination-form">@csrf
+                @include('superadmin.partials.destination-form', ['destination' => null, 'formId' => 'create'])
+                <div class="dialog-actions"><button type="button" class="btn btn-outline-dark" data-close-dialog>Batal</button><button class="btn btn-warning" type="submit"><i class="bi bi-check2 me-1" aria-hidden="true"></i>Simpan destinasi</button></div>
+            </form>
+        </div>
+    </dialog>
+
+    @foreach ($destinations as $destination)
+        <dialog class="destination-dialog" id="edit-destination-{{ $destination->id_destinasi }}" aria-labelledby="edit-destination-title-{{ $destination->id_destinasi }}">
+            <div class="dialog-panel dialog-panel-wide">
+                <div class="dialog-header"><div><span class="page-kicker">Mode edit</span><h2 id="edit-destination-title-{{ $destination->id_destinasi }}">Edit destinasi</h2><p>{{ $destination->nama_wisata }}<br><small>Perbarui informasi destinasi yang dipilih.</small></p></div><button type="button" class="dialog-close" data-close-dialog aria-label="Tutup dialog"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
+                <form method="POST" action="{{ route('superadmin.destinations.update', $destination->id_destinasi) }}" enctype="multipart/form-data" class="destination-form">@csrf @method('PUT')
+                    @include('superadmin.partials.destination-form', ['destination' => $destination, 'formId' => 'edit-' . $destination->id_destinasi])
+                    <div class="dialog-actions"><button type="button" class="btn btn-outline-dark" data-close-dialog>Batal</button><button class="btn btn-warning" type="submit"><i class="bi bi-check2 me-1" aria-hidden="true"></i>Simpan perubahan</button></div>
+                </form>
+            </div>
+        </dialog>
+    @endforeach
+
+    <dialog class="destination-dialog destination-confirm-dialog" id="delete-destination-dialog" aria-labelledby="delete-destination-title">
+        <div class="dialog-panel"><div class="dialog-header"><div><span class="page-kicker text-danger">Tindakan permanen</span><h2 id="delete-destination-title">Hapus destinasi?</h2><p>Anda akan menghapus <strong id="delete-destination-name"></strong>. Data yang sudah dihapus tidak dapat dikembalikan.</p></div><button type="button" class="dialog-close" data-close-dialog aria-label="Tutup dialog"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div><div class="dialog-actions"><button type="button" class="btn btn-outline-dark" data-close-dialog>Batal</button><form method="POST" id="delete-destination-form">@csrf @method('DELETE')<button class="btn btn-danger" type="submit"><i class="bi bi-trash3 me-1" aria-hidden="true"></i>Hapus destinasi</button></form></div></div>
+    </dialog>
+@endsection
+
+@push('scripts')
 <script>
-let galleryIndex = 1;
-let ticketIndex = 1;
-function addFacility(id) { const box = document.getElementById(id); const input = document.createElement('input'); input.name = 'fasilitas[]'; input.className = 'form-control mb-2'; input.placeholder = 'Nama fasilitas'; box.appendChild(input); }
-function addTicket(id) { const box = document.getElementById(id); const row = document.createElement('div'); row.className = 'row g-2 mb-2'; row.innerHTML = `<div class="col-md-5"><input name="jenis_tiket[${ticketIndex}][nama_jenis]" class="form-control" placeholder="Contoh: Tiket Dewasa" required></div><div class="col-md-5"><div class="input-group"><span class="input-group-text">Rp</span><input name="jenis_tiket[${ticketIndex}][harga]" type="number" min="0" step="0.01" class="form-control" placeholder="Harga" required></div></div>`; box.appendChild(row); ticketIndex++; }
-function addGallery(id) { const box = document.getElementById(id); const row = document.createElement('div'); row.className = 'row g-2 mb-2'; row.innerHTML = `<div class="col-md-7"><input name="galeri[${galleryIndex}][foto]" type="file" accept="image/jpeg,image/png,image/webp" class="form-control"></div><div class="col-md-5"><input name="galeri[${galleryIndex}][keterangan]" class="form-control" placeholder="Keterangan"></div>`; box.appendChild(row); galleryIndex++; }
+    (() => {
+        const openDialog = (id) => document.getElementById(id)?.showModal();
+        const closeDialog = (dialog) => dialog?.close();
+
+        document.querySelectorAll('[data-open-dialog]').forEach((button) => button.addEventListener('click', () => openDialog(button.dataset.openDialog)));
+        document.querySelectorAll('[data-close-dialog]').forEach((button) => button.addEventListener('click', () => closeDialog(button.closest('dialog'))));
+        document.querySelectorAll('.destination-dialog').forEach((dialog) => dialog.addEventListener('click', (event) => { if (event.target === dialog) closeDialog(dialog); }));
+        document.querySelectorAll('.destination-form').forEach((form) => form.addEventListener('submit', () => { const button = form.querySelector('button[type="submit"]'); if (button) { button.disabled = true; button.dataset.originalLabel = button.innerHTML; button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Menyimpan...'; } }));
+
+        const deleteDialog = document.getElementById('delete-destination-dialog');
+        const deleteName = document.getElementById('delete-destination-name');
+        const deleteForm = document.getElementById('delete-destination-form');
+        document.querySelectorAll('[data-delete-destination]').forEach((button) => button.addEventListener('click', () => { deleteName.textContent = button.dataset.deleteDestination; deleteForm.action = button.dataset.deleteAction; deleteDialog.showModal(); }));
+
+        const search = document.getElementById('destination-search');
+        const category = document.getElementById('destination-category-filter');
+        const status = document.getElementById('destination-status-filter');
+        const noResults = document.getElementById('destination-no-results');
+        const filterCards = () => { const query = search.value.toLowerCase().trim(); let visible = 0; document.querySelectorAll('[data-destination-card]').forEach((card) => { const matches = (!query || card.dataset.name.includes(query)) && (!category.value || card.dataset.category === category.value) && (!status.value || card.dataset.status === status.value); card.hidden = !matches; if (matches) visible++; }); noResults.hidden = visible > 0; };
+        [search, category, status].forEach((control) => control.addEventListener('input', filterCards));
+        document.querySelector('[data-dismiss-toast]')?.addEventListener('click', (event) => event.currentTarget.closest('.destination-toast').remove());
+        document.querySelectorAll('.destination-form input[type="file"]').forEach((input) => input.addEventListener('change', () => { const preview = input.closest('.photo-upload')?.querySelector('img'); const file = input.files?.[0]; if (preview && file) preview.src = URL.createObjectURL(file); }));
+            document.querySelectorAll('[data-repeater-add]').forEach((button) => button.addEventListener('click', () => {
+                const list = document.querySelector(`[data-repeater="${button.dataset.repeaterAdd}"]`);
+                const type = button.dataset.repeaterType;
+                const index = list.querySelectorAll('.repeater-row, input[name="fasilitas[]"]').length;
+                const row = document.createElement('div');
+                row.className = type === 'facility' ? '' : (type === 'gallery' ? 'gallery-row repeater-row' : 'row g-2 mb-2 repeater-row');
+                if (type === 'facility') row.innerHTML = `<input name="fasilitas[]" class="form-control mb-2" placeholder="Nama fasilitas">`;
+                if (type === 'ticket') row.innerHTML = `<div class="col-md-6"><input name="jenis_tiket[${index}][nama_jenis]" class="form-control" placeholder="Contoh: Tiket Dewasa" required></div><div class="col-md-6"><div class="input-group"><span class="input-group-text">Rp</span><input name="jenis_tiket[${index}][harga]" type="number" min="0" step="0.01" class="form-control" placeholder="Harga" required></div></div>`;
+                if (type === 'gallery') row.innerHTML = `<div class="gallery-row-preview"><span class="gallery-empty"><i class="bi bi-image" aria-hidden="true"></i>Foto baru</span></div><div class="gallery-row-fields"><div><label class="form-label" for="gallery-${index}-foto">File foto</label><input id="gallery-${index}-foto" name="galeri[${index}][foto]" type="file" accept="image/jpeg,image/png,image/webp" class="form-control"></div><div><label class="form-label" for="gallery-${index}-caption">Keterangan</label><input id="gallery-${index}-caption" name="galeri[${index}][keterangan]" class="form-control" placeholder="Contoh: Area taman utama"></div></div>`;
+                list.appendChild(row);
+            }));
+    })();
 </script>
-</body>
-</html>
+@endpush

@@ -25,10 +25,7 @@
                 <div class="row g-4 align-items-start">
                     <div class="col-lg-8">
                         @php($paymentStatus = match ($booking->pembayaran?->status_pembayaran) { 'PAID' => 'Lunas', 'PENDING' => 'Menunggu pembayaran', 'FAILED' => 'Gagal', 'EXPIRED' => 'Kedaluwarsa', default => 'Belum dibayar' })
-                        <div class="ticket-statuses mb-3"><span class="badge {{ $booking->pembayaran?->status_pembayaran === 'PAID' ? 'text-bg-success' : 'text-bg-warning' }}"><i class="bi bi-wallet2 me-1"></i>{{ $paymentStatus }}</span><span class="badge text-bg-warning"><i class="bi bi-calendar-event me-1"></i>{{ $booking->tanggal_kunjungan->format('d/m/Y') }}</span></div>
-                        @if ($booking->pembayaran?->metode_pembayaran === 'CASH' && $booking->pembayaran->status_pembayaran !== 'PAID')
-                            <div class="alert alert-warning small">E-ticket sudah diterbitkan. Bayar tunai di loket saat datang, lalu petugas akan memverifikasi e-ticket Anda.</div>
-                        @endif
+                        <div class="ticket-statuses mb-3"><span class="badge {{ $booking->pembayaran?->status_pembayaran === 'PAID' ? 'text-bg-success' : 'text-bg-warning' }}"><i class="bi bi-wallet2 me-1"></i>{{ $paymentStatus }}</span><span class="badge text-bg-warning"><i class="bi bi-calendar-event me-1"></i>{{ $booking->tanggal_kunjungan->format('d/m/Y') }}</span><a href="{{ route('customer.ticket.pdf', $booking->id_pemesanan) }}" class="btn btn-outline-dark btn-sm"><i class="bi bi-file-earmark-pdf me-1"></i>Download PDF</a></div>
                         <div class="ticket-booking-code"><small>Kode booking</small><strong>{{ $booking->kode_booking }}</strong></div>
                         <div class="row g-3 mt-2"><div class="col-md-6"><small class="text-secondary d-block">Ketua kelompok</small><strong>{{ $booking->ketua_nama }}</strong><span class="d-block small text-secondary">{{ $booking->ketua_email }} · {{ $booking->ketua_no_hp }}</span></div><div class="col-md-3"><small class="text-secondary d-block">Total peserta</small><strong>{{ $participants->count() }} orang</strong></div><div class="col-md-3"><small class="text-secondary d-block">Total dibayar</small><strong class="text-orange">Rp {{ number_format($booking->total_harga, 0, ',', '.') }}</strong></div></div>
                     </div>
@@ -37,33 +34,10 @@
             </div>
         </div>
 
-        <div class="row g-4">
-            @php($ticketIndex = 0)
-            <?php foreach ($booking->tiket as $ticket): ?>
-                <?php
-                    $participant = $participants->get($ticketIndex, ['nama' => $booking->ketua_nama, 'id_jenis_tiket' => (int) $booking->ketua_jenis_tiket]);
-                    $ticketType = $booking->detailPemesanan->firstWhere('id_jenis_tiket', (int) $participant['id_jenis_tiket'])?->jenisTiket?->nama_jenis ?? 'Tiket wisata';
-                ?>
-                <div class="col-md-6 col-xl-4">
-                    <article class="customer-card ticket-card h-100">
-                        <div class="card-body p-4 text-center">
-                            <?php $ticketStatus = match ($ticket->status_tiket) { 'ACTIVE' => 'Aktif', 'USED' => 'Sudah digunakan', 'EXPIRED' => 'Kadaluarsa', 'CANCELLED' => 'Dibatalkan', default => 'Tidak diketahui' }; ?>
-                            <div class="ticket-card-top"><span class="ticket-qr-label"><i class="bi bi-qr-code me-1"></i>QR tiket</span><span class="badge {{ $ticket->status_tiket === 'ACTIVE' ? 'text-bg-success' : ($ticket->status_tiket === 'EXPIRED' ? 'text-bg-danger' : 'text-bg-secondary') }}">{{ $ticketStatus }}</span></div>
-                            <div class="ticket-qr-frame"><img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ urlencode($ticket->kode_qr) }}" class="img-fluid" width="220" height="220" alt="QR tiket {{ $participant['nama'] }}"></div>
-                            <h2 class="h5 fw-bold mb-1">{{ $participant['nama'] }}</h2>
-                            <p class="text-secondary small mb-3">{{ $ticketType }}</p>
-                            <div class="ticket-meta text-start small"><div><span>Kode booking</span><strong>{{ $booking->kode_booking }}</strong></div><div><span>ID tiket</span><strong>#{{ $ticket->id_tiket }}</strong></div></div>
-                            <?php if ($ticket->status_tiket === 'USED' && ! $ticket->review): ?>
-                                <a href="{{ route('customer.review.create', $ticket->id_tiket) }}" class="btn btn-warning rounded-pill w-100 mt-3"><i class="bi bi-star me-1"></i>Beri review</a>
-                            <?php elseif ($ticket->status_tiket === 'USED'): ?>
-                                <span class="badge text-bg-success mt-3">Sudah direview</span>
-                            <?php endif; ?>
-                        </div>
-                    </article>
-                </div>
-                <?php $ticketIndex++; ?>
-            <?php endforeach; ?>
-        </div>
+        @php($groupTicket = $booking->tiket->first())
+        @if($groupTicket)
+            <div class="row g-4"><div class="col-lg-5"><article class="customer-card ticket-card h-100"><div class="card-body p-4 text-center"><div class="ticket-card-top"><span class="ticket-qr-label"><i class="bi bi-qr-code me-1"></i>QR grup</span><span class="badge {{ $groupTicket->status_tiket === 'ACTIVE' ? 'text-bg-success' : ($groupTicket->status_tiket === 'EXPIRED' ? 'text-bg-danger' : 'text-bg-secondary') }}">{{ \App\Support\StatusLabel::ticket($groupTicket->status_tiket) }}</span></div><div class="ticket-qr-frame"><img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ urlencode($groupTicket->kode_qr) }}" class="img-fluid" width="220" height="220" alt="QR grup {{ $booking->kode_booking }}"></div><h2 class="h5 fw-bold mb-1">QR booking kelompok</h2><p class="text-secondary small mb-3">Satu QR untuk seluruh peserta dalam booking ini.</p><div class="ticket-meta text-start small"><div><span>Kode booking</span><strong>{{ $booking->kode_booking }}</strong></div><div><span>Jumlah peserta</span><strong>{{ $participants->count() }} orang</strong></div></div></div></article></div><div class="col-lg-7"><article class="customer-card ticket-card h-100"><div class="card-body p-4"><div class="ticket-card-top"><span class="ticket-qr-label"><i class="bi bi-people me-1"></i>Peserta grup</span><strong class="small text-secondary">{{ $participants->count() }} orang</strong></div><div class="ticket-participant-list">@foreach($participants as $participant)<div><span><strong>{{ $participant['nama'] }}</strong>@if($loop->first)<small>Ketua kelompok</small>@endif</span><span>{{ $booking->detailPemesanan->firstWhere('id_jenis_tiket', (int) $participant['id_jenis_tiket'])?->jenisTiket?->nama_jenis ?? 'Tiket wisata' }}</span></div>@endforeach</div></div></article></div></div>
+        @endif
     </div>
 </main>
 <x-public-footer />
@@ -79,6 +53,7 @@
     .ticket-booking-code { padding-bottom: 1rem; border-bottom: 1px solid #e5edf2; }.ticket-booking-code small { display: block; color: #7890a1; font-size: .75rem; margin-bottom: .25rem; }.ticket-booking-code strong { color: #173b60; font-family: monospace; font-size: clamp(1.25rem, 2.5vw, 1.75rem); letter-spacing: .02em; }
     .ticket-members { height: 100%; padding: 1rem; border-radius: .9rem; background: #f5f9fb; }.ticket-members > small { display: block; margin-bottom: .5rem; color: #7890a1; }.ticket-members > div { display: flex; justify-content: space-between; gap: .75rem; padding: .55rem 0; border-top: 1px solid #e2ebf0; font-size: .8rem; }.ticket-members > div span:last-child { color: #7890a1; text-align: right; }
     .ticket-card { border-color: #dbe6ee; box-shadow: 0 10px 25px rgba(31, 41, 55, .05); }.ticket-card .card-body { padding: 1.25rem; }.ticket-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }.ticket-qr-label { color: #567087; font-size: .8rem; }.ticket-qr-frame { display: grid; place-items: center; width: min(100%, 250px); aspect-ratio: 1; margin: 0 auto 1rem; padding: .8rem; border: 1px solid #e1eaf0; border-radius: 1rem; background: #fff; }.ticket-qr-frame img { width: 100%; height: 100%; }.ticket-meta { padding: .75rem; border-radius: .7rem; background: #f5f9fb; }.ticket-meta div { display: flex; justify-content: space-between; gap: 1rem; padding: .25rem 0; }.ticket-meta span { color: #7890a1; }.ticket-meta strong { color: #173b60; font-family: monospace; font-size: .78rem; }
+    .ticket-participant-list > div { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 0; border-bottom: 1px solid #e5edf2; color: #173b60; font-size: .88rem; }.ticket-participant-list > div:last-child { border-bottom: 0; }.ticket-participant-list small { display: block; margin-top: .18rem; color: #7890a1; font-size: .72rem; }.ticket-participant-list > div > span:last-child { color: #7890a1; font-size: .78rem; text-align: right; }
     @media (max-width: 575.98px) { .ticket-page { padding-top: 6rem !important; }.ticket-notice { align-items: flex-start; }.ticket-summary { padding: 1rem !important; } }
 </style>
 @endsection

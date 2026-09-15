@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class BookingController extends Controller
 {
@@ -81,22 +82,7 @@ class BookingController extends Controller
     {
         $booking = $this->ownedBooking($id);
         abort_if($booking->status_pemesanan === 'PAID' || $booking->tiket()->exists(), 422, 'Pesanan ini sudah dibayar dan e-ticket sudah dibuat.');
-        $method = $request->validate(['metode_pembayaran' => ['required', 'in:QRIS,CASH']])['metode_pembayaran'];
-
-        if ($method === 'CASH') {
-            app(DatabaseManager::class)->transaction(function () use ($booking): void {
-                $booking->update(['status_pemesanan' => 'PENDING']);
-                $booking->pembayaran()->update([
-                    'metode_pembayaran' => 'CASH',
-                    'status_pembayaran' => 'PENDING',
-                    'waktu_pembayaran' => null,
-                ]);
-                app(BookingTicketService::class)->issue($booking);
-            });
-
-            return redirect()->route('customer.ticket', $booking->id_pemesanan)
-                ->with('success', 'Pesanan dibuat dan e-ticket diterbitkan. Pembayaran tunai dilakukan di loket saat verifikasi.');
-        }
+        $method = $request->validate(['metode_pembayaran' => ['required', 'in:QRIS']])['metode_pembayaran'];
 
         $payment = app(PaymentGateway::class)->createPayment($booking, $method);
         if (strtoupper((string) ($payment['status'] ?? 'PENDING')) !== 'PAID') {
@@ -120,6 +106,18 @@ class BookingController extends Controller
         $booking->load(['tiket.review', 'tiket.detailPemesanan.jenisTiket', 'detailPemesanan.jenisTiket', 'pembayaran']);
 
         return view('customer.ticket', compact('booking'));
+    }
+
+    public function ticketPdf(int $id)
+    {
+        $booking = $this->ownedBooking($id);
+        $booking->expireTicketsIfPastVisitDate();
+        $booking->load(['destinasi', 'pembayaran', 'tiket.detailPemesanan.jenisTiket', 'detailPemesanan.jenisTiket']);
+
+        return Pdf::loadView('customer.ticket-pdf', compact('booking'))
+            ->setPaper('a4')
+            ->setOption(['isRemoteEnabled' => true])
+            ->download('e-ticket-' . $booking->kode_booking . '.pdf');
     }
 
     private function ownedBooking(int $id): Pemesanan

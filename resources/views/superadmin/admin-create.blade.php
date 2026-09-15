@@ -1,2 +1,17 @@
-@include('components.superadmin-sidebar')
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Buat Admin | JemberGo</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"><link href="{{ asset('css/jembergo-fallback.css') }}" rel="stylesheet"></head><body class="bg-light"><main class="container py-5"><a href="{{ route('superadmin.management') }}" class="text-dark text-decoration-none">Kembali ke Management</a><div class="row justify-content-center mt-4"><div class="col-lg-7"><div class="card border-0 shadow-sm rounded-4"><div class="card-body p-4 p-lg-5"><h1 class="h3 fw-bold">Buat akun Admin Pariwisata</h1><p class="text-secondary">Akun ini dibuat oleh Super Admin dan tidak dapat mendaftar sendiri.</p>@if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif<form method="POST" action="{{ route('superadmin.management.admin') }}" class="row g-3">@csrf<div class="col-md-6"><label class="form-label">Nama</label><input name="nama" class="form-control" required></div><div class="col-md-6"><label class="form-label">Email</label><input name="email" type="email" class="form-control" required></div><div class="col-md-6"><label class="form-label">Nomor HP</label><input name="no_hp" class="form-control" required></div><div class="col-md-6"><label class="form-label">Password</label><input name="password" type="password" minlength="8" class="form-control" required></div><div class="col-12"><label class="form-label">Destinasi tugas</label><select name="id_destinasi" class="form-select" required><option value="">Pilih destinasi</option>@foreach($destinations as $destination)<option value="{{ $destination->id_destinasi }}">{{ $destination->nama_wisata }}</option>@endforeach</select></div><div class="col-12"><button class="btn btn-warning rounded-pill">Simpan akun admin</button></div></form></div></div></div></div></main></body></html>
+@extends('layouts.superadmin')
+@section('title', 'Buat Admin')
+@section('page_label', 'Manajemen / Buat admin')
+@section('content')
+    <div class="page-heading"><span class="page-kicker">Manajemen pengguna</span><h1>Buat akun Admin Pariwisata</h1><p>Akun ini dibuat oleh Super Admin dan digunakan untuk mengelola satu destinasi.</p></div>
+    <div class="row"><div class="col-lg-8"><div class="card"><div class="card-body p-4 p-lg-5">
+        @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
+        <form method="POST" action="{{ route('superadmin.management.admin') }}" class="row g-3">@csrf
+            <div class="col-md-6"><label class="form-label" for="nama">Nama</label><input id="nama" name="nama" class="form-control" required></div>
+            <div class="col-md-6"><label class="form-label" for="email">Email</label><input id="email" name="email" type="email" class="form-control" required></div>
+            <div class="col-md-6"><label class="form-label" for="no_hp">Nomor HP</label><input id="no_hp" name="no_hp" class="form-control" required></div>
+            <div class="col-md-6"><label class="form-label" for="password">Password</label><input id="password" name="password" type="password" minlength="8" class="form-control" required></div>
+            <div class="col-12"><label class="form-label" for="id_destinasi">Destinasi tugas</label><select id="id_destinasi" name="id_destinasi" class="form-select" required><option value="">Pilih destinasi</option>@foreach($destinations as $destination)<option value="{{ $destination->id_destinasi }}">{{ $destination->nama_wisata }}</option>@endforeach</select></div>
+            <div class="col-12"><button class="btn btn-warning" type="submit">Simpan akun admin</button></div>
+        </form>
+    </div></div></div></div>
+@endsection

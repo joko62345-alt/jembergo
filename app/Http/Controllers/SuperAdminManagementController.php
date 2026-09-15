@@ -131,8 +131,7 @@ class SuperAdminManagementController extends Controller
             $handle = fopen('php://output', 'w');
             fputcsv($handle, ['Kode Booking', 'Destinasi', 'Tanggal', 'Status Tiket', 'Status Pembayaran', 'Total']);
             foreach ($orders as $order) {
-                $statuses = $order->tiket->pluck('status_tiket');
-                $ticketStatus = $statuses->isNotEmpty() && $statuses->every(fn ($status) => $status === 'USED') ? 'USED' : ($statuses->contains('USED') ? 'PARTIAL' : $order->status_pemesanan);
+                $ticketStatus = StatusLabel::ticketStatus($order->tiket->pluck('status_tiket'), $order->status_pemesanan);
                 fputcsv($handle, [$order->kode_booking, $order->destinasi->nama_wisata, $order->tanggal_pemesanan->format('Y-m-d H:i'), StatusLabel::ticket($ticketStatus), StatusLabel::order($order->status_pemesanan), $order->total_harga]);
             }
             fclose($handle);

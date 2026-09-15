@@ -9,6 +9,6 @@ class DemoPaymentGateway implements PaymentGateway
 {
     public function createPayment(Pemesanan $booking, string $method): array
     {
-        return ['status' => 'PAID', 'reference' => 'DEMO-' . strtoupper(Str::random(12)), 'method' => $method];
+        return ['status' => 'PAID', 'reference' => 'DEMO-' . strtoupper(Str::random(12)), 'method' => 'QRIS'];
     }
 }

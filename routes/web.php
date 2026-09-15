@@ -56,6 +56,7 @@ Route::middleware('role:CUSTOMER')->prefix('customer')->name('customer.')->group
 	Route::get('/pemesanan/{id}/checkout', [BookingController::class, 'checkout'])->whereNumber('id')->name('checkout');
 	Route::post('/pemesanan/{id}/bayar', [BookingController::class, 'pay'])->whereNumber('id')->name('payment');
 	Route::get('/pemesanan/{id}/e-ticket', [BookingController::class, 'ticket'])->whereNumber('id')->name('ticket');
+	Route::get('/pemesanan/{id}/e-ticket/pdf', [BookingController::class, 'ticketPdf'])->whereNumber('id')->name('ticket.pdf');
 	Route::get('/tiket/{id}/review', [ReviewController::class, 'create'])->whereNumber('id')->name('review.create');
 	Route::post('/tiket/{id}/review', [ReviewController::class, 'store'])->whereNumber('id')->name('review.store');
 });
@@ -84,7 +85,7 @@ Route::middleware('role:SUPER_ADMIN')->prefix('superadmin')->name('superadmin.')
 	Route::get('/management/admin/buat', [SuperAdminManagementController::class, 'createAdmin'])->name('management.admin.create');
 	Route::get('/management/admin', [SuperAdminManagementController::class, 'admins'])->name('management.admins');
 	Route::get('/management/customer', [SuperAdminManagementController::class, 'customers'])->name('management.customers');
-	Route::get('/management/artikel/tulis', [SuperAdminManagementController::class, 'createArticle'])->name('management.article.create');
+	Route::get('/artikel/tulis', [SuperAdminManagementController::class, 'createArticle'])->name('articles.create');
 	Route::get('/artikel', [SuperAdminManagementController::class, 'articles'])->name('articles');
 	Route::get('/artikel/{id}/edit', [SuperAdminManagementController::class, 'editArticle'])->whereNumber('id')->name('articles.edit');
 	Route::put('/artikel/{id}', [SuperAdminManagementController::class, 'updateArticle'])->whereNumber('id')->name('articles.update');
@@ -92,8 +93,8 @@ Route::middleware('role:SUPER_ADMIN')->prefix('superadmin')->name('superadmin.')
 	Route::post('/management/galeri', [SuperAdminManagementController::class, 'gallery'])->name('management.gallery');
 	Route::delete('/management/fasilitas/{id}', [SuperAdminManagementController::class, 'destroyFacility'])->whereNumber('id')->name('management.facility.destroy');
 	Route::delete('/management/galeri/{id}', [SuperAdminManagementController::class, 'destroyGallery'])->whereNumber('id')->name('management.gallery.destroy');
-	Route::post('/management/artikel', [SuperAdminManagementController::class, 'article'])->name('management.article');
-	Route::delete('/management/artikel/{id}', [SuperAdminManagementController::class, 'destroyArticle'])->whereNumber('id')->name('management.article.destroy');
+	Route::post('/artikel', [SuperAdminManagementController::class, 'article'])->name('articles.store');
+	Route::delete('/artikel/{id}', [SuperAdminManagementController::class, 'destroyArticle'])->whereNumber('id')->name('articles.destroy');
 	Route::post('/management/admin', [SuperAdminManagementController::class, 'admin'])->name('management.admin');
 	Route::delete('/management/admin/{id}', [SuperAdminManagementController::class, 'destroyAdmin'])->whereNumber('id')->name('management.admin.destroy');
 });

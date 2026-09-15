@@ -66,7 +66,7 @@
 
     <div class="section-title">Daftar peserta</div>
     <table class="participant-table">
-        <thead><tr><th>No.</th><th>Nama peserta</th><th>Jenis tiket</th><th>Status peserta</th></tr></thead>
+        <thead><tr><th>No.</th><th>Nama peserta</th><th>Jenis tiket</th><th>Status tiket</th></tr></thead>
         <tbody>@foreach($participants as $participant)<tr><td>{{ $loop->iteration }}</td><td>{{ $participant['nama'] }}{{ $loop->first ? ' (Ketua)' : '' }}</td><td>{{ $booking->detailPemesanan->firstWhere('id_jenis_tiket', (int) $participant['id_jenis_tiket'])?->jenisTiket?->nama_jenis ?? 'Tiket wisata' }}</td><td class="status">{{ $groupTicket ? \App\Support\StatusLabel::ticket($groupTicket->status_tiket) : 'Belum diterbitkan' }}</td></tr>@endforeach</tbody>
     </table>
 

@@ -12,6 +12,24 @@
     @endif
     <style>
         #map { height: 280px; border-radius: 1rem; }
+        .destination-detail-page .jg-navbar .nav-link {
+            font-family: 'DM Sans', sans-serif !important;
+            font-size: .95rem !important;
+            font-weight: 500;
+        }
+        .destination-detail-page .jg-navbar .nav-link::after {
+            right: .9rem;
+            bottom: .15rem;
+            left: .9rem;
+            width: auto;
+            height: 2px;
+            transform: scaleX(0);
+            transform-origin: center;
+        }
+        .destination-detail-page .jg-navbar .nav-link:hover::after,
+        .destination-detail-page .jg-navbar .nav-link.active::after {
+            transform: scaleX(1);
+        }
         .destination-detail-page main { padding-top: 2rem; padding-bottom: 4rem; }
         .destination-hero-image { min-height: 320px; height: min(58vw, 520px); border-radius: 1.25rem; overflow: hidden; box-shadow: 0 16px 36px rgba(31, 41, 55, 0.12); }
         .destination-hero-copy { padding: 1.25rem 0; }

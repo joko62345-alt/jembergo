@@ -95,45 +95,21 @@
     <!-- Destinations Section -->
     <section id="destinasi" class="section-pad destinations-section" data-reveal-section>
         <div class="container">
-            <div class="section-heading d-flex justify-content-between align-items-end mb-4">
-                <div>
-                    <span class="eyebrow text-orange">Temukan tempat baru</span>
-                    <h2 class="mt-2">Destinasi pilihan <em>untukmu.</em></h2>
-                </div>
-                <a href="{{ route('destinations.index') }}" class="text-dark text-decoration-none fw-semibold d-none d-md-block">Lihat semua <i class="bi bi-arrow-right ms-1"></i></a>
+            <div class="section-heading mb-4">
+                <h2 class="mt-2">Destinasi Pilihan di <em>Kab Jember</em></h2>
             </div>
-            
-            <div class="row g-4">
+
+            <div class="row g-3 g-lg-4 destination-gallery-grid">
                 @forelse ($destinations as $destination)
                     @php
                         $image = $destination->foto_utama ?: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80';
-                        $minPrice = $destination->jenisTiket && $destination->jenisTiket->count() > 0 ? $destination->jenisTiket->min('harga') : 0;
                     @endphp
-                    <div class="col-md-6 col-lg-4" data-reveal-item style="--reveal-delay: {{ ($loop->index % 3) * 90 }}ms;">
-                        <article class="destination-card h-100">
-                            <div class="destination-image">
-                                <img src="{{ $image }}" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80';" alt="{{ $destination->nama_wisata }}">
-                                <span class="category-pill">{{ $destination->kategori ?? 'Umum' }}</span>
-                            </div>
-                            <div class="destination-body d-flex flex-column">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h3 class="mb-0" style="font-size: 1.1rem;">{{ $destination->nama_wisata }}</h3>
-                                </div>
-                                <p class="mb-3" style="flex-grow: 1;">
-                                    <i class="bi bi-geo-alt-fill text-orange me-1"></i>
-                                    {{ Str::limit($destination->alamat, 60) }}
-                                </p>
-                                <div class="d-flex justify-content-between align-items-center" style="padding-top: 1rem; border-top: 1px solid #E2E8F0;">
-                                    <span class="price">Mulai <strong style="color: #F58B05;">Rp {{ number_format($minPrice, 0, ',', '.') }}</strong></span>
-                                    <a href="{{ route('destinations.show', $destination->id_destinasi) }}" 
-                                       style="display: inline-flex; align-items: center; gap: 0.3rem; background: #F58B05; color: #fff; padding: 0.45rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.85rem; transition: all 0.2s ease; box-shadow: 0 2px 8px rgba(245, 139, 5, 0.25);"
-                                       onmouseover="this.style.background='#e07b00'; this.style.transform='translateY(-2px)';"
-                                       onmouseout="this.style.background='#F58B05'; this.style.transform='translateY(0)';">
-                                        Detail <i class="bi bi-arrow-right" style="font-size: 0.8rem;"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </article>
+                    <div class="col-12 col-md-6 col-lg-4" data-reveal-item style="--reveal-delay: {{ ($loop->index % 3) * 90 }}ms;">
+                        <a href="{{ route('destinations.show', $destination->id_destinasi) }}" class="destination-gallery-card" aria-label="Lihat {{ $destination->nama_wisata }}">
+                            <img src="{{ $image }}" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80';" alt="{{ $destination->nama_wisata }}" loading="lazy">
+                            <span class="destination-gallery-overlay"></span>
+                            <span class="destination-gallery-name">{{ $destination->nama_wisata }}</span>
+                        </a>
                     </div>
                 @empty
                     <div class="col-12">
@@ -146,6 +122,55 @@
                 @endforelse
             </div>
         </div>
+        <style>
+            #destinasi .destination-gallery-card {
+                position: relative;
+                display: block;
+                overflow: hidden;
+                aspect-ratio: 4 / 3;
+                border-radius: 10px;
+                background: #dce6ed;
+                cursor: pointer;
+                isolation: isolate;
+            }
+            #destinasi .destination-gallery-card img,
+            #destinasi .destination-gallery-overlay {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+            }
+            #destinasi .destination-gallery-card img {
+                object-fit: contain;
+                background: #e8eef2;
+                animation: destinationGalleryZoom 10s ease-in-out infinite alternate;
+            }
+            @keyframes destinationGalleryZoom {
+                from { transform: scale(1); }
+                to { transform: scale(1.06); }
+            }
+            #destinasi .destination-gallery-overlay {
+                z-index: 1;
+                background: linear-gradient(180deg, transparent 45%, rgba(8, 25, 42, .82) 100%);
+                transition: background 250ms ease;
+            }
+            #destinasi .destination-gallery-name {
+                position: absolute;
+                z-index: 2;
+                right: 1rem;
+                bottom: 1rem;
+                left: 1rem;
+                color: #fff;
+                font-size: .98rem;
+                font-weight: 700;
+                line-height: 1.25;
+                text-shadow: 0 1px 3px rgba(0, 0, 0, .25);
+            }
+            #destinasi .destination-gallery-card:hover .destination-gallery-overlay { background: linear-gradient(180deg, rgba(8, 25, 42, .08) 25%, rgba(8, 25, 42, .9) 100%); }
+            @media (prefers-reduced-motion: reduce) {
+                #destinasi .destination-gallery-card img { animation: none; }
+            }
+        </style>
     </section>
 
     <!-- Articles Section -->

@@ -19,11 +19,11 @@
             <div class="carousel-inner">
                 @php
                     $heroSlides = [
-                    ['image' => route('assets.hero2'), 'icon' => 'bi-sunrise-fill', 'eyebrow' => 'Panorama Jember', 'title' => 'Pagi yang tak ingin kau lewatkan.', 'copy' => 'Hirup udara pegunungan, nikmati hamparan hijau, dan biarkan Jember menyambut langkahmu.'],
-                    ['image' => route('assets.hero3'), 'icon' => 'bi-tree-fill', 'eyebrow' => 'Petualangan Alam', 'title' => 'Temukan sisi luar Jember.', 'copy' => 'Air terjun, hutan, dan jalan baru siap mengantarmu pada cerita yang berbeda.'],
-                    ['image' => route('assets.hero4'), 'icon' => 'bi-water', 'eyebrow' => 'Ruang Untuk Berhenti', 'title' => 'Berhenti sejenak, rasakan lebih banyak.', 'copy' => 'Temukan ruang tenang di antara bukit dan danau untuk bernapas lebih lega.'],
-                    ['image' => route('assets.hero6'), 'icon' => 'bi-compass-fill', 'eyebrow' => 'Jember Penuh Cerita', 'title' => 'Setiap perjalanan punya cerita.', 'copy' => 'Jelajahi alam, bahari, dan pengalaman lokal yang membuat Jember terasa dekat.'],
-                    ['image' => route('assets.background'), 'icon' => 'bi-stars', 'eyebrow' => 'The Real Hidden Paradise', 'title' => 'Jember, kejutan indah di setiap langkah.', 'copy' => 'Biarkan pesona Jember membawamu menemukan tempat-tempat yang belum pernah kamu bayangkan.'],
+                    ['image' => route('assets.hero2'), 'icon' => 'bi-sunrise-fill', 'eyebrow' => 'Wisata Alam', 'title' => 'Mulai langkah dari hijaunya Jember.', 'copy' => 'Dari lereng yang berkabut hingga kebun yang hangat oleh matahari, alam Jember selalu punya cara untuk menyambutmu.'],
+                    ['image' => route('assets.hero3'), 'icon' => 'bi-tree-fill', 'eyebrow' => 'Petualangan Alam', 'title' => 'Dengar air jatuh, rasakan bumi bernapas.', 'copy' => 'Air terjun, hutan, dan pegunungan menunggu untuk dijelajahi dalam perjalanan yang benar-benar menyegarkan.'],
+                    ['image' => route('assets.hero4'), 'icon' => 'bi-water', 'eyebrow' => 'Wisata Bahari', 'title' => 'Biarkan ombak membawa ceritamu.', 'copy' => 'Temukan garis pantai selatan Jember, tempat langit luas, laut biru, dan matahari bertemu dalam satu perjalanan.'],
+                    ['image' => route('assets.hero6'), 'icon' => 'bi-compass-fill', 'eyebrow' => 'Wisata Buatan', 'title' => 'Satu kota, banyak cara untuk berlibur.', 'copy' => 'Nikmati ruang rekreasi, pengalaman lokal, dan tempat seru yang membuat perjalanan di Jember terasa lengkap.'],
+                    ['image' => route('assets.background'), 'icon' => 'bi-stars', 'eyebrow' => 'Jember Penuh Cerita', 'title' => 'Alam, bahari, dan buatan dalam satu rasa.', 'copy' => 'Pilih tujuanmu, susun perjalananmu, lalu biarkan Jember meninggalkan cerita yang ingin kamu ulangi.'],
                     ];
                 @endphp
                 @foreach($heroSlides as $index => $slide)
@@ -229,37 +229,7 @@
     </section>
 </main>
 
-<footer class="footer">
-    <div class="container">
-        <div class="row g-4">
-            <div class="col-lg-4">
-                <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('home') }}">
-                    <span class="brand-wordmark">Jember<span class="brand-accent">Go</span></span>
-                </a>
-                <p class="mt-3">Platform informasi dan layanan pariwisata resmi Kabupaten Jember. Temukan, rencanakan, dan pesan tiket wisata dengan mudah.</p>
-            </div>
-            <div class="col-lg-4">
-                <strong>Jelajahi</strong>
-                <a href="{{ route('destinations.index') }}">Destinasi Wisata</a>
-                <a href="{{ route('articles.index') }}">Artikel & Tips</a>
-                <a href="#tentang">Tentang JemberGo</a>
-            </div>
-            <div class="col-lg-4">
-                <strong>Ikuti Kami</strong>
-                <div class="d-flex gap-3 mt-3">
-                    <a href="#" class="fs-4"><i class="bi bi-instagram"></i></a>
-                    <a href="#" class="fs-4"><i class="bi bi-facebook"></i></a>
-                    <a href="#" class="fs-4"><i class="bi bi-twitter-x"></i></a>
-                    <a href="#" class="fs-4"><i class="bi bi-youtube"></i></a>
-                </div>
-                <p class="mt-3 small">Dapatkan update destinasi terbaru dan promo menarik.</p>
-            </div>
-        </div>
-        <div class="footer-bottom mt-4">
-            <span>© {{ date('Y') }} JemberGo. Hak Cipta Dilindungi.</span>
-        </div>
-    </div>
-</footer>
+<x-public-footer />
 <script>
     (() => {
         const revealItems = document.querySelectorAll('[data-reveal-section], [data-reveal-item]');

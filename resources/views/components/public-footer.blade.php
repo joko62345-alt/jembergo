@@ -25,7 +25,7 @@
             </div>
         </div>
         <div class="footer-bottom mt-4">
-            <span>&copy; {{ date('Y') }} JemberGo. Hak Cipta Dilindungi.</span>
+            <span>&copy; {{ date('Y') }} JemberGo.</span>
         </div>
     </div>
 </footer>

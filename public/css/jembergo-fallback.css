@@ -100,7 +100,19 @@ em { color: var(--jg-orange); font-family: 'Caveat', cursive; font-size: 1.18em;
 
 .navbar-brand { font-weight: 600; font-size: 1.35rem !important; color: var(--jg-dark) !important; }
 .jg-logo { display: block; width: auto; object-fit: contain; }
-.jg-logo-navbar { width: 142px; height: 58px; }
+.jg-navbar .navbar-brand {
+    position: relative;
+    width: 175px;
+    height: 58px;
+    flex: 0 0 175px;
+    overflow: hidden;
+}
+.jg-logo-navbar {
+    width: 58px;
+    height: 58px;
+    transform: scale(2);
+    transform-origin: left center;
+}
 .jg-logo-footer { width: 220px; height: 120px; max-width: 100%; margin: 0; transform: none; }
 .jg-logo-auth { width: 220px; height: 92px; }
 .footer-brand-wordmark { color: #123b78 !important; }
@@ -146,6 +158,8 @@ em { color: var(--jg-orange); font-family: 'Caveat', cursive; font-size: 1.18em;
 .btn-jg-secondary:hover { background: #a8dced; border-color: #a8dced; color: var(--jg-dark) !important; transform: translateY(-2px); }
 .btn-outline-jg { background: transparent; border-color: var(--jg-blue); color: var(--jg-blue) !important; }
 .btn-outline-jg:hover { background: var(--jg-blue); color: var(--jg-white) !important; }
+.jg-login-button { border: 1px solid var(--jg-orange); border-radius: .55rem; background: #fff; color: var(--jg-dark) !important; padding: .5rem 1.1rem; font-weight: 600; }
+.jg-login-button:hover { background: #fff7ed; border-color: var(--jg-orange); color: var(--jg-dark) !important; }
 .btn-lg { padding: 0.85rem 1.8rem; font-size: 1rem !important; }
 .btn-sm { padding: 0.5rem 1rem; font-size: 0.85rem !important; }
 
@@ -399,7 +413,7 @@ em { color: var(--jg-orange); font-family: 'Caveat', cursive; font-size: 1.18em;
 .footer strong { color: var(--jg-dark); margin-bottom: 1rem; display: block; }
 .footer a { color: #35526b; text-decoration: none; display: block; margin-bottom: 0.75rem; transition: color var(--transition); }
 .footer a:hover { color: var(--jg-orange); }
-.footer-bottom { border-top: 1px solid rgba(31, 41, 55, 0.15); margin-top: 3rem; padding-top: 2rem; display: flex; justify-content: space-between; font-size: 0.875rem; color: #35526b; }
+.footer-bottom { border-top: 1px solid rgba(31, 41, 55, 0.15); margin-top: 3rem; padding-top: 2rem; display: flex; justify-content: center; text-align: center; font-size: 0.875rem; color: #35526b; }
 
 /* --- RESPONSIVE --- */
 @media (max-width: 991px) {

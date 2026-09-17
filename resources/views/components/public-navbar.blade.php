@@ -87,7 +87,7 @@
                     </span>
                 @else
                     <!-- Guest: Tampilkan Masuk & Daftar -->
-                    <a href="{{ route('login') }}" class="btn btn-link text-dark text-decoration-none fw-semibold px-3">
+                    <a href="{{ route('login') }}" class="btn jg-login-button">
                         Masuk
                     </a>
                     <a href="{{ route('register') }}" class="btn btn-jg-primary btn-sm px-4">

@@ -9,7 +9,6 @@ final class StatusLabel
         return match ($status) {
             'PAID' => 'Lunas',
             'PENDING' => 'Menunggu pembayaran',
-            'CANCELLED' => 'Dibatalkan',
             'EXPIRED' => 'Kedaluwarsa',
             'FAILED' => 'Gagal',
             default => 'Belum diproses',
@@ -34,7 +33,6 @@ final class StatusLabel
             'ACTIVE' => 'Terkonfirmasi',
             'USED' => 'Sudah digunakan',
             'PARTIAL' => 'Sebagian digunakan',
-            'CANCELLED' => 'Dibatalkan',
             'EXPIRED' => 'Kedaluwarsa',
             default => 'Tidak diketahui',
         };
@@ -54,10 +52,6 @@ final class StatusLabel
 
         if ($statuses->contains('USED')) {
             return 'PARTIAL';
-        }
-
-        if ($statuses->every(fn ($status) => $status === 'CANCELLED')) {
-            return 'CANCELLED';
         }
 
         return $statuses->first();

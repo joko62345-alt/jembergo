@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::table('pembayaran', function (Blueprint $table): void {
             $table->string('order_id')->nullable()->unique()->after('id_pemesanan');
-            $table->string('transaction_id')->nullable()->index()->after('order_id');
+            $table->string('transaction_id')->nullable()->after('order_id');
             $table->string('transaction_status')->nullable()->after('status_pembayaran');
             $table->string('payment_type')->nullable()->after('transaction_status');
             $table->decimal('gross_amount', 12, 2)->nullable()->after('nominal');
@@ -21,7 +21,7 @@ return new class extends Migration
 
         Schema::table('perubahan_pemesanan', function (Blueprint $table): void {
             $table->string('order_id')->nullable()->unique()->after('id_pemesanan');
-            $table->string('transaction_id')->nullable()->index()->after('order_id');
+            $table->string('transaction_id')->nullable()->after('order_id');
             $table->string('transaction_status')->nullable()->after('status');
             $table->string('payment_type')->nullable()->after('transaction_status');
             $table->decimal('gross_amount', 12, 2)->nullable()->after('nominal');

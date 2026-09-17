@@ -54,6 +54,7 @@ class BookingController extends Controller
         }
 
         $destination = DestinasiWisata::with('jenisTiket')->findOrFail($id);
+        abort_if(! $destination->status_aktif, 422, 'Destinasi wisata ini sudah tidak aktif untuk pemesanan baru.');
         $data = $request->validate([
             'tanggal_kunjungan' => ['required', 'date', 'after_or_equal:today'],
             'ketua_nama' => ['required', 'string', 'max:150'],

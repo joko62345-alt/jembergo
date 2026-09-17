@@ -12,11 +12,25 @@ class Tiket extends Model
     use HasFactory;
 
     protected $table = 'tiket';
-    protected $primaryKey = 'id_tiket';
-    protected $fillable = ['id_pemesanan', 'kode_qr', 'status_tiket', 'waktu_verifikasi', 'waktu_pembatalan'];
-    protected $casts = ['waktu_verifikasi' => 'datetime', 'waktu_pembatalan' => 'datetime'];
 
-    public function pemesanan(): BelongsTo { return $this->belongsTo(Pemesanan::class, 'id_pemesanan'); }
-    public function detailPemesanan(): HasOne { return $this->hasOne(DetailPemesanan::class, 'id_tiket'); }
-    public function review(): HasOne { return $this->hasOne(Review::class, 'id_tiket'); }
+    protected $primaryKey = 'id_tiket';
+
+    protected $fillable = ['id_pemesanan', 'kode_qr', 'status_tiket', 'waktu_verifikasi'];
+
+    protected $casts = ['waktu_verifikasi' => 'datetime'];
+
+    public function pemesanan(): BelongsTo
+    {
+        return $this->belongsTo(Pemesanan::class, 'id_pemesanan');
+    }
+
+    public function detailPemesanan(): HasOne
+    {
+        return $this->hasOne(DetailPemesanan::class, 'id_tiket');
+    }
+
+    public function review(): HasOne
+    {
+        return $this->hasOne(Review::class, 'id_tiket');
+    }
 }

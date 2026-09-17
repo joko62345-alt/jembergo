@@ -26,7 +26,7 @@ return new class extends Migration
             $table->decimal('longitude', 10, 7);
             $table->text('alamat');
             $table->string('jam_operasional');
-            $table->boolean('status_aktif')->default(true)->index();
+            $table->boolean('status_aktif')->default(true);
             $table->timestamps();
         });
 
@@ -37,7 +37,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->string('no_hp', 30);
             $table->string('password');
-            $table->string('status_akun')->default('AKTIF')->index();
+            $table->string('status_akun')->default('AKTIF');
             $table->timestamps();
         });
 
@@ -82,7 +82,7 @@ return new class extends Migration
             $table->longText('isi');
             $table->string('gambar')->nullable();
             $table->dateTime('tanggal_publikasi')->nullable();
-            $table->string('status')->default('DRAFT')->index();
+            $table->string('status')->default('DRAFT');
             $table->timestamps();
         });
 
@@ -92,9 +92,9 @@ return new class extends Migration
             $table->foreignId('id_destinasi')->constrained('destinasi_wisata', 'id_destinasi')->restrictOnDelete();
             $table->string('kode_booking')->unique();
             $table->dateTime('tanggal_pemesanan');
-            $table->date('tanggal_kunjungan')->index();
+            $table->date('tanggal_kunjungan');
             $table->decimal('total_harga', 12, 2);
-            $table->string('status_pemesanan')->default('PENDING')->index();
+            $table->string('status_pemesanan')->default('PENDING');
             $table->dateTime('batas_waktu_pembayaran')->nullable();
             $table->timestamps();
         });
@@ -113,7 +113,7 @@ return new class extends Migration
             $table->id('id_tiket');
             $table->foreignId('id_pemesanan')->constrained('pemesanan', 'id_pemesanan')->cascadeOnDelete();
             $table->string('kode_qr', 740)->unique();
-            $table->string('status_tiket')->default('ACTIVE')->index();
+            $table->string('status_tiket')->default('ACTIVE');
             $table->dateTime('waktu_verifikasi')->nullable();
             $table->dateTime('waktu_pembatalan')->nullable();
             $table->timestamps();
@@ -129,9 +129,9 @@ return new class extends Migration
             $table->string('metode_pembayaran')->nullable();
             $table->decimal('nominal', 12, 2);
             $table->dateTime('waktu_pembayaran')->nullable();
-            $table->string('referensi_gateway')->nullable()->index();
-            $table->string('status_pembayaran')->default('PENDING')->index();
-            $table->string('status_refund')->nullable()->index();
+            $table->string('referensi_gateway')->nullable();
+            $table->string('status_pembayaran')->default('PENDING');
+            $table->string('status_refund')->nullable();
             $table->decimal('nominal_refund', 12, 2)->nullable();
             $table->string('refund_key_gateway')->nullable();
             $table->dateTime('waktu_refund_diajukan')->nullable();

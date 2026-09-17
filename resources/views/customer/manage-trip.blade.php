@@ -14,9 +14,8 @@
 <main class="manage-page">
     <div class="container manage-container">
         <a href="{{ route('customer.ticket', $booking->id_pemesanan) }}" class="manage-back"><i class="bi bi-arrow-left"></i> Kembali ke E-Ticket</a>
-        <div class="manage-header"><div><span class="manage-kicker">Kelola perjalanan</span><h1>Ubah perjalanan dengan tenang.</h1><p>Perubahan jadwal dan tiket tambahan akan diproses setelah pembayaran berhasil.</p></div><span class="manage-code"><i class="bi bi-receipt"></i>{{ $booking->kode_booking }}</span></div>
+        <div class="manage-header"><div><span class="manage-kicker">Kelola perjalanan</span></div><span class="manage-code"><i class="bi bi-receipt"></i>{{ $booking->kode_booking }}</span></div>
 
-        <div class="manage-steps"><div class="is-active"><span>1</span><strong>Perjalanan</strong></div><i class="bi bi-chevron-right"></i><div><span>2</span><strong>Data Tiket</strong></div><i class="bi bi-chevron-right"></i><div><span>3</span><strong>Review</strong></div><i class="bi bi-chevron-right"></i><div><span>4</span><strong>Pembayaran</strong></div><i class="bi bi-chevron-right"></i><div><span>5</span><strong>Selesai</strong></div></div>
 
         @if($pending)
             <div class="manage-pending"><div><i class="bi bi-hourglass-split"></i><div><strong>Ada perubahan yang belum selesai</strong><p>Lanjutkan ke review dan pembayaran agar E-Ticket diperbarui.</p></div></div><a href="{{ route('customer.change.checkout', [$booking->id_pemesanan, $pending->id_perubahan]) }}" class="btn btn-warning">Lanjutkan pembayaran <i class="bi bi-arrow-right"></i></a></div>
@@ -30,7 +29,7 @@
             <div class="manage-layout">
                 <section class="manage-main">
                     <article class="manage-card">
-                        <div class="card-heading"><div class="heading-icon"><i class="bi bi-calendar2-week"></i></div><div><span>01 · Perjalanan</span><h2>Ubah jadwal</h2><p>Pilih tanggal baru untuk kunjungan Anda.</p></div></div>
+                        <div class="card-heading"><div class="heading-icon"><i class="bi bi-calendar2-week"></i></div><div><span>Perjalanan</span><h2>Ubah jadwal</h2><p>Pilih tanggal baru untuk kunjungan Anda.</p></div></div>
                         <label for="tanggal_kunjungan">Tanggal kunjungan baru</label>
                         <input id="tanggal_kunjungan" name="tanggal_kunjungan" type="date" min="{{ today()->toDateString() }}" value="{{ old('tanggal_kunjungan', $booking->tanggal_kunjungan->toDateString()) }}" required>
                         @error('tanggal_kunjungan')<small class="field-error">{{ $message }}</small>@enderror
@@ -38,10 +37,10 @@
                     </article>
 
                     <article class="manage-card">
-                        <div class="card-heading"><div class="heading-icon"><i class="bi bi-people"></i></div><div><span>02 · Data tiket</span><h2>Tambah tiket</h2><p>Tambahkan anggota atau tiket tambahan untuk perjalanan Anda.</p></div></div>
+                        <div class="card-heading"><div class="heading-icon"><i class="bi bi-people"></i></div><div><span> Data tiket</span><h2>Tambah tiket</h2><p>Tambahkan anggota atau tiket tambahan untuk perjalanan Anda.</p></div></div>
                         @if($remaining > 0)
                             <div class="member-list" id="memberList">
-                                <div class="member-row" data-member-row><div class="member-number">01</div><div class="member-fields"><label>Nama anggota<input name="anggota[0][nama]" placeholder="Contoh: Dinda Pratama"></label><label>Jenis tiket<select name="anggota[0][id_jenis_tiket]"><option value="">Pilih jenis tiket</option>@foreach($booking->destinasi->jenisTiket as $ticket)<option value="{{ $ticket->id_jenis_tiket }}" data-price="{{ $ticket->harga }}">{{ $ticket->nama_jenis }} · Rp {{ number_format($ticket->harga, 0, ',', '.') }}</option>@endforeach</select></label></div><button type="button" class="remove-member" aria-label="Hapus anggota"><i class="bi bi-trash3"></i></button></div>
+                                <div class="member-row" data-member-row><div class="member-number">01</div><div class="member-fields"><label>Nama anggota<input name="anggota[0][nama]" placeholder="Masukkan nama"></label><label>Jenis tiket<select name="anggota[0][id_jenis_tiket]"><option value="">Pilih jenis tiket</option>@foreach($booking->destinasi->jenisTiket as $ticket)<option value="{{ $ticket->id_jenis_tiket }}" data-price="{{ $ticket->harga }}">{{ $ticket->nama_jenis }} · Rp {{ number_format($ticket->harga, 0, ',', '.') }}</option>@endforeach</select></label></div><button type="button" class="remove-member" aria-label="Hapus anggota"><i class="bi bi-trash3"></i></button></div>
                             </div>
                             <button type="button" class="add-member" id="addMember"><i class="bi bi-plus-lg"></i> Tambah anggota</button>
                             <p class="member-limit"><i class="bi bi-shield-check"></i> {{ $remaining }} slot tiket tersedia · maksimal 10 orang per booking.</p>
@@ -57,7 +56,7 @@
                         <div class="summary-line"><span>Jadwal saat ini</span><strong>{{ $booking->tanggal_kunjungan->translatedFormat('d M Y') }}</strong></div><div class="summary-line"><span>Jumlah tiket</span><strong>{{ $currentCount }} tiket</strong></div>
                         <hr><div class="summary-addition"><span>Tiket tambahan</span><strong id="summaryCount">0 tiket</strong></div><div class="summary-addition"><span>Subtotal tambahan</span><strong id="summarySubtotal">Rp 0</strong></div>
                         <div class="summary-total"><span>Total biaya tambahan</span><strong id="summaryTotal">Rp 0</strong></div>
-                        <button class="primary-action" id="reviewChanges" type="submit" disabled>Review perubahan <i class="bi bi-arrow-right"></i></button>
+                        <button class="primary-action" id="reviewChanges" type="submit" disabled>lihat perubahan <i class="bi bi-arrow-right"></i></button>
                         <small class="summary-help">Anda akan melihat detail perubahan sebelum melanjutkan ke pembayaran.</small>
                     </div>
                 </aside>

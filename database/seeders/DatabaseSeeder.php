@@ -51,8 +51,8 @@ class DatabaseSeeder extends Seeder
 
             GaleriDestinasi::create([
                 'id_destinasi' => $destination->id_destinasi,
-                'url_foto' => 'images/destinations/' . str($destination->nama_wisata)->slug() . '.jpg',
-                'keterangan' => 'Pemandangan utama ' . $destination->nama_wisata,
+                'url_foto' => 'images/destinations/'.str($destination->nama_wisata)->slug().'.jpg',
+                'keterangan' => 'Pemandangan utama '.$destination->nama_wisata,
             ]);
 
             JenisTiket::create(['id_destinasi' => $destination->id_destinasi, 'nama_jenis' => 'Tiket Dewasa', 'harga' => 25000]);
@@ -68,10 +68,9 @@ class DatabaseSeeder extends Seeder
 
         foreach (range(1, 5) as $index) {
             Customer::create([
-                'nama' => 'Customer JemberGo ' . $index,
-                'email' => 'customer' . $index . '@jembergo.test',
-                'no_hp' => '08200000000' . $index,
-                'alamat' => 'Kabupaten Jember',
+                'nama' => 'Customer JemberGo '.$index,
+                'email' => 'customer'.$index.'@jembergo.test',
+                'no_hp' => '08200000000'.$index,
                 'password' => Hash::make('JemberGo!2026'),
                 'auth_provider' => 'manual',
             ]);

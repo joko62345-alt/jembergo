@@ -13,7 +13,7 @@ return new class extends Migration
             $table->foreignId('id_pemesanan')->constrained('pemesanan', 'id_pemesanan')->cascadeOnDelete();
             $table->json('anggota_baru');
             $table->decimal('nominal', 12, 2);
-            $table->string('status')->default('PENDING')->index();
+            $table->string('status')->default('PENDING');
             $table->string('metode_pembayaran')->nullable();
             $table->string('referensi_gateway')->nullable();
             $table->dateTime('waktu_pembayaran')->nullable();

@@ -27,7 +27,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('pembayaran', function (Blueprint $table): void {
-            $table->string('status_refund')->nullable()->index();
+            $table->string('status_refund')->nullable();
             $table->decimal('nominal_refund', 12, 2)->nullable();
             $table->string('refund_key_gateway')->nullable();
             $table->dateTime('waktu_refund_diajukan')->nullable();

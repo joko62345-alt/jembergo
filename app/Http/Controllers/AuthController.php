@@ -143,7 +143,6 @@ class AuthController extends Controller
             'nama' => ['required', 'string', 'max:150'],
             'email' => ['required', 'email', 'max:150', 'unique:customer,email'],
             'no_hp' => ['nullable', 'string', 'max:30'],
-            'alamat' => ['nullable', 'string', 'max:500'],
             'password' => ['required', 'string', 'min:8'],
         ], [
             'email.unique' => 'Email tersebut sudah terdaftar.',

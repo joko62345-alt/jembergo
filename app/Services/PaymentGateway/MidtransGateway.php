@@ -37,6 +37,7 @@ class MidtransGateway implements PaymentGateway
 
         $booking->loadMissing(['customer', 'detailPemesanan.jenisTiket']);
         $orderId = $customOrderId ?? 'JGO-'.$booking->kode_booking;
+        $itemDetails = $this->buildItemDetails($booking, $amount, $customOrderId !== null);
         $response = $this->client()->post('/snap/v1/transactions', [
             'transaction_details' => [
                 'order_id' => $orderId,
@@ -47,12 +48,7 @@ class MidtransGateway implements PaymentGateway
                 'email' => $booking->ketua_email,
                 'phone' => $booking->ketua_no_hp,
             ],
-            'item_details' => $booking->detailPemesanan->map(fn ($detail): array => [
-                'id' => (string) $detail->id_jenis_tiket,
-                'price' => (int) round($detail->subtotal / max(1, $detail->jumlah)),
-                'quantity' => (int) $detail->jumlah,
-                'name' => $detail->jenisTiket->nama_jenis,
-            ])->values()->all(),
+            'item_details' => $itemDetails,
         ]);
 
         if ($response->failed() || ! $response->json('token')) {
@@ -72,6 +68,28 @@ class MidtransGateway implements PaymentGateway
             'qris_url' => null,
             'qris_expires_at' => null,
         ];
+    }
+
+    private function buildItemDetails(Pemesanan $booking, float $amount, bool $isAdditionalCharge): array
+    {
+        if (! $isAdditionalCharge) {
+            return $booking->detailPemesanan->map(fn ($detail): array => [
+                'id' => (string) $detail->id_jenis_tiket,
+                'price' => (int) round($detail->subtotal / max(1, $detail->jumlah)),
+                'quantity' => (int) $detail->jumlah,
+                'name' => $detail->jenisTiket->nama_jenis,
+            ])->values()->all();
+        }
+
+        $newMemberCount = (int) max(1, round($amount / max(1, $booking->detailPemesanan->first()?->jenisTiket?->harga ?? 0)));
+        $unitPrice = (int) round($amount / max(1, $newMemberCount));
+
+        return [[
+            'id' => 'additional-charge',
+            'price' => $unitPrice,
+            'quantity' => $newMemberCount,
+            'name' => 'Biaya tambahan perubahan tiket',
+        ]];
     }
 
     private function charge(Pemesanan $booking, float $amount, string $orderId): array

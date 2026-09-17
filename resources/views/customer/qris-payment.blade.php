@@ -38,6 +38,18 @@
     </div>
 </main>
 
+<div class="modal fade" id="paymentSuccessModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body text-center py-4">
+                <div class="mb-3" style="font-size:2rem; color:#1ea878;">✓</div>
+                <h5 class="fw-bold mb-2">Pembayaran berhasil</h5>
+                <p class="mb-0 text-secondary">Anda akan diarahkan ke halaman e-ticket.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
     .qris-page { font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif; font-size: .9rem; line-height: 1.5; }
     .qris-header h1 { font-size: clamp(1.25rem, 1.8vw, 1.55rem) !important; line-height: 1.2; }
@@ -61,6 +73,20 @@
     const expiresAt = {{ $expiresAt }} * 1000;
     const tick = () => { const remaining = Math.max(0, expiresAt - Date.now()); const seconds = Math.floor(remaining / 1000); output.textContent = [Math.floor(seconds / 3600), Math.floor((seconds % 3600) / 60), seconds % 60].map(value => String(value).padStart(2, '0')).join(':'); if (!remaining) { status.textContent = 'QRIS kedaluwarsa'; clearInterval(timer); } };
     const timer = setInterval(tick, 1000); tick();
+    const ticketUrl = @json(route('customer.ticket', $booking->id_pemesanan));
+    const showPaymentSuccessModal = () => {
+        const modal = document.getElementById('paymentSuccessModal');
+        if (window.bootstrap && modal) {
+            const bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+            setTimeout(() => window.location.href = ticketUrl, 1400);
+            return;
+        }
+
+        window.alert('Pembayaran berhasil. Anda akan diarahkan ke tiket saya.');
+        window.location.href = ticketUrl;
+    };
+
     const checkStatus = async () => {
         checkButton.disabled = true;
         refreshMessage.textContent = 'Memeriksa status pembayaran ke Midtrans...';
@@ -68,7 +94,7 @@
             const response = await fetch(window.location.href, { cache: 'no-store', headers: { Accept: 'application/json' } });
             const data = response.ok ? await response.json() : {};
             if (data.status === 'PAID') {
-                window.location.href = @json(route('customer.ticket', $booking->id_pemesanan));
+                showPaymentSuccessModal();
                 return;
             }
             refreshMessage.textContent = 'Pembayaran masih menunggu konfirmasi Midtrans.';

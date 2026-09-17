@@ -13,8 +13,8 @@ use Illuminate\Database\DatabaseManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -66,8 +66,14 @@ class BookingController extends Controller
         $participants = collect($data['peserta']);
         $availableTypes = $destination->jenisTiket->keyBy('id_jenis_tiket');
         abort_if($participants->contains(fn (array $participant) => ! $availableTypes->has((int) $participant['id_jenis_tiket'])), 422, 'Jenis tiket tidak tersedia untuk destinasi ini.');
-        $members = $participants->skip(1)->map(fn (array $participant) => ['nama' => $participant['nama'], 'id_jenis_tiket' => (int) $participant['id_jenis_tiket']])->values()->all();
+        $members = $participants->skip(1)->map(fn (array $participant) => ['nama' => trim((string) $participant['nama']), 'id_jenis_tiket' => (int) $participant['id_jenis_tiket']])->filter(fn (array $participant) => filled($participant['nama']))->values()->all();
         $total = $participants->sum(fn (array $participant) => $availableTypes[(int) $participant['id_jenis_tiket']]->harga);
+
+        if ($this->hasDuplicateBookingIdentity($data)) {
+            return back()->withInput()->withErrors([
+                'booking' => 'Nama, email, dan nomor telepon yang sama sudah pernah melakukan pemesanan sebelumnya. Harap gunakan data yang berbeda untuk membuat pemesanan baru.',
+            ]);
+        }
 
         if ($destination->kuota_harian_aktif) {
             $booked = $destination->bookedTicketsForDate($data['tanggal_kunjungan']);
@@ -96,6 +102,54 @@ class BookingController extends Controller
         $booking->pembayaran()->create(['nominal' => $booking->total_harga, 'status_pembayaran' => 'PENDING']);
 
         return redirect()->route('customer.checkout', $booking->id_pemesanan)->with('open_snap', true);
+    }
+
+    private function hasDuplicateBookingIdentity(array $data): bool
+    {
+        $candidateName = strtolower(trim((string) $data['ketua_nama']));
+        $candidateEmail = strtolower(trim((string) $data['ketua_email']));
+        $candidatePhone = $this->normalizePhoneNumber((string) $data['ketua_no_hp']);
+        $candidateVisitDate = $data['tanggal_kunjungan'] ?? null;
+        $candidateDestinationId = request()->route('id') ?? null;
+
+        if ($candidateName === '' || $candidateEmail === '' || $candidatePhone === '' || ! $candidateVisitDate || ! $candidateDestinationId) {
+            return false;
+        }
+
+        return Pemesanan::query()
+            ->whereNotNull('ketua_nama')
+            ->whereNotNull('ketua_email')
+            ->whereNotNull('ketua_no_hp')
+            ->whereDate('tanggal_kunjungan', $candidateVisitDate)
+            ->where('id_destinasi', (int) $candidateDestinationId)
+            ->get()
+            ->contains(function (Pemesanan $booking) use ($candidateName, $candidateEmail, $candidatePhone): bool {
+                $currentName = strtolower(trim((string) $booking->ketua_nama));
+                $currentEmail = strtolower(trim((string) $booking->ketua_email));
+                $currentPhone = $this->normalizePhoneNumber((string) $booking->ketua_no_hp);
+
+                return $currentName !== ''
+                    && $currentEmail !== ''
+                    && $currentPhone !== ''
+                    && $currentName === $candidateName
+                    && $currentEmail === $candidateEmail
+                    && $currentPhone === $candidatePhone;
+            });
+    }
+
+    private function normalizePhoneNumber(string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', trim($phone));
+
+        if ($digits === '') {
+            return '';
+        }
+
+        if (str_starts_with($digits, '62')) {
+            return '0'.substr($digits, 2);
+        }
+
+        return str_starts_with($digits, '0') ? $digits : $digits;
     }
 
     public function checkout(int $id): View|JsonResponse
@@ -173,10 +227,10 @@ class BookingController extends Controller
         $rawMembers = collect($data['anggota'] ?? []);
         abort_if($rawMembers->contains(fn (array $member): bool => (bool) ($member['nama'] ?? '') !== (bool) ($member['id_jenis_tiket'] ?? '')), 422, 'Nama dan jenis tiket anggota harus diisi lengkap.');
         $members = $rawMembers->filter(fn (array $member): bool => filled($member['nama'] ?? null) && filled($member['id_jenis_tiket'] ?? null))->map(fn (array $member): array => [
-            'nama' => $member['nama'],
+            'nama' => trim((string) $member['nama']),
             'id_jenis_tiket' => (int) $member['id_jenis_tiket'],
             'harga' => (float) $availableTypes[(int) $member['id_jenis_tiket']]->harga,
-        ])->values();
+        ])->filter(fn (array $member): bool => filled($member['nama']))->values();
         abort_if($members->contains(fn (array $member): bool => ! $availableTypes->has($member['id_jenis_tiket'])), 422, 'Jenis tiket tidak tersedia untuk destinasi ini.');
         if ($data['tanggal_kunjungan'] === date('Y-m-d', strtotime((string) $booking->tanggal_kunjungan)) && $members->isEmpty()) {
             return redirect()->route('customer.manage', $id)->withInput()->with('change_error', 'Pilih tanggal baru atau tambahkan minimal satu tiket terlebih dahulu.');
@@ -223,8 +277,18 @@ class BookingController extends Controller
 
             return redirect()->route('customer.ticket', $id)->with('success', 'Perubahan perjalanan berhasil dikonfirmasi.');
         }
-        $gateway = app(PaymentGateway::class);
-        $payment = call_user_func([$gateway, 'createPaymentForAmount'], $booking, 'QRIS', (float) $change->nominal);
+
+        try {
+            $gateway = app(PaymentGateway::class);
+            $payment = call_user_func([$gateway, 'createPaymentForAmount'], $booking, 'QRIS', (float) $change->nominal);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return redirect()->route('customer.change.checkout', [$id, $change->id_perubahan])->withErrors([
+                'payment' => 'Pembayaran tambahan Midtrans gagal dibuat: '.$exception->getMessage(),
+            ]);
+        }
+
         $change->update([
             'order_id' => $payment['order_id'], 'snap_token' => $payment['snap_token'] ?? null, 'transaction_id' => $payment['transaction_id'],
             'metode_pembayaran' => 'QRIS', 'status' => 'PENDING',

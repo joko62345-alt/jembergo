@@ -33,15 +33,40 @@
     </div></div></div><div class="col-lg-5"><aside class="checkout-side"><div class="checkout-side-icon"><i class="bi bi-shield-check"></i></div><h2>Pemesanan aman</h2><p>Data pesananmu tercatat dan e-ticket akan diterbitkan.</p><div class="checkout-side-line"><i class="bi bi-lock"></i><span>Pembayaran diproses dengan aman</span></div><div class="checkout-side-line"><i class="bi bi-headset"></i><span>Butuh bantuan? Hubungi pengelola destinasi</span></div></aside></div></div>
     </div>
 </main>
+<div class="modal fade" id="paymentSuccessModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body text-center py-4">
+                <div class="mb-3" style="font-size:2rem; color:#1ea878;">✓</div>
+                <h5 class="fw-bold mb-2">Pembayaran berhasil</h5>
+                <p class="mb-0 text-secondary">Anda akan diarahkan ke halaman e-ticket.</p>
+            </div>
+        </div>
+    </div>
+</div>
 <x-public-footer />
 </body>
 </html>
 @if($booking->pembayaran?->snap_token)
     <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('services.midtrans.client_key') }}"></script>
     <script>
+        const ticketUrl = @json(route('customer.ticket', $booking->id_pemesanan));
+        const showPaymentSuccessModal = () => {
+            const modal = document.getElementById('paymentSuccessModal');
+            if (window.bootstrap && modal) {
+                const bsModal = new bootstrap.Modal(modal);
+                bsModal.show();
+                setTimeout(() => window.location.href = ticketUrl, 1400);
+                return;
+            }
+
+            window.alert('Pembayaran berhasil. Anda akan diarahkan ke tiket saya.');
+            window.location.href = ticketUrl;
+        };
+
         const payButton = document.getElementById('pay-button');
         const openSnap = () => window.snap.pay(@json($booking->pembayaran->snap_token), {
-            onSuccess: () => { window.location.href = @json(route('customer.ticket', $booking->id_pemesanan)); },
+            onSuccess: () => showPaymentSuccessModal(),
             onPending: () => { window.alert('Pembayaran masih menunggu konfirmasi.'); },
             onError: () => { window.alert('Pembayaran gagal. Silakan coba lagi.'); },
             onClose: () => { window.alert('Pembayaran belum selesai.'); },
@@ -54,7 +79,7 @@
             try {
                 const response = await fetch(window.location.href, { cache: 'no-store', headers: { Accept: 'application/json' } });
                 const data = response.ok ? await response.json() : {};
-                if (data.status === 'PAID') window.location.href = @json(route('customer.ticket', $booking->id_pemesanan));
+                if (data.status === 'PAID') showPaymentSuccessModal();
             } catch (error) {}
         }, 10000);
     </script>

@@ -18,6 +18,9 @@
         <div class="review-steps"><div class="done"><span>1</span>Pilih Jadwal</div><i class="bi bi-chevron-right"></i><div class="active"><span>2</span>Review Perubahan</div><i class="bi bi-chevron-right"></i><div><span>3</span>Pembayaran</div><i class="bi bi-chevron-right"></i><div><span>4</span>Selesai</div></div>
         <div class="review-layout">
             <section class="review-main">
+                @if($errors->has('payment'))
+                    <div class="alert alert-danger"><i class="bi bi-exclamation-triangle me-2"></i>{{ $errors->first('payment') }}</div>
+                @endif
                 <article class="review-card"><div class="review-card-title"><i class="bi bi-calendar2-week"></i><div><span>Perubahan perjalanan</span><h2>{{ $booking->destinasi->nama_wisata }}</h2></div></div><div class="date-change"><div><small>Jadwal lama</small><strong>{{ $booking->tanggal_kunjungan->translatedFormat('d F Y') }}</strong></div><i class="bi bi-arrow-right"></i><div class="new-date"><small>Jadwal baru</small><strong>{{ \Carbon\Carbon::parse($newDate)->translatedFormat('d F Y') }}</strong></div></div></article>
                 <article class="review-card"><div class="review-card-title"><i class="bi bi-ticket-perforated"></i><div><span>Data tiket</span><h2>Peserta perjalanan</h2></div></div><div class="ticket-counts"><div><small>Tiket lama</small><strong>{{ 1 + count($booking->anggota_names ?? []) }} tiket</strong></div><div><small>Tiket tambahan</small><strong>+{{ $newMembers->count() }} tiket</strong></div><div><small>Total tiket</small><strong>{{ $totalTickets }} tiket</strong></div></div>@if($newMembers->isNotEmpty())<div class="new-members"><strong>Anggota yang ditambahkan</strong>@foreach($newMembers as $member)<div><span>{{ $member['nama'] }}</span><span>{{ $booking->destinasi->jenisTiket->firstWhere('id_jenis_tiket', (int) $member['id_jenis_tiket'])?->nama_jenis }} · Rp {{ number_format($member['harga'], 0, ',', '.') }}</span></div>@endforeach</div>@endif</article>
             </section>
@@ -37,11 +40,36 @@
     .review-header h1 { font-size: clamp(1.7rem, 2.8vw, 2.25rem); line-height: 1.2; }
     .review-card-title h2, .review-summary-card h2 { font-size: 1.05rem; line-height: 1.3; }
 </style>
+<div class="modal fade" id="paymentSuccessModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-body text-center py-4">
+                <div class="mb-3" style="font-size:2rem; color:#1ea878;">✓</div>
+                <h5 class="fw-bold mb-2">Pembayaran berhasil</h5>
+                <p class="mb-0 text-secondary">Anda akan diarahkan ke halaman e-ticket.</p>
+            </div>
+        </div>
+    </div>
+</div>
 @if($change->snap_token)
     <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('services.midtrans.client_key') }}"></script>
     <script>
+        const ticketUrl = @json(route('customer.ticket', $booking->id_pemesanan));
+        const showPaymentSuccessModal = () => {
+            const modal = document.getElementById('paymentSuccessModal');
+            if (window.bootstrap && modal) {
+                const bsModal = new bootstrap.Modal(modal);
+                bsModal.show();
+                setTimeout(() => window.location.href = ticketUrl, 1400);
+                return;
+            }
+
+            window.alert('Pembayaran berhasil. Anda akan diarahkan ke tiket saya.');
+            window.location.href = ticketUrl;
+        };
+
         const openChangeSnap = () => window.snap.pay(@json($change->snap_token), {
-            onSuccess: () => { window.location.href = @json(route('customer.ticket', $booking->id_pemesanan)); },
+            onSuccess: () => showPaymentSuccessModal(),
             onPending: () => { window.alert('Pembayaran masih menunggu konfirmasi.'); },
             onError: () => { window.alert('Pembayaran gagal. Silakan coba lagi.'); },
             onClose: () => { window.alert('Pembayaran belum selesai.'); },
@@ -54,7 +82,7 @@
             try {
                 const response = await fetch(window.location.href, { cache: 'no-store', headers: { Accept: 'application/json' } });
                 const data = response.ok ? await response.json() : {};
-                if (data.status === 'PAID') window.location.href = @json(route('customer.ticket', $booking->id_pemesanan));
+                if (data.status === 'PAID') showPaymentSuccessModal();
             } catch (error) {}
         }, 10000);
     </script>

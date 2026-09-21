@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AdminPariwisata;
 use App\Models\DestinasiWisata;
 use App\Models\Fasilitas;
 use App\Models\GaleriDestinasi;
@@ -25,7 +26,7 @@ class SuperAdminController extends Controller
     {
         $data = $this->validatedDestination($request);
         $data['id_superadmin'] = session('jg_user_id');
-        $data['status_aktif'] = $request->boolean('status_aktif');
+        $data['status_aktif'] = $request->boolean('status_aktif') ? 'aktif' : 'nonaktif';
         $destination = DestinasiWisata::create($data);
         $this->storeMainPhoto($request, $destination);
         $this->syncAmenities($request, $destination);
@@ -38,8 +39,11 @@ class SuperAdminController extends Controller
     {
         $destination = DestinasiWisata::findOrFail($id);
         $data = $this->validatedDestination($request);
-        $data['status_aktif'] = $request->boolean('status_aktif');
+        $data['status_aktif'] = $request->boolean('status_aktif') ? 'aktif' : 'nonaktif';
         $destination->update($data);
+        AdminPariwisata::query()->where('id_destinasi', $destination->id_destinasi)->update([
+            'status_akun' => $data['status_aktif'] === 'aktif' ? 'AKTIF' : 'NONAKTIF',
+        ]);
         $this->storeMainPhoto($request, $destination);
         $this->syncAmenities($request, $destination);
         $this->syncTicketTypes($request, $destination);
@@ -52,6 +56,22 @@ class SuperAdminController extends Controller
         DestinasiWisata::findOrFail($id)->delete();
 
         return back()->with('success', 'Destinasi berhasil dihapus.');
+    }
+
+    public function destroyTicketType(int $destination, int $ticket): RedirectResponse
+    {
+        $ticketType = JenisTiket::query()
+            ->where('id_destinasi', $destination)
+            ->whereKey($ticket)
+            ->firstOrFail();
+
+        if ($ticketType->detailPemesanan()->exists()) {
+            return back()->withErrors(['jenis_tiket' => 'Jenis tiket yang sudah dipakai dalam pemesanan tidak dapat dihapus.']);
+        }
+
+        $ticketType->delete();
+
+        return back()->with('success', 'Jenis tiket berhasil dihapus.');
     }
 
     public function report(Request $request): View
@@ -87,6 +107,7 @@ class SuperAdminController extends Controller
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
             'jam_operasional' => ['required', 'string', 'max:100'],
+            'status_aktif' => ['nullable', 'boolean'],
         ]);
     }
 
@@ -114,7 +135,7 @@ class SuperAdminController extends Controller
                 $destination->galeri()->delete();
                 foreach ($uploads as $index => $gallery) {
                     $path = $gallery['foto']->store('destinations', 'public');
-                    GaleriDestinasi::create(['id_destinasi' => $destination->id_destinasi, 'url_foto' => '/storage/' . ltrim($path, '/'), 'keterangan' => $request->input("galeri.$index.keterangan")]);
+                    GaleriDestinasi::create(['id_destinasi' => $destination->id_destinasi, 'url_foto' => '/storage/'.ltrim($path, '/'), 'keterangan' => $request->input("galeri.$index.keterangan")]);
                 }
             }
         }
@@ -126,13 +147,18 @@ class SuperAdminController extends Controller
             'jenis_tiket' => ['nullable', 'array', 'max:20'],
             'jenis_tiket.*.id' => ['nullable', 'integer'],
             'jenis_tiket.*.nama_jenis' => ['required', 'string', 'max:100'],
+            'jenis_tiket.*.harga_display' => ['required', 'regex:/^\d[\d.]*$/'],
             'jenis_tiket.*.harga' => ['required', 'numeric', 'min:0'],
+        ], [
+            'jenis_tiket.*.harga_display.regex' => 'Harga tiket hanya boleh berisi angka.',
+            'jenis_tiket.*.harga_display.required' => 'Harga tiket wajib diisi.',
         ]);
 
         foreach ($data['jenis_tiket'] ?? [] as $ticketData) {
             if (! empty($ticketData['id'])) {
                 $ticket = JenisTiket::query()->where('id_destinasi', $destination->id_destinasi)->whereKey($ticketData['id'])->firstOrFail();
                 $ticket->update(['nama_jenis' => $ticketData['nama_jenis'], 'harga' => $ticketData['harga']]);
+
                 continue;
             }
 
@@ -148,7 +174,7 @@ class SuperAdminController extends Controller
     {
         if ($request->hasFile('foto_utama')) {
             $path = $request->file('foto_utama')->store('destinations/main', 'public');
-            $destination->update(['foto_utama' => '/storage/' . ltrim($path, '/')]);
+            $destination->update(['foto_utama' => '/storage/'.ltrim($path, '/')]);
         }
     }
 }

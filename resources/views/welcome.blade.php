@@ -105,11 +105,11 @@
                         $image = $destination->foto_utama ?: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80';
                     @endphp
                     <div class="col-12 col-md-6 col-lg-4" data-reveal-item style="--reveal-delay: {{ ($loop->index % 3) * 90 }}ms;">
-                        <a href="{{ route('destinations.show', $destination->id_destinasi) }}" class="destination-gallery-card" aria-label="Lihat {{ $destination->nama_wisata }}">
+                        @if($destination->status_aktif === 'aktif')<a href="{{ route('destinations.show', $destination->id_destinasi) }}" class="destination-gallery-card" aria-label="Lihat {{ $destination->nama_wisata }}">@else<div class="destination-gallery-card opacity-75" aria-label="{{ $destination->nama_wisata }} sedang dinonaktifkan">@endif
                             <img src="{{ $image }}" onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=800&q=80';" alt="{{ $destination->nama_wisata }}" loading="lazy">
                             <span class="destination-gallery-overlay"></span>
-                            <span class="destination-gallery-name">{{ $destination->nama_wisata }}</span>
-                        </a>
+                            <span class="destination-gallery-name">{{ $destination->nama_wisata }} @if($destination->status_aktif !== 'aktif')<small class="d-block text-warning">Sedang dinonaktifkan</small>@endif</span>
+                        @if($destination->status_aktif === 'aktif')</a>@else</div>@endif
                     </div>
                 @empty
                     <div class="col-12">

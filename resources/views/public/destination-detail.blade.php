@@ -86,13 +86,15 @@ document.getElementById('locate').addEventListener('click', () => {
         const straightDistance = L.latLng(coordinate).distanceTo(L.latLng(user));
         let distance = straightDistance * 1.2;
         let duration = distance / 8.33;
+        let usesRoadRoute = false;
         try {
             const response = await fetch(`https://router.project-osrm.org/route/v1/driving/${user[1]},${user[0]};${coordinate[1]},${coordinate[0]}?overview=false`);
             const result = await response.json();
-            if (result.code === 'Ok' && result.routes?.[0]) { distance = result.routes[0].distance; duration = result.routes[0].duration; }
+            if (result.code === 'Ok' && result.routes?.[0]) { distance = result.routes[0].distance; duration = result.routes[0].duration; usesRoadRoute = true; }
         } catch (error) { /* Gunakan estimasi lokal jika routing tidak tersedia. */ }
+        if (usesRoadRoute) duration *= 1.35;
         distanceOutput.textContent = `${(distance / 1000).toFixed(1).replace('.', ',')} km`;
-        const minutes = Math.max(1, Math.round(duration / 60));
+        const minutes = Math.max(5, Math.ceil(duration / 60 / 5) * 5);
         durationOutput.textContent = minutes >= 60 ? `${Math.floor(minutes / 60)} jam ${minutes % 60} menit` : `${minutes} menit`;
         status.textContent = 'Rute berhasil dihitung dari lokasi Anda.';
         estimate.classList.remove('d-none');

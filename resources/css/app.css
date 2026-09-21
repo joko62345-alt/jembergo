@@ -99,14 +99,14 @@ em {
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    padding: 1rem 0;
+    padding: 1rem 2rem !important;
     border-bottom: 1px solid rgba(226, 232, 240, 0.6);
-    transition: all var(--transition-base);
+    transition: box-shadow var(--transition-base), padding var(--transition-base), background-color var(--transition-base);
 }
 
 .jg-navbar.scrolled {
     box-shadow: var(--shadow-md);
-    padding: 0.75rem 0;
+    padding: 0.75rem 2rem !important;
 }
 
 .navbar-brand {
@@ -128,7 +128,17 @@ em {
     width: 175px;
     height: 58px;
     flex: 0 0 175px;
-    overflow: hidden;
+    overflow: visible;
+    white-space: nowrap;
+}
+
+.jg-navbar .navbar-collapse {
+    min-width: 0;
+}
+
+.jg-navbar .navbar-collapse > .d-flex {
+    flex: 0 0 auto;
+    white-space: nowrap;
 }
 
 .jg-logo-navbar {

@@ -23,7 +23,7 @@ class BookingController extends Controller
     public function create(int $id): View
     {
         $destination = DestinasiWisata::with('jenisTiket')->findOrFail($id);
-        $quota = $destination->kuota_harian_aktif ? $destination->kuota_harian : null;
+        $quota = $destination->kuota_harian_aktif === 'aktif' ? $destination->kuota_harian : null;
         $ticketOptions = $destination->jenisTiket->map(function ($ticket): array {
             return [
                 'id' => $ticket->id_jenis_tiket,
@@ -40,8 +40,8 @@ class BookingController extends Controller
         $destination = DestinasiWisata::findOrFail($id);
 
         return response()->json([
-            'enabled' => $destination->kuota_harian_aktif,
-            'remaining' => $destination->kuota_harian_aktif
+            'enabled' => $destination->kuota_harian_aktif === 'aktif',
+            'remaining' => $destination->kuota_harian_aktif === 'aktif'
                 ? max(0, $destination->kuota_harian - $destination->bookedTicketsForDate($data['date']))
                 : null,
         ]);
@@ -54,7 +54,7 @@ class BookingController extends Controller
         }
 
         $destination = DestinasiWisata::with('jenisTiket')->findOrFail($id);
-        abort_if(! $destination->status_aktif, 422, 'Destinasi wisata ini sudah tidak aktif untuk pemesanan baru.');
+        abort_if($destination->status_aktif !== 'aktif', 422, 'Destinasi wisata ini sudah tidak aktif untuk pemesanan baru.');
         $data = $request->validate([
             'tanggal_kunjungan' => ['required', 'date', 'after_or_equal:today'],
             'ketua_nama' => ['required', 'string', 'max:150'],
@@ -76,7 +76,7 @@ class BookingController extends Controller
             ]);
         }
 
-        if ($destination->kuota_harian_aktif) {
+        if ($destination->kuota_harian_aktif === 'aktif') {
             $booked = $destination->bookedTicketsForDate($data['tanggal_kunjungan']);
             if ($booked + $participants->count() > (int) $destination->kuota_harian) {
                 return back()->withInput()->withErrors(['tanggal_kunjungan' => 'Kuota pada tanggal tersebut tersisa '.max(0, (int) $destination->kuota_harian - $booked).' peserta.']);

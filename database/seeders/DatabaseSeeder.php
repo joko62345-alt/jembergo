@@ -7,7 +7,6 @@ use App\Models\Artikel;
 use App\Models\Customer;
 use App\Models\DestinasiWisata;
 use App\Models\Fasilitas;
-use App\Models\GaleriDestinasi;
 use App\Models\JenisTiket;
 use App\Models\SuperAdmin;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
@@ -42,18 +41,13 @@ class DatabaseSeeder extends Seeder
                 ...$destinationData,
                 'id_superadmin' => $superAdmin->id_superadmin,
                 'deskripsi' => 'Destinasi pilihan Kabupaten Jember dengan pengalaman wisata yang berkesan.',
+                'foto_utama' => 'images/destinations/'.str($destinationData['nama_wisata'])->slug().'.jpg',
                 'status_aktif' => true,
             ]);
 
             foreach (['Parkir', 'Toilet', 'Mushola'] as $facilityName) {
                 Fasilitas::create(['id_destinasi' => $destination->id_destinasi, 'nama_fasilitas' => $facilityName]);
             }
-
-            GaleriDestinasi::create([
-                'id_destinasi' => $destination->id_destinasi,
-                'url_foto' => 'images/destinations/'.str($destination->nama_wisata)->slug().'.jpg',
-                'keterangan' => 'Pemandangan utama '.$destination->nama_wisata,
-            ]);
 
             JenisTiket::create(['id_destinasi' => $destination->id_destinasi, 'nama_jenis' => 'Tiket Dewasa', 'harga' => 25000]);
             JenisTiket::create(['id_destinasi' => $destination->id_destinasi, 'nama_jenis' => 'Tiket Anak', 'harga' => 15000]);

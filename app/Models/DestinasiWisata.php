@@ -17,7 +17,17 @@ class DestinasiWisata extends Model
 
     protected $fillable = ['id_superadmin', 'nama_wisata', 'foto_utama', 'deskripsi', 'kategori', 'latitude', 'longitude', 'alamat', 'jam_operasional', 'status_aktif', 'kuota_harian_aktif', 'kuota_harian'];
 
-    protected $casts = ['latitude' => 'decimal:7', 'longitude' => 'decimal:7', 'status_aktif' => 'boolean', 'kuota_harian_aktif' => 'boolean', 'kuota_harian' => 'integer'];
+    protected $casts = ['latitude' => 'decimal:7', 'longitude' => 'decimal:7', 'kuota_harian' => 'integer'];
+
+    public function setStatusAktifAttribute(bool|string|null $value): void
+    {
+        $this->attributes['status_aktif'] = filter_var($value, FILTER_VALIDATE_BOOLEAN) || $value === 'aktif' ? 'aktif' : 'nonaktif';
+    }
+
+    public function setKuotaHarianAktifAttribute(bool|string|null $value): void
+    {
+        $this->attributes['kuota_harian_aktif'] = filter_var($value, FILTER_VALIDATE_BOOLEAN) || $value === 'aktif' ? 'aktif' : 'nonaktif';
+    }
 
     public function superAdmin(): BelongsTo
     {

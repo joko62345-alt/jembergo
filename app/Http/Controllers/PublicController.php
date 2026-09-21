@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Artikel;
 use App\Models\DestinasiWisata;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\View\View;
@@ -17,7 +18,7 @@ class PublicController extends Controller
 
         return view('welcome', [
             'destinations' => $hasDestinationTable
-                ? DestinasiWisata::query()->with(['galeri', 'jenisTiket'])->withAvg('review', 'rating')->where('status_aktif', true)->latest('id_destinasi')->take(5)->get()
+                ? DestinasiWisata::query()->with(['galeri', 'jenisTiket'])->withAvg('review', 'rating')->latest('id_destinasi')->take(5)->get()
                 : collect(),
             'articles' => $hasArticleTable
                 ? Artikel::query()->where('status', 'PUBLISHED')->latest('tanggal_publikasi')->take(3)->get()
@@ -32,11 +33,10 @@ class PublicController extends Controller
         $destinations = Schema::hasTable('destinasi_wisata')
             ? DestinasiWisata::query()
                 ->with(['jenisTiket', 'galeri'])
-                ->where('status_aktif', true)
                 ->when($query !== '', fn ($builder) => $builder->where(function ($search) use ($query): void {
-                    $search->where('nama_wisata', 'like', '%' . $query . '%')
-                        ->orWhere('alamat', 'like', '%' . $query . '%')
-                        ->orWhere('deskripsi', 'like', '%' . $query . '%');
+                    $search->where('nama_wisata', 'like', '%'.$query.'%')
+                        ->orWhere('alamat', 'like', '%'.$query.'%')
+                        ->orWhere('deskripsi', 'like', '%'.$query.'%');
                 }))
                 ->when($category !== '', fn ($builder) => $builder->where('kategori', $category))
                 ->latest('id_destinasi')
@@ -49,12 +49,17 @@ class PublicController extends Controller
         ]);
     }
 
-    public function destination(int $id): View
+    public function destination(int $id): View|RedirectResponse
     {
         abort_unless(Schema::hasTable('destinasi_wisata'), 404);
+        $destination = DestinasiWisata::query()->with(['fasilitas', 'galeri', 'jenisTiket', 'review.customer'])->findOrFail($id);
+
+        if ($destination->status_aktif !== 'aktif') {
+            return redirect()->route('destinations.index')->with('warning', 'Destinasi '.$destination->nama_wisata.' sedang dinonaktifkan dan detailnya tidak dapat dibuka.');
+        }
 
         return view('public.destination-detail', [
-            'destination' => DestinasiWisata::query()->with(['fasilitas', 'galeri', 'jenisTiket', 'review.customer'])->findOrFail($id),
+            'destination' => $destination,
         ]);
     }
 

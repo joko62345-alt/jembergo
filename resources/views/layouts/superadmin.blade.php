@@ -57,6 +57,26 @@
             close.addEventListener('click', () => alert.remove());
             alert.appendChild(close);
         });
+
+        document.addEventListener('click', (event) => {
+            const alertClose = event.target.closest('.alert-close');
+            if (alertClose) {
+                alertClose.closest('.alert')?.remove();
+                return;
+            }
+
+            const toastClose = event.target.closest('[data-dismiss-toast]');
+            if (toastClose) {
+                toastClose.closest('.destination-toast')?.remove();
+                return;
+            }
+
+            const dialogClose = event.target.closest('[data-close-dialog], [data-close-article-dialog]');
+            if (dialogClose) {
+                const dialog = dialogClose.closest('dialog');
+                if (dialog?.open) dialog.close();
+            }
+        });
     </script>
     @stack('scripts')
 </body>

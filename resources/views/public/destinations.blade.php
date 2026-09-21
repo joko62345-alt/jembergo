@@ -7,6 +7,9 @@
 
 <main class="section-pad" style="padding-top: 8rem; background: var(--jg-bg); min-height: 100vh;">
     <div class="container">
+        @if(session('warning'))
+            <div class="alert alert-warning d-flex align-items-center gap-2" role="alert"><i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i><span>{{ session('warning') }}</span></div>
+        @endif
         <!-- Header Section -->
         <div class="text-center mb-5">
             <span class="eyebrow text-orange">Jelajahi Jember</span>
@@ -49,12 +52,17 @@
                                 {{ Str::limit($destination->alamat, 60) }}
                             </p>
                             <div class="mt-auto">
+                                @if($destination->status_aktif !== 'aktif')
+                                    <div class="alert alert-warning py-2 mb-3 small"><i class="bi bi-lock-fill me-1" aria-hidden="true"></i>Destinasi sedang dinonaktifkan.</div>
+                                @endif
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <span class="price">Mulai <strong class="text-orange">Rp {{ number_format($minPrice, 0, ',', '.') }}</strong></span>
                                 </div>
-                                                                <a href="{{ route('destinations.show', $destination->id_destinasi) }}" class="destination-detail-button btn btn-jg-primary w-100">
-                                                                    Lihat detail destinasi <i class="bi bi-arrow-right"></i>
-                                </a>
+                                @if($destination->status_aktif === 'aktif')
+                                    <a href="{{ route('destinations.show', $destination->id_destinasi) }}" class="destination-detail-button btn btn-jg-primary w-100">Lihat detail destinasi <i class="bi bi-arrow-right"></i></a>
+                                @else
+                                    <button type="button" class="destination-detail-button btn btn-secondary w-100" disabled aria-disabled="true">Detail tidak tersedia</button>
+                                @endif
                             </div>
                         </div>
                     </article>

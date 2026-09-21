@@ -26,7 +26,7 @@ class DashboardController extends Controller
         ]);
         $destination = DestinasiWisata::findOrFail($admin->id_destinasi);
         $destination->update([
-            'kuota_harian_aktif' => $request->boolean('kuota_harian_aktif'),
+            'kuota_harian_aktif' => $request->boolean('kuota_harian_aktif') ? 'aktif' : 'nonaktif',
             'kuota_harian' => $request->boolean('kuota_harian_aktif') ? $data['kuota_harian'] : null,
         ]);
 
@@ -82,7 +82,7 @@ class DashboardController extends Controller
         }
 
         $counts = [
-            'destinasi' => Schema::hasTable('destinasi_wisata') ? DestinasiWisata::where('status_aktif', true)->count() : 0,
+            'destinasi' => Schema::hasTable('destinasi_wisata') ? DestinasiWisata::where('status_aktif', 'aktif')->count() : 0,
             'admin' => Schema::hasTable('admin_pariwisata') ? AdminPariwisata::where('status_akun', 'AKTIF')->count() : 0,
             'customer' => Schema::hasTable('customer') ? Customer::count() : 0,
             'pemesanan' => Schema::hasTable('pemesanan') ? Pemesanan::count() : 0,

@@ -15,7 +15,7 @@
     <div class="checkout-steps"><span class="is-done"><i class="bi bi-check2"></i> Data peserta</span><span class="is-current"><i class="bi bi-credit-card"></i> Pembayaran</span><span><i class="bi bi-ticket-perforated"></i> E-ticket</span></div>
     <div class="row g-4 align-items-start"><div class="col-lg-7"><div class="customer-card checkout-card"><div class="card-body p-4 p-lg-5">
         <h2 class="checkout-section-title">Ringkasan pesanan</h2>
-        @php($quota = $booking->destinasi->kuota_harian_aktif ? $booking->destinasi->kuota_harian : null)
+        @php($quota = $booking->destinasi->kuota_harian_aktif === 'aktif' ? $booking->destinasi->kuota_harian : null)
         @php($booked = $quota ? $booking->destinasi->bookedTicketsForDate($booking->tanggal_kunjungan->toDateString()) : null)
         <div class="checkout-summary"><div class="checkout-destination"><span class="checkout-icon"><i class="bi bi-geo-alt"></i></span><div><small>Destinasi wisata</small><strong>{{ $booking->destinasi->nama_wisata }}</strong></div></div><div class="checkout-date"><small>Tanggal kunjungan</small><strong>{{ $booking->tanggal_kunjungan->translatedFormat('d F Y') }}</strong><small class="mt-1">@if($quota) Sisa kuota: {{ max(0, $quota - $booked) }} peserta @else Destinasi ini tidak menerapkan batas kuota tiket @endif</small></div></div>
         <div class="checkout-facts"><div><small>Ketua kelompok</small><strong>{{ $booking->ketua_nama }}</strong></div><div><small>Total peserta</small><strong>{{ $participants->count() }} orang</strong></div><div><small>Total pesanan</small><strong class="text-orange">Rp {{ number_format($booking->total_harga, 0, ',', '.') }}</strong></div></div>

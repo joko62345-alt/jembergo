@@ -56,7 +56,7 @@
     <dialog class="destination-dialog" id="create-destination-dialog" aria-labelledby="create-destination-title">
         <div class="dialog-panel dialog-panel-wide">
             <div class="dialog-header"><div><span class="page-kicker">Katalog pariwisata</span><h2 id="create-destination-title">Tambah destinasi</h2><p>Isi informasi destinasi baru untuk katalog JemberGo.</p></div><button type="button" class="dialog-close" data-close-dialog aria-label="Tutup dialog"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
-            <form method="POST" action="{{ route('superadmin.destinations.store') }}" enctype="multipart/form-data" class="destination-form">@csrf
+            <form method="POST" action="{{ route('superadmin.destinations.store') }}" enctype="multipart/form-data" class="destination-form" data-existing-names="{{ e(json_encode($destinationNames)) }}">@csrf
                 @include('superadmin.partials.destination-form', ['destination' => null, 'formId' => 'create'])
                 <div class="dialog-actions"><button type="button" class="btn btn-outline-dark" data-close-dialog>Batal</button><button class="btn btn-warning" type="submit"><i class="bi bi-check2 me-1" aria-hidden="true"></i>Simpan destinasi</button></div>
             </form>
@@ -67,7 +67,7 @@
         <dialog class="destination-dialog" id="edit-destination-{{ $destination->id_destinasi }}" aria-labelledby="edit-destination-title-{{ $destination->id_destinasi }}">
             <div class="dialog-panel dialog-panel-wide">
                 <div class="dialog-header"><div><span class="page-kicker">Mode edit</span><h2 id="edit-destination-title-{{ $destination->id_destinasi }}">Edit destinasi</h2><p>{{ $destination->nama_wisata }}<br><small>Perbarui informasi destinasi yang dipilih.</small></p></div><button type="button" class="dialog-close" data-close-dialog aria-label="Tutup dialog"><i class="bi bi-x-lg" aria-hidden="true"></i></button></div>
-                <form method="POST" action="{{ route('superadmin.destinations.update', $destination->id_destinasi) }}" enctype="multipart/form-data" class="destination-form">@csrf @method('PUT')
+                <form method="POST" action="{{ route('superadmin.destinations.update', $destination->id_destinasi) }}" enctype="multipart/form-data" class="destination-form" data-current-name="{{ $destination->nama_wisata }}" data-existing-names="{{ e(json_encode($destinationNames)) }}">@csrf @method('PUT')
                     @include('superadmin.partials.destination-form', ['destination' => $destination, 'formId' => 'edit-' . $destination->id_destinasi])
                     <div class="dialog-actions"><button type="button" class="btn btn-outline-dark" data-close-dialog>Batal</button><button class="btn btn-warning" type="submit"><i class="bi bi-check2 me-1" aria-hidden="true"></i>Simpan perubahan</button></div>
                 </form>
@@ -126,6 +126,29 @@
         const filterCards = () => { const query = normalizeFilterValue(search.value); const selectedCategory = normalizeFilterValue(category.value); const selectedStatus = normalizeFilterValue(status.value); let visible = 0; document.querySelectorAll('[data-destination-card]').forEach((card) => { const matches = (!query || normalizeFilterValue(card.dataset.name).includes(query)) && (!selectedCategory || normalizeFilterValue(card.dataset.category) === selectedCategory) && (!selectedStatus || normalizeFilterValue(card.dataset.status) === selectedStatus); card.hidden = !matches; if (matches) visible++; }); noResults.hidden = visible > 0; };
         [search, category, status].forEach((control) => { control.addEventListener('input', filterCards); control.addEventListener('change', filterCards); });
         filterCards();
+        const normalizeDestinationName = (value) => String(value || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+        const existingDestinationNames = @js($destinationNames->values()->all());
+        document.querySelectorAll('.destination-form').forEach((form) => {
+            const nameInput = form.querySelector('.destination-name-input');
+            const warning = form.querySelector('.destination-name-warning');
+            const submitButton = form.querySelector('button[type="submit"]');
+            const existingNames = existingDestinationNames.map(normalizeDestinationName);
+            const currentName = normalizeDestinationName(form.dataset.currentName);
+            const validateDestinationName = () => {
+                const name = normalizeDestinationName(nameInput?.value);
+                const isDuplicate = Boolean(name) && existingNames.includes(name) && name !== currentName;
+                if (warning) {
+                    warning.hidden = !isDuplicate;
+                    warning.style.display = isDuplicate ? 'block' : 'none';
+                }
+                nameInput?.classList.toggle('is-invalid', isDuplicate);
+                nameInput?.setCustomValidity(isDuplicate ? 'Destinasi sudah ada. Gunakan nama yang berbeda.' : '');
+                if (submitButton && !submitButton.dataset.submitting) submitButton.disabled = isDuplicate;
+            };
+            nameInput?.addEventListener('input', validateDestinationName);
+            form.addEventListener('submit', (event) => { validateDestinationName(); if (nameInput?.validity.customError) event.preventDefault(); });
+            validateDestinationName();
+        });
         document.querySelector('[data-dismiss-toast]')?.addEventListener('click', (event) => event.currentTarget.closest('.destination-toast').remove());
         document.querySelectorAll('.destination-form input[type="file"]').forEach((input) => input.addEventListener('change', () => { const preview = input.closest('.photo-upload')?.querySelector('img'); const file = input.files?.[0]; if (preview && file) preview.src = URL.createObjectURL(file); }));
             document.querySelectorAll('[data-repeater-add]').forEach((button) => button.addEventListener('click', () => {
@@ -135,8 +158,8 @@
                 const row = document.createElement('div');
                 row.className = type === 'facility' ? '' : (type === 'gallery' ? 'gallery-row repeater-row' : 'row g-2 mb-2 repeater-row');
                 if (type === 'facility') row.innerHTML = `<input name="fasilitas[]" class="form-control mb-2" placeholder="Nama fasilitas">`;
-                if (type === 'ticket') row.innerHTML = `<div class="col-md-5"><input name="jenis_tiket[${index}][nama_jenis]" class="form-control" placeholder="Contoh: Tiket Dewasa" required></div><div class="col-md-5"><div class="input-group"><span class="input-group-text">Rp</span><input type="number" inputmode="numeric" min="0" step="1" class="form-control" data-price-display placeholder="15000" required><input type="hidden" name="jenis_tiket[${index}][harga]" data-price-value></div></div><div class="col-md-2 d-flex"><button type="button" class="btn btn-outline-danger w-100" data-remove-ticket-row aria-label="Hapus baris tiket"><i class="bi bi-trash3" aria-hidden="true"></i><span class="visually-hidden">Hapus</span></button></div>`;
-                if (type === 'gallery') row.innerHTML = `<div class="gallery-row-preview"><span class="gallery-empty"><i class="bi bi-image" aria-hidden="true"></i>Foto baru</span></div><div class="gallery-row-fields"><div><label class="form-label" for="gallery-${index}-foto">File foto</label><input id="gallery-${index}-foto" name="galeri[${index}][foto]" type="file" accept="image/jpeg,image/png,image/webp" class="form-control"></div><div><label class="form-label" for="gallery-${index}-caption">Keterangan</label><input id="gallery-${index}-caption" name="galeri[${index}][keterangan]" class="form-control" placeholder="Contoh: Area taman utama"></div></div>`;
+                if (type === 'ticket') row.innerHTML = `<div class="col-md-5"><input name="jenis_tiket[${index}][nama_jenis]" class="form-control" placeholder="Masukkan Jenis Tiket" required></div><div class="col-md-5"><div class="input-group"><span class="input-group-text">Rp</span><input type="number" inputmode="numeric" min="0" step="1" class="form-control" data-price-display placeholder="15000" required><input type="hidden" name="jenis_tiket[${index}][harga]" data-price-value></div></div><div class="col-md-2 d-flex"><button type="button" class="btn btn-outline-danger w-100" data-remove-ticket-row aria-label="Hapus baris tiket"><i class="bi bi-trash3" aria-hidden="true"></i><span class="visually-hidden">Hapus</span></button></div>`;
+                if (type === 'gallery') row.innerHTML = `<div class="gallery-row-preview"><span class="gallery-empty"><i class="bi bi-image" aria-hidden="true"></i>Foto baru</span></div><div class="gallery-row-fields"><div><label class="form-label" for="gallery-${index}-foto">File foto</label><input id="gallery-${index}-foto" name="galeri[${index}][foto]" type="file" accept="image/jpeg,image/png,image/webp" class="form-control"></div><div><label class="form-label" for="gallery-${index}-caption">Keterangan</label><input id="gallery-${index}-caption" name="galeri[${index}][keterangan]" class="form-control" placeholder="Masukkan Keterangan Foto"></div></div>`;
                 list.appendChild(row);
                 const newPriceInput = row.querySelector('[data-price-display]');
                 if (newPriceInput) { newPriceInput.name = `jenis_tiket[${index}][harga_display]`; bindPriceInput(newPriceInput); }

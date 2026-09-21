@@ -99,6 +99,8 @@ Route::middleware('role:SUPER_ADMIN')->prefix('superadmin')->name('superadmin.')
     Route::delete('/destinasi/{destination}/jenis-tiket/{ticket}', [SuperAdminController::class, 'destroyTicketType'])->whereNumber('destination')->whereNumber('ticket')->name('destinations.ticket-types.destroy');
     Route::get('/laporan', [SuperAdminController::class, 'report'])->name('report');
     Route::get('/laporan/export', [SuperAdminManagementController::class, 'export'])->name('report.export');
+    Route::get('/laporan/preview', [SuperAdminManagementController::class, 'reportPreview'])->name('report.preview');
+    Route::get('/laporan/pdf', [SuperAdminManagementController::class, 'reportPdf'])->name('report.pdf');
     Route::get('/management', [SuperAdminManagementController::class, 'index'])->name('management');
     Route::get('/management/admin/buat', [SuperAdminManagementController::class, 'createAdmin'])->name('management.admin.create');
     Route::get('/management/admin', [SuperAdminManagementController::class, 'admins'])->name('management.admins');

@@ -1,6 +1,5 @@
 <nav class="navbar navbar-expand-lg jg-navbar">
     <div class="d-flex align-items-center justify-content-between w-100 px-3">
-        <!-- Logo -->
         <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('home') }}">
             <img src="{{ route('assets.logo') }}" class="jg-logo jg-logo-navbar" alt="JemberGo">
         </a>
@@ -10,9 +9,7 @@
             <i class="bi bi-list fs-3 text-dark"></i>
         </button>
 
-        <!-- Menu -->
         <div class="collapse navbar-collapse" id="publicNav">
-            <!-- Menu Utama (Selalu Tampil) -->
             <ul class="navbar-nav mx-auto gap-lg-1">
                 <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('home') ? 'active' : '' }}" href="{{ route('home') }}">
@@ -35,7 +32,6 @@
                     </a>
                 </li>
 
-                <!-- Akun Saya (Hanya Tampil Jika Login) -->
                 @if (session('jg_role'))
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center gap-1" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -78,15 +74,12 @@
                 @endif
             </ul>
 
-            <!-- Tombol Kanan -->
             <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
                 @if (session('jg_role'))
-                    <!-- User Login: Tampilkan Nama User -->
                     <span class="d-none d-md-inline text-muted small me-2">
                         Halo, <strong class="text-dark">{{ session('jg_user_name', 'User') }}</strong>
                     </span>
                 @else
-                    <!-- Guest: Tampilkan Masuk & Daftar -->
                     <a href="{{ route('login') }}" class="btn jg-login-button">
                         Masuk
                     </a>

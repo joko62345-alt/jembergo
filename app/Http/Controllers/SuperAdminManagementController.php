@@ -10,8 +10,10 @@ use App\Models\Fasilitas;
 use App\Models\GaleriDestinasi;
 use App\Models\Pemesanan;
 use App\Support\StatusLabel;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -152,8 +154,7 @@ class SuperAdminManagementController extends Controller
 
     public function export(Request $request): StreamedResponse
     {
-        $destinationId = $request->integer('id_destinasi') ?: null;
-        $orders = Pemesanan::with(['destinasi', 'tiket'])->when($destinationId, fn ($query) => $query->where('id_destinasi', $destinationId))->when($request->date('from'), fn ($query, $from) => $query->whereDate('tanggal_pemesanan', '>=', $from))->when($request->date('to'), fn ($query, $to) => $query->whereDate('tanggal_pemesanan', '<=', $to))->get();
+        $orders = $this->reportOrders($request);
         $filename = 'laporan-jembergo-'.now()->format('Ymd-His').'.csv';
 
         return response()->streamDownload(function () use ($orders): void {
@@ -165,5 +166,49 @@ class SuperAdminManagementController extends Controller
             }
             fclose($handle);
         }, $filename, ['Content-Type' => 'text/csv']);
+    }
+
+    public function reportPreview(Request $request): View
+    {
+        $orders = $this->reportOrders($request);
+
+        return view('superadmin.report-print', [
+            'orders' => $orders,
+            'totalPendapatan' => $orders->sum('total_harga'),
+            'destination' => $this->reportDestination($request),
+            'from' => $request->date('from'),
+            'to' => $request->date('to'),
+        ]);
+    }
+
+    public function reportPdf(Request $request): mixed
+    {
+        $orders = $this->reportOrders($request);
+        $pdf = Pdf::loadView('superadmin.report-pdf', [
+            'orders' => $orders,
+            'totalPendapatan' => $orders->sum('total_harga'),
+            'destination' => $this->reportDestination($request),
+            'from' => $request->date('from'),
+            'to' => $request->date('to'),
+        ])->setPaper('a4', 'landscape');
+
+        return $pdf->download('laporan-jembergo-'.now()->format('Ymd-His').'.pdf');
+    }
+
+    private function reportOrders(Request $request): Collection
+    {
+        return Pemesanan::with(['destinasi', 'tiket'])
+            ->when($request->integer('id_destinasi'), fn ($query, $destinationId) => $query->where('id_destinasi', $destinationId))
+            ->when($request->date('from'), fn ($query, $from) => $query->whereDate('tanggal_pemesanan', '>=', $from))
+            ->when($request->date('to'), fn ($query, $to) => $query->whereDate('tanggal_pemesanan', '<=', $to))
+            ->latest('tanggal_pemesanan')
+            ->get();
+    }
+
+    private function reportDestination(Request $request): ?DestinasiWisata
+    {
+        return $request->integer('id_destinasi')
+            ? DestinasiWisata::find($request->integer('id_destinasi'))
+            : null;
     }
 }

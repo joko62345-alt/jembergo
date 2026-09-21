@@ -10,7 +10,7 @@
             <div class="article-section-heading"><span class="page-kicker">Konten artikel</span><h2>Informasi artikel</h2><p>Tulis konten yang informatif dan mudah dipahami oleh pembaca.</p></div>
             <div class="article-field-group">
                 <label class="form-label" for="{{ $formId }}-judul">Judul artikel</label>
-                <input id="{{ $formId }}-judul" name="judul" value="{{ old('judul', $article?->judul) }}" class="form-control article-title-input @error('judul') is-invalid @enderror" placeholder="Contoh: Menjelajah pesona wisata Jember" required>
+                <input id="{{ $formId }}-judul" name="judul" value="{{ old('judul', $article?->judul) }}" class="form-control article-title-input @error('judul') is-invalid @enderror" placeholder="Masukkan Judul Artikel" required>
                 <small class="form-helper">Gunakan judul yang singkat dan informatif.</small>
                 @error('judul')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>

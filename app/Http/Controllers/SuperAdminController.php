@@ -11,6 +11,7 @@ use App\Models\Pemesanan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class SuperAdminController extends Controller
@@ -19,6 +20,7 @@ class SuperAdminController extends Controller
     {
         return view('superadmin.destinations', [
             'destinations' => DestinasiWisata::query()->with(['fasilitas', 'galeri', 'jenisTiket'])->latest('id_destinasi')->paginate(10),
+            'destinationNames' => DestinasiWisata::query()->pluck('nama_wisata'),
         ]);
     }
 
@@ -38,7 +40,7 @@ class SuperAdminController extends Controller
     public function updateDestination(Request $request, int $id): RedirectResponse
     {
         $destination = DestinasiWisata::findOrFail($id);
-        $data = $this->validatedDestination($request);
+        $data = $this->validatedDestination($request, $destination->id_destinasi);
         $data['status_aktif'] = $request->boolean('status_aktif') ? 'aktif' : 'nonaktif';
         $destination->update($data);
         AdminPariwisata::query()->where('id_destinasi', $destination->id_destinasi)->update([
@@ -96,10 +98,15 @@ class SuperAdminController extends Controller
         return view('superadmin.report', compact('orders', 'from', 'to', 'destinationId', 'destinations', 'totalPendapatan'));
     }
 
-    private function validatedDestination(Request $request): array
+    private function validatedDestination(Request $request, ?int $destinationId = null): array
     {
         return $request->validate([
-            'nama_wisata' => ['required', 'string', 'max:150'],
+            'nama_wisata' => [
+                'required',
+                'string',
+                'max:150',
+                Rule::unique('destinasi_wisata', 'nama_wisata')->ignore($destinationId, 'id_destinasi'),
+            ],
             'foto_utama' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'deskripsi' => ['required', 'string'],
             'kategori' => ['required', 'string', 'max:80'],
@@ -108,6 +115,8 @@ class SuperAdminController extends Controller
             'longitude' => ['required', 'numeric', 'between:-180,180'],
             'jam_operasional' => ['required', 'string', 'max:100'],
             'status_aktif' => ['nullable', 'boolean'],
+        ], [
+            'nama_wisata.unique' => 'Destinasi dengan nama tersebut sudah terdaftar.',
         ]);
     }
 

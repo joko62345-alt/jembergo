@@ -12,7 +12,7 @@
     <link href="{{ asset('css/superadmin.css') }}" rel="stylesheet">
     @stack('head')
 </head>
-<body class="superadmin-body">
+<body class="superadmin-body" data-theme="light">
     <div class="superadmin-app">
         @include('components.superadmin-sidebar')
         <div class="superadmin-main">
@@ -26,9 +26,14 @@
                         <span class="topbar-page">@yield('page_label', 'Super Admin')</span>
                     </div>
                 </div>
-                <div class="user-chip">
+                <div class="d-flex align-items-center gap-2">
+                    <button class="theme-toggle" type="button" data-theme-toggle aria-label="Aktifkan mode gelap" title="Aktifkan mode gelap">
+                        <i class="bi bi-moon-stars" aria-hidden="true"></i><span>Mode gelap</span>
+                    </button>
+                    <div class="user-chip">
                     <span class="user-avatar" aria-hidden="true">{{ strtoupper(substr(session('jg_user_name', 'SA'), 0, 1)) }}</span>
                     <span class="d-none d-sm-block text-start"><strong>{{ session('jg_user_name', 'Pengguna') }}</strong><small>{{ str_replace('_', ' ', session('jg_role', 'USER')) }}</small></span>
+                    </div>
                 </div>
             </header>
             <main class="superadmin-content">
@@ -38,6 +43,27 @@
     </div>
     <div class="sidebar-scrim" data-sidebar-toggle></div>
     <script>
+        (() => {
+            const body = document.body;
+            const toggle = document.querySelector('[data-theme-toggle]');
+            const savedTheme = localStorage.getItem('superadmin-theme') || 'light';
+
+            const setTheme = (theme) => {
+                const isDark = theme === 'dark';
+                body.dataset.theme = theme;
+                toggle?.setAttribute('aria-label', isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap');
+                toggle?.setAttribute('title', isDark ? 'Aktifkan mode terang' : 'Aktifkan mode gelap');
+                if (toggle) toggle.innerHTML = `<i class="bi bi-${isDark ? 'sun' : 'moon-stars'}" aria-hidden="true"></i><span>${isDark ? 'Mode terang' : 'Mode gelap'}</span>`;
+            };
+
+            setTheme(savedTheme);
+            toggle?.addEventListener('click', () => {
+                const theme = body.dataset.theme === 'dark' ? 'light' : 'dark';
+                localStorage.setItem('superadmin-theme', theme);
+                setTheme(theme);
+            });
+        })();
+
         document.querySelectorAll('[data-sidebar-toggle]').forEach((toggle) => {
             toggle.addEventListener('click', () => {
                 const sidebar = document.getElementById('superadmin-sidebar');
@@ -77,6 +103,21 @@
                 if (dialog?.open) dialog.close();
             }
         });
+
+        const revealTargets = document.querySelectorAll('.superadmin-content > *, .superadmin-content .card, .superadmin-content .stat-panel, .superadmin-content .analytics-card, .superadmin-content .analytics-mini-card, .superadmin-content .admin-stat-card, .superadmin-content .admin-panel, .superadmin-content .destination-card, .superadmin-content .article-list-card, .superadmin-content .article-editor-card');
+        revealTargets.forEach((element) => element.classList.add('scroll-reveal'));
+        if ('IntersectionObserver' in window) {
+            const revealObserver = new IntersectionObserver((entries, observer) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    entry.target.classList.add('is-visible');
+                    observer.unobserve(entry.target);
+                });
+            }, { threshold: 0.12, rootMargin: '0px 0px -36px' });
+            revealTargets.forEach((element) => revealObserver.observe(element));
+        } else {
+            revealTargets.forEach((element) => element.classList.add('is-visible'));
+        }
     </script>
     @stack('scripts')
 </body>

@@ -2,9 +2,7 @@
     <a href="{{ route('home') }}" class="superadmin-brand">
         <span class="superadmin-brand-name">Jember<span>Go</span></span>
     </a>
-    @if(session('jg_role') === 'SUPER_ADMIN')
-        <button type="button" class="sidebar-collapse-toggle" data-sidebar-collapse aria-label="Ciutkan menu navigasi" aria-controls="superadmin-sidebar" aria-expanded="true" title="Ciutkan menu navigasi"><i class="bi bi-layout-sidebar-inset" aria-hidden="true"></i></button>
-    @endif
+    <button type="button" class="sidebar-collapse-toggle" data-sidebar-collapse aria-label="Ciutkan menu navigasi" aria-controls="superadmin-sidebar" aria-expanded="true" title="Ciutkan menu navigasi"><i class="bi bi-layout-sidebar-inset" aria-hidden="true"></i></button>
     <small class="superadmin-caption">{{ session('jg_role') === 'SUPER_ADMIN' ? 'Workspace' : 'Menu utama' }}</small>
     <nav class="superadmin-nav" aria-label="Navigasi Super Admin">
         <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" title="Dashboard"><i class="bi bi-grid-1x2" aria-hidden="true"></i><span>Dashboard</span></a>
@@ -25,7 +23,6 @@
         @elseif(session('jg_role') === 'ADMIN_PARIWISATA')
             <a href="{{ route('admin.verification') }}" class="nav-link {{ request()->routeIs('admin.verification') ? 'active' : '' }}" title="Verifikasi"><i class="bi bi-qr-code-scan" aria-hidden="true"></i><span>Verifikasi</span></a>
             <a href="{{ route('admin.bookings') }}" class="nav-link {{ request()->routeIs('admin.bookings') ? 'active' : '' }}" title="Pemesanan destinasi"><i class="bi bi-calendar-check" aria-hidden="true"></i><span>Pemesanan destinasi</span></a>
-            <a href="{{ route('admin.verification.history') }}" class="nav-link {{ request()->routeIs('admin.verification.history') ? 'active' : '' }}" title="Riwayat verifikasi"><i class="bi bi-clock-history" aria-hidden="true"></i><span>Riwayat verifikasi</span></a>
         @else
             <a href="{{ route('destinations.index') }}" class="nav-link" title="Destinasi"><i class="bi bi-compass" aria-hidden="true"></i><span>Destinasi</span></a>
             <a href="{{ route('customer.orders') }}" class="nav-link" title="Pesanan saya"><i class="bi bi-ticket-perforated" aria-hidden="true"></i><span>Pesanan saya</span></a>

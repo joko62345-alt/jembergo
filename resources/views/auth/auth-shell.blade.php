@@ -26,6 +26,8 @@
         .auth-field { margin-bottom: .7rem; }
         .auth-field label { display: block; margin-bottom: .3rem; color: #31516b; font-size: .75rem; font-weight: 600; }
         .auth-field .form-control { min-height: 42px; border: 1px solid #dbe6ee; border-radius: .65rem; background: #f9fcfd; font-size: .82rem; }
+        .auth-field .form-control.is-invalid { border-color: #dc3545; background-image: none; box-shadow: 0 0 0 3px rgba(220, 53, 69, .12); }
+        .auth-field-warning { display: block; margin-top: .25rem; color: #dc3545; font-size: .72rem; }
         .auth-field .form-control:focus { border-color: #7fbbdb; background: #fff; box-shadow: 0 0 0 3px rgba(127, 187, 221, .16); }
         .auth-field .input-group .btn { border-color: #dbe6ee; background: #f9fcfd; color: #7890a1; }
         .auth-submit { position: relative; display: flex; align-items: center; justify-content: center; width: 100%; margin-top: .5rem; padding: .78rem 1rem; border: 0; border-radius: .7rem; background: #e77d00; color: #fff; font-size: .86rem; font-weight: 600; box-shadow: 0 8px 18px rgba(231, 125, 0, .2); }
@@ -97,8 +99,8 @@
                 <div data-register-form>
                     <h1></h1><p class="auth-subtitle">Daftar untuk mendapatkan akses ke layanan pariwisata Kabupaten Jember</p>
                     <form action="{{ route('register.store') }}" method="POST">@csrf
-                        <div class="auth-field"><label for="register-name">Nama Lengkap</label><input id="register-name" name="nama" class="form-control" placeholder="Nama lengkap" value="{{ old('nama') }}" required></div>
-                        <div class="auth-field"><label for="register-phone">Nomor Telepon</label><input id="register-phone" name="no_hp" type="tel" class="form-control" placeholder="Masukkan Nomor Telepone" value="{{ old('no_hp') }}" inputmode="tel"></div>
+                        <div class="auth-field"><label for="register-name">Nama Lengkap</label><input id="register-name" name="nama" class="form-control" placeholder="Nama lengkap" value="{{ old('nama') }}" required pattern="[\p{L}\s]+" data-register-name><small class="auth-field-warning" data-register-name-warning hidden></small></div>
+                        <div class="auth-field"><label for="register-phone">Nomor Telepon</label><input id="register-phone" name="no_hp" type="tel" class="form-control" placeholder="Masukkan Nomor Telepone" value="{{ old('no_hp') }}" inputmode="numeric" minlength="10" required data-register-phone><small class="auth-field-warning" data-register-phone-warning hidden></small></div>
                         <div class="auth-field"><label for="register-email">Email</label><input id="register-email" name="email" type="email" class="form-control" placeholder="Masukkan Email" value="{{ old('email') }}" required></div>
                         <div class="auth-field"><label for="register-password">Password</label><input id="register-password" name="password" type="password" class="form-control" placeholder="Minimal 8 karakter" required></div>
                         <button class="auth-submit" type="submit"><span>Daftar</span><i class="bi bi-arrow-right"></i></button>
@@ -136,6 +138,41 @@
     document.querySelectorAll('[data-switch]').forEach(button => button.addEventListener('click', () => setMode(button.dataset.switch)));
     document.querySelectorAll('.password-toggle').forEach(button => button.addEventListener('click', () => { const input = document.getElementById(button.dataset.target); const visible = input.type === 'text'; input.type = visible ? 'password' : 'text'; button.innerHTML = `<i class="bi bi-eye${visible ? '' : '-slash'}"></i>`; }));
     document.querySelector('[data-dismiss-auth-alert]')?.addEventListener('click', event => event.currentTarget.closest('.auth-success').remove());
+    const registerNameInput = document.querySelector('[data-register-name]');
+    const registerNameWarning = document.querySelector('[data-register-name-warning]');
+    const registerPhoneInput = document.querySelector('[data-register-phone]');
+    const registerPhoneWarning = document.querySelector('[data-register-phone-warning]');
+    const validateRegisterName = () => {
+        const invalid = registerNameInput.value.length > 0 && !/^[\p{L}\s]+$/u.test(registerNameInput.value);
+        const message = invalid ? 'Nama lengkap hanya boleh berisi huruf dan spasi.' : '';
+        registerNameInput.classList.toggle('is-invalid', invalid);
+        registerNameInput.setCustomValidity(message);
+        registerNameWarning.textContent = message;
+        registerNameWarning.hidden = !invalid;
+    };
+    const validateRegisterPhone = () => {
+        const value = registerPhoneInput.value;
+        const invalidCharacters = /[^0-9]/.test(value);
+        const message = invalidCharacters ? 'Nomor telepon hanya boleh berisi angka.' : value.length > 0 && value.length < 10 ? 'Nomor telepon minimal 10 angka.' : value.length > 12 ? 'Nomor telepon maksimal 12 angka.' : '';
+        const invalid = invalidCharacters || (value.length > 0 && value.length < 10) || value.length > 12;
+        registerPhoneInput.classList.toggle('is-invalid', invalid);
+        registerPhoneInput.setCustomValidity(message);
+        registerPhoneWarning.textContent = message;
+        registerPhoneWarning.hidden = !invalid;
+    };
+    registerNameInput?.addEventListener('input', validateRegisterName);
+    registerPhoneInput?.addEventListener('input', validateRegisterPhone);
+    registerPhoneInput?.addEventListener('keydown', event => {
+        if (event.key.length === 1 && !/[0-9]/.test(event.key)) {
+            event.preventDefault();
+            registerPhoneWarning.textContent = 'Nomor telepon hanya boleh berisi angka.';
+            registerPhoneWarning.hidden = false;
+            registerPhoneInput.classList.add('is-invalid');
+            registerPhoneInput.setCustomValidity('Nomor telepon hanya boleh berisi angka.');
+        }
+    });
+    registerNameInput && validateRegisterName();
+    registerPhoneInput && validateRegisterPhone();
     setMode('{{ $authMode }}');
 </script>
 </body>

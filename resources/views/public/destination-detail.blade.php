@@ -42,17 +42,17 @@
         .destination-locate-button:disabled { cursor: wait; opacity: 0.75; transform: none; }
         .destination-locate-button i { font-size: 1.1rem; }
         .destination-gallery-scroller { display: flex; gap: 1rem; overflow-x: auto; padding: 0 0.25rem 0.75rem; scroll-snap-type: x mandatory; scrollbar-width: thin; }
-        .destination-gallery-item { flex: 0 0 min(78vw, 520px); scroll-snap-align: start; }
-        .destination-gallery-item figure { position: relative; height: 300px; background: #e9ecef; }
+        .destination-gallery-item { flex: 0 0 auto; scroll-snap-align: start; }
+        .destination-gallery-item figure { position: relative; width: fit-content; max-width: min(72vw, 380px); background: #e9ecef; }
         .destination-gallery-item figure::after { position: absolute; inset: 35% 0 0; background: linear-gradient(transparent, rgba(0, 0, 0, 0.72)); content: ''; }
-        .destination-gallery-image { width: 100%; height: 100%; display: block; object-fit: contain; }
+        .destination-gallery-image { display: block; width: auto; max-width: 100%; max-height: 230px; height: auto; object-fit: contain; }
         .destination-gallery-caption { position: absolute; right: 1.25rem; bottom: 1rem; left: 1.25rem; z-index: 1; color: #fff; }
         .destination-review-scroller { display: flex; gap: .75rem; overflow-x: auto; padding: 0 .25rem .65rem; scroll-snap-type: x mandatory; scrollbar-width: thin; }
         .destination-review-item { flex: 0 0 min(72vw, 280px); min-height: 120px; scroll-snap-align: start; padding: 1rem; border: 1px solid #edf1f4; border-radius: 1rem; background: #fff; box-shadow: 0 7px 18px rgba(31, 41, 55, .06); }
         .destination-review-item strong { color: #173b60; font-size: .84rem; }
         .destination-review-item .review-stars { color: #f5a400; font-size: .75rem; letter-spacing: .06em; white-space: nowrap; }
         .destination-review-item p { margin: .65rem 0 0; color: #64748b; font-size: .8rem; line-height: 1.5; }
-        @media (min-width: 768px) { .destination-gallery-item { flex-basis: min(42vw, 520px); } }
+        @media (min-width: 768px) { .destination-gallery-item figure { max-width: 380px; } }
     </style>
 </head>
 <body class="public-page destination-detail-page">

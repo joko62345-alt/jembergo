@@ -5,11 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\AdminPariwisata;
 use App\Models\Pemesanan;
 use App\Models\Tiket;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\View\View;
-use Illuminate\Contracts\Encryption\DecryptException;
 
 class VerificationController extends Controller
 {
@@ -56,7 +56,7 @@ class VerificationController extends Controller
         }
 
         if (today()->lt($booking->tanggal_kunjungan)) {
-            return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Tiket belum dapat diverifikasi. Jadwal kunjungan baru pada ' . date('d/m/Y', strtotime((string) $booking->tanggal_kunjungan)) . '.');
+            return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Tiket belum dapat diverifikasi. Jadwal kunjungan baru pada '.date('d/m/Y', strtotime((string) $booking->tanggal_kunjungan)).'.');
         }
 
         $ticket = $inputDetails['ticket_id']
@@ -84,7 +84,7 @@ class VerificationController extends Controller
 
         try {
             $payload = json_decode(Crypt::decryptString($input), true, 512, JSON_THROW_ON_ERROR);
-        } catch (DecryptException | \JsonException) {
+        } catch (DecryptException|\JsonException) {
             return ['booking_code' => null, 'ticket_id' => null];
         }
 
@@ -111,7 +111,7 @@ class VerificationController extends Controller
         }
         abort_if(! $booking->pembayaran || $booking->pembayaran->status_pembayaran !== 'PAID', 422, 'Tiket belum dibayar.');
         if (today()->lt($booking->tanggal_kunjungan)) {
-            return redirect()->route('admin.verification')->with('verification_error', 'Tiket belum dapat diverifikasi. Jadwal kunjungan baru pada ' . date('d/m/Y', strtotime((string) $booking->tanggal_kunjungan)) . '.');
+            return redirect()->route('admin.verification')->with('verification_error', 'Tiket belum dapat diverifikasi. Jadwal kunjungan baru pada '.date('d/m/Y', strtotime((string) $booking->tanggal_kunjungan)).'.');
         }
         $ticketQuery = $booking->tiket()->where('status_tiket', 'ACTIVE');
         if (! empty($data['id_tiket'])) {
@@ -121,15 +121,31 @@ class VerificationController extends Controller
 
         $ticketQuery->update(['status_tiket' => 'USED', 'waktu_verifikasi' => now('UTC')]);
 
-        return redirect()->route('admin.verification')->with('verification_success', empty($data['id_tiket'])
-            ? 'Booking valid. Semua tiket aktif telah berubah menjadi USED.'
-            : 'Tiket valid. Status tiket telah berubah menjadi USED.');
+        return redirect()->route('admin.verification')->with([
+            'verification_success' => empty($data['id_tiket'])
+                ? 'Booking valid. Semua tiket aktif telah berubah menjadi USED.'
+                : 'Tiket valid. Status tiket telah berubah menjadi USED.',
+            'receipt_booking_id' => $booking->id_pemesanan,
+        ]);
+    }
+
+    public function receipt(int $id): View
+    {
+        $admin = AdminPariwisata::findOrFail(session('jg_user_id'));
+        $booking = Pemesanan::with(['customer', 'destinasi', 'pembayaran', 'tiket', 'detailPemesanan.jenisTiket'])
+            ->where('id_pemesanan', $id)
+            ->where('id_destinasi', $admin->id_destinasi)
+            ->whereHas('tiket', fn ($query) => $query->where('status_tiket', 'USED'))
+            ->firstOrFail();
+
+        return view('admin.verification-receipt', compact('booking'));
     }
 
     public function bookings(): View
     {
         $admin = AdminPariwisata::findOrFail(session('jg_user_id'));
         Pemesanan::expirePendingPayments($admin->id_destinasi);
+        Pemesanan::expireTicketsPastVisitDate($admin->id_destinasi);
         $destinationBooking = fn ($query) => $query->where('id_destinasi', $admin->id_destinasi);
         $verifiedBookingIds = Tiket::where('status_tiket', 'USED')
             ->whereHas('pemesanan', $destinationBooking)
@@ -153,28 +169,4 @@ class VerificationController extends Controller
         return view('admin.bookings', compact('bookings', 'report'));
     }
 
-    public function history(): View
-    {
-        $admin = AdminPariwisata::findOrFail(session('jg_user_id'));
-        $destinationBooking = fn ($query) => $query->where('id_destinasi', $admin->id_destinasi);
-        $verifiedBookingIds = Tiket::where('status_tiket', 'USED')
-            ->whereHas('pemesanan', $destinationBooking)
-            ->distinct()
-            ->pluck('id_pemesanan');
-        $report = [
-            'tickets' => Tiket::where('status_tiket', 'USED')->whereHas('pemesanan', $destinationBooking)->count(),
-            'bookings' => $verifiedBookingIds->count(),
-            'revenue' => Pemesanan::whereIn('id_pemesanan', $verifiedBookingIds)->sum('total_harga'),
-        ];
-        $bookings = Pemesanan::with([
-            'customer',
-            'destinasi',
-            'tiket' => fn ($query) => $query->where('status_tiket', 'USED')->orderBy('id_tiket'),
-        ])
-            ->whereIn('id_pemesanan', $verifiedBookingIds)
-            ->latest('updated_at')
-            ->paginate(20);
-
-        return view('admin.verification-history', compact('bookings', 'report'));
-    }
 }

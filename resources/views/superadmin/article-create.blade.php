@@ -13,8 +13,9 @@
     (() => {
         const input = document.querySelector('[data-article-image-input]');
         const preview = document.querySelector('[data-article-image-preview]');
-        input?.addEventListener('change', () => { const file = input.files?.[0]; if (!file) return; const image = document.createElement('img'); image.alt = 'Preview gambar baru'; image.src = URL.createObjectURL(file); preview.replaceChildren(image); });
-        document.querySelector('.article-editor-form')?.addEventListener('submit', (event) => { const button = event.currentTarget.querySelector('.article-submit-button'); if (button) { button.disabled = true; button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Menyimpan...'; } });
+        const validateArticleImage = () => { const file = input?.files?.[0]; const warning = input?.parentElement.querySelector('.article-image-warning'); const isInvalid = Boolean(file) && (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024); const message = file?.size > 5 * 1024 * 1024 ? 'Ukuran file maksimal 5 MB.' : 'File harus berupa JPG, PNG, atau WEBP.'; input?.classList.toggle('is-invalid', isInvalid); input?.setCustomValidity(isInvalid ? message : ''); if (warning) { warning.textContent = message; warning.hidden = !isInvalid; } if (isInvalid) return false; if (file) { const image = document.createElement('img'); image.alt = 'Preview gambar baru'; image.src = URL.createObjectURL(file); preview.replaceChildren(image); } return true; };
+        input?.addEventListener('change', validateArticleImage);
+        document.querySelector('.article-editor-form')?.addEventListener('submit', (event) => { if (!validateArticleImage()) { event.preventDefault(); return; } const button = event.currentTarget.querySelector('.article-submit-button'); if (button) { button.disabled = true; button.innerHTML = '<span class="spinner-border spinner-border-sm me-1" aria-hidden="true"></span>Menyimpan...'; } });
     })();
 </script>
 @endpush

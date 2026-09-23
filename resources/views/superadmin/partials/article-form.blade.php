@@ -29,7 +29,7 @@
             <label class="form-label" for="{{ $formId }}-gambar">Upload gambar</label>
             <input id="{{ $formId }}-gambar" name="gambar" type="file" accept="image/jpeg,image/png,image/webp" class="form-control @error('gambar') is-invalid @enderror" data-article-image-input>
             <small class="form-helper">JPG, PNG, atau WEBP. Maksimal 5 MB.</small>
-            @error('gambar')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            <small class="article-image-warning text-danger" role="alert" aria-live="polite" @error('gambar') @else hidden @enderror>@error('gambar'){{ $message }}@else File harus berupa JPG, PNG, atau WEBP dengan ukuran maksimal 5 MB.@enderror</small>
             <div class="article-status-field">
                 <label class="form-label" for="{{ $formId }}-status">Status publikasi</label>
                 <select id="{{ $formId }}-status" name="status" class="form-select @error('status') is-invalid @enderror">

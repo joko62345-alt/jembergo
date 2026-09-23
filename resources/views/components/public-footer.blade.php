@@ -21,7 +21,7 @@
                     <a href="#" class="fs-4" aria-label="Twitter"><i class="bi bi-twitter-x"></i></a>
                     <a href="#" class="fs-4" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
                 </div>
-                <p class="mt-3 small">Dapatkan update destinasi terbaru dan promo menarik.</p>
+                <p class="mt-3 small">Dapatkan update destinasi terbaru </p>
             </div>
         </div>
         <div class="footer-bottom mt-4">

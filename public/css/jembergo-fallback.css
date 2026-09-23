@@ -282,7 +282,7 @@ em { color: var(--jg-orange); font-family: 'Caveat', cursive; font-size: 1.18em;
 .destination-image {
     position: relative;
     aspect-ratio: 4 / 3;
-    overflow: hidden;
+    overflow: visible;
     background: #eef3f5;
 }
 .destination-image img {
@@ -810,7 +810,7 @@ em { color: var(--jg-orange); font-family: 'Caveat', cursive; font-size: 1.18em;
     width: 100%;
     margin: 0;
     padding: 1rem 2rem !important;
-    overflow: hidden;
+    overflow: visible;
     border: 0;
     border-bottom: 1px solid var(--jg-border);
     border-radius: 0;
@@ -818,7 +818,8 @@ em { color: var(--jg-orange); font-family: 'Caveat', cursive; font-size: 1.18em;
     box-shadow: none;
 }
 .jg-navbar::after { display: none; }
-.jg-navbar > div { position: relative; z-index: 1; }
+.jg-navbar > div { position: relative; z-index: 2; }
+.jg-navbar .dropdown-menu { z-index: 1060; }
 .jg-navbar .navbar-brand { min-width: 0; width: 175px; height: 58px; flex: 0 0 175px; margin-right: 0; overflow: visible; }
 .jg-navbar-mark, .jg-navbar-wordmark { display: none; }
 .jg-logo-navbar {

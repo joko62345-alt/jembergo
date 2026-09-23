@@ -140,12 +140,15 @@ class AuthController extends Controller
         }
 
         $data = $request->validate([
-            'nama' => ['required', 'string', 'max:150'],
+            'nama' => ['required', 'string', 'max:150', 'regex:/^[\p{L}\s]+$/u'],
             'email' => ['required', 'email', 'max:150', 'unique:customer,email'],
-            'no_hp' => ['nullable', 'string', 'max:30'],
+            'no_hp' => ['required', 'digits_between:10,12'],
             'password' => ['required', 'string', 'min:8'],
         ], [
+            'nama.regex' => 'Nama lengkap hanya boleh berisi huruf dan spasi.',
             'email.unique' => 'Email tersebut sudah terdaftar.',
+            'no_hp.required' => 'Nomor telepon wajib diisi.',
+            'no_hp.digits_between' => 'Nomor telepon harus berisi 10 sampai 12 angka.',
             'password.min' => 'Password minimal 8 karakter.',
         ]);
 

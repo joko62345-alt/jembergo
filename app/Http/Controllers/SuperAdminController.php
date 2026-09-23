@@ -76,6 +76,17 @@ class SuperAdminController extends Controller
         return back()->with('success', 'Jenis tiket berhasil dihapus.');
     }
 
+    public function destroyGallery(int $destination, int $gallery): RedirectResponse
+    {
+        GaleriDestinasi::query()
+            ->where('id_destinasi', $destination)
+            ->whereKey($gallery)
+            ->firstOrFail()
+            ->delete();
+
+        return back()->with('success', 'Foto galeri berhasil dihapus.');
+    }
+
     public function report(Request $request): View
     {
         $from = $request->date('from')?->startOfDay();
@@ -100,11 +111,18 @@ class SuperAdminController extends Controller
 
     private function validatedDestination(Request $request, ?int $destinationId = null): array
     {
+        $request->merge([
+            'jam_operasional' => $request->filled('jam_buka') && $request->filled('jam_tutup')
+                ? $request->input('jam_buka').' - '.$request->input('jam_tutup')
+                : $request->input('jam_operasional'),
+        ]);
+
         return $request->validate([
             'nama_wisata' => [
                 'required',
                 'string',
                 'max:150',
+                'regex:/^[\p{L}\s]+$/u',
                 Rule::unique('destinasi_wisata', 'nama_wisata')->ignore($destinationId, 'id_destinasi'),
             ],
             'foto_utama' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
@@ -114,9 +132,22 @@ class SuperAdminController extends Controller
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
             'jam_operasional' => ['required', 'string', 'max:100'],
+            'jam_buka' => ['required', 'date_format:H:i'],
+            'jam_tutup' => [
+                'required',
+                'date_format:H:i',
+                function (string $attribute, string $value, \Closure $fail) use ($request): void {
+                    if ($request->input('jam_buka') === $value) {
+                        $fail('Jam buka dan jam tutup tidak boleh sama.');
+                    } elseif ($request->input('jam_buka') > $value) {
+                        $fail('Jam tutup harus lebih besar dari jam buka.');
+                    }
+                },
+            ],
             'status_aktif' => ['nullable', 'boolean'],
         ], [
             'nama_wisata.unique' => 'Destinasi dengan nama tersebut sudah terdaftar.',
+            'nama_wisata.regex' => 'Nama destinasi hanya boleh berisi huruf dan spasi.',
         ]);
     }
 
@@ -124,28 +155,43 @@ class SuperAdminController extends Controller
     {
         $data = $request->validate([
             'fasilitas' => ['nullable', 'array', 'max:20'],
-            'fasilitas.*' => ['nullable', 'string', 'max:100'],
+            'fasilitas.*' => ['nullable', 'string', 'max:100', 'regex:/^[\p{L}\s]*$/u'],
             'galeri' => ['nullable', 'array', 'max:20'],
+            'galeri.*.id' => ['nullable', 'integer'],
             'galeri.*.foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'galeri.*.keterangan' => ['nullable', 'string', 'max:200'],
+        ], [
+            'fasilitas.*.regex' => 'Fasilitas hanya boleh berisi huruf dan spasi.',
         ]);
 
-        if ($request->has('fasilitas')) {
+        if ($request->has('fasilitas') || $request->boolean('fasilitas_present')) {
             $destination->fasilitas()->delete();
             foreach (collect($data['fasilitas'] ?? [])->map(fn (?string $name) => trim((string) $name))->filter() as $name) {
                 Fasilitas::create(['id_destinasi' => $destination->id_destinasi, 'nama_fasilitas' => $name]);
             }
         }
 
-        if ($request->hasFile('galeri')) {
-            $uploads = collect($request->file('galeri', []))->filter(fn ($gallery) => ! empty($gallery['foto']));
+        foreach ($data['galeri'] ?? [] as $index => $galleryData) {
+            $galleryId = $galleryData['id'] ?? null;
+            $gallery = $galleryId
+                ? GaleriDestinasi::query()->where('id_destinasi', $destination->id_destinasi)->whereKey($galleryId)->firstOrFail()
+                : null;
+            $uploadedPhoto = $request->file("galeri.$index.foto");
 
-            if ($uploads->isNotEmpty()) {
-                $destination->galeri()->delete();
-                foreach ($uploads as $index => $gallery) {
-                    $path = $gallery['foto']->store('destinations', 'public');
-                    GaleriDestinasi::create(['id_destinasi' => $destination->id_destinasi, 'url_foto' => '/storage/'.ltrim($path, '/'), 'keterangan' => $request->input("galeri.$index.keterangan")]);
-                }
+            if (! $gallery && ! $uploadedPhoto) {
+                continue;
+            }
+
+            $attributes = ['keterangan' => $galleryData['keterangan'] ?? null];
+            if ($uploadedPhoto) {
+                $path = $uploadedPhoto->store('destinations', 'public');
+                $attributes['url_foto'] = '/storage/'.ltrim($path, '/');
+            }
+
+            if ($gallery) {
+                $gallery->update($attributes);
+            } else {
+                GaleriDestinasi::create(array_merge($attributes, ['id_destinasi' => $destination->id_destinasi]));
             }
         }
     }
@@ -155,12 +201,13 @@ class SuperAdminController extends Controller
         $data = $request->validate([
             'jenis_tiket' => ['nullable', 'array', 'max:20'],
             'jenis_tiket.*.id' => ['nullable', 'integer'],
-            'jenis_tiket.*.nama_jenis' => ['required', 'string', 'max:100'],
+            'jenis_tiket.*.nama_jenis' => ['required', 'string', 'max:100', 'regex:/^[\p{L}\s]+$/u'],
             'jenis_tiket.*.harga_display' => ['required', 'regex:/^\d[\d.]*$/'],
             'jenis_tiket.*.harga' => ['required', 'numeric', 'min:0'],
         ], [
             'jenis_tiket.*.harga_display.regex' => 'Harga tiket hanya boleh berisi angka.',
             'jenis_tiket.*.harga_display.required' => 'Harga tiket wajib diisi.',
+            'jenis_tiket.*.nama_jenis.regex' => 'Jenis tiket hanya boleh berisi huruf dan spasi.',
         ]);
 
         foreach ($data['jenis_tiket'] ?? [] as $ticketData) {
@@ -182,8 +229,17 @@ class SuperAdminController extends Controller
     private function storeMainPhoto(Request $request, DestinasiWisata $destination): void
     {
         if ($request->hasFile('foto_utama')) {
+            $oldPhoto = $destination->foto_utama;
             $path = $request->file('foto_utama')->store('destinations/main', 'public');
-            $destination->update(['foto_utama' => '/storage/'.ltrim($path, '/')]);
+            $newPhoto = '/storage/'.ltrim($path, '/');
+            $destination->update(['foto_utama' => $newPhoto]);
+
+            if ($oldPhoto) {
+                GaleriDestinasi::query()
+                    ->where('id_destinasi', $destination->id_destinasi)
+                    ->where('url_foto', $oldPhoto)
+                    ->update(['url_foto' => $newPhoto]);
+            }
         }
     }
 }

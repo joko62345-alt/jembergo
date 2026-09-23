@@ -150,6 +150,17 @@ class Pemesanan extends Model
             ->update(['status_pembayaran' => 'EXPIRED', 'transaction_status' => 'expire']);
     }
 
+    public static function expireTicketsPastVisitDate(?int $destinationId = null): void
+    {
+        Tiket::query()
+            ->where('status_tiket', 'ACTIVE')
+            ->whereHas('pemesanan', function ($query) use ($destinationId): void {
+                $query->whereDate('tanggal_kunjungan', '<', today())
+                    ->when($destinationId, fn ($destinationQuery) => $destinationQuery->where('id_destinasi', $destinationId));
+            })
+            ->update(['status_tiket' => 'EXPIRED']);
+    }
+
     public function expireTicketsIfPastVisitDate(): void
     {
         if ($this->tanggal_kunjungan && date('Y-m-d', strtotime((string) $this->tanggal_kunjungan)) < today()->toDateString()) {

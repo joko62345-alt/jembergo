@@ -36,6 +36,7 @@ class SuperAdminManagementController extends Controller
     {
         return view('superadmin.admin-create', [
             'destinations' => DestinasiWisata::orderBy('nama_wisata')->get(),
+            'existingAdmins' => AdminPariwisata::query()->get(['nama', 'email', 'no_hp']),
         ]);
     }
 
@@ -145,8 +146,13 @@ class SuperAdminManagementController extends Controller
 
     public function admin(Request $request): RedirectResponse
     {
-        $data = $request->validate(['id_destinasi' => ['required', 'exists:destinasi_wisata,id_destinasi'], 'nama' => ['required', 'string', 'max:150'], 'email' => ['required', 'email', 'unique:admin_pariwisata,email'], 'no_hp' => ['required', 'regex:/^[0-9]+$/', 'unique:admin_pariwisata,no_hp', 'max:30'], 'password' => ['required', 'string', 'min:8']], ['no_hp.regex' => 'Nomor HP hanya boleh berisi angka.', 'no_hp.unique' => 'Nomor HP tersebut sudah digunakan oleh admin pariwisata lain.']);
+        $data = $request->validate(['id_destinasi' => ['required', 'exists:destinasi_wisata,id_destinasi'], 'nama' => ['required', 'string', 'max:150', 'unique:admin_pariwisata,nama'], 'email' => ['required', 'email', 'regex:/@gmail\.com$/i', 'unique:admin_pariwisata,email'], 'no_hp' => ['required', 'regex:/^[0-9]+$/', 'unique:admin_pariwisata,no_hp', 'min:10', 'max:12'], 'password' => ['required', 'string', 'min:8']], ['nama.unique' => 'Nama tersebut sudah digunakan oleh admin lain.', 'email.regex' => 'Email admin harus menggunakan @gmail.com.', 'email.unique' => 'Email tersebut sudah digunakan oleh admin lain.', 'no_hp.regex' => 'Nomor HP hanya boleh berisi angka.', 'no_hp.unique' => 'Nomor HP tersebut sudah digunakan oleh admin pariwisata lain.', 'no_hp.min' => 'Nomor HP minimal 10 angka.', 'no_hp.max' => 'Nomor HP maksimal 12 angka.']);
         $destination = DestinasiWisata::findOrFail($data['id_destinasi']);
+        $adminName = preg_replace('/^admin\s+/iu', '', trim($data['nama']));
+        $normalizeName = static fn (string $name): string => mb_strtolower((string) preg_replace('/\s+/u', ' ', trim($name)));
+        if ($normalizeName($adminName) !== $normalizeName($destination->nama_wisata)) {
+            return back()->withInput()->withErrors(['id_destinasi' => 'Destinasi tugas harus sesuai dengan nama admin. Contoh: Admin Teluk Love memilih destinasi Teluk Love.']);
+        }
         AdminPariwisata::create([...$data, 'password' => Hash::make($data['password']), 'status_akun' => $destination->status_aktif === 'aktif' ? 'AKTIF' : 'NONAKTIF']);
 
         return back()->with('success', 'Akun admin pariwisata berhasil dibuat.');

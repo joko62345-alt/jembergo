@@ -34,9 +34,9 @@
                             <section class="booking-section mb-4">
                                 <div class="d-flex align-items-center gap-2 mb-3"><h2 class="h5 mb-0">Ketua kelompok</h2></div>
                                 <div class="row g-3">
-                                    <div class="col-md-6"><label class="form-label" for="ketua_nama">Nama lengkap</label><input id="ketua_nama" name="ketua_nama" value="{{ old('ketua_nama') }}" class="form-control" placeholder="Masukkan nama lengkap" required></div>
-                                    <div class="col-md-6"><label class="form-label" for="ketua_email">Email</label><input id="ketua_email" name="ketua_email" type="email" value="{{ old('ketua_email') }}" class="form-control" placeholder="Masukkan email anda" required></div>
-                                    <div class="col-md-6"><label class="form-label" for="ketua_no_hp">Nomor WhatsApp</label><input id="ketua_no_hp" name="ketua_no_hp" value="{{ old('ketua_no_hp') }}" class="form-control" placeholder="Masukkan nomor anda" required></div>
+                                    <div class="col-md-6"><label class="form-label" for="ketua_nama">Nama lengkap</label><input id="ketua_nama" name="ketua_nama" value="{{ old('ketua_nama') }}" class="form-control" placeholder="Masukkan nama lengkap" required data-booking-name><small class="booking-field-warning" data-booking-name-warning hidden></small></div>
+                                    <div class="col-md-6"><label class="form-label" for="ketua_email">Email</label><input id="ketua_email" name="ketua_email" type="email" value="{{ old('ketua_email') }}" class="form-control" placeholder="Masukkan email anda" required data-booking-email><small class="booking-field-warning" data-booking-email-warning hidden></small></div>
+                                    <div class="col-md-6"><label class="form-label" for="ketua_no_hp">Nomor WhatsApp</label><input id="ketua_no_hp" name="ketua_no_hp" type="tel" inputmode="numeric" value="{{ old('ketua_no_hp') }}" class="form-control" placeholder="Masukkan nomor anda" minlength="10" required data-booking-phone><small class="booking-field-warning" data-booking-phone-warning hidden></small></div>
                                     <div class="col-md-6"><label class="form-label" for="tanggal_kunjungan">Tanggal kunjungan</label><input id="tanggal_kunjungan" type="date" name="tanggal_kunjungan" value="{{ old('tanggal_kunjungan') }}" class="form-control" min="{{ date('Y-m-d') }}" required><small id="quotaAvailability" class="form-text text-secondary">Pilih tanggal untuk melihat sisa tiket.</small></div>
                                 </div>
                             </section>
@@ -88,6 +88,8 @@
     .participant-row { border-color: var(--jg-border); border-radius: 1rem; background: #fff; box-shadow: 0 5px 16px rgba(31, 41, 55, 0.04); }
     .participant-row strong { font-size: .84rem; font-weight: 650; }
     .booking-page .form-control, .booking-page .form-select { font-size: .86rem; }
+    .booking-field-warning { display: block; margin-top: .25rem; color: #dc3545; font-size: .75rem; }
+    .booking-page .form-control.is-invalid { border-color: #dc3545; box-shadow: 0 0 0 .2rem rgba(220, 53, 69, .12); }
     .booking-summary h2 { font-size: 1rem; font-weight: 650; }
     .booking-summary { font-size: .82rem; }
     .booking-summary { border-color: rgba(127, 187, 219, 0.45); box-shadow: 0 10px 24px rgba(31, 41, 55, 0.07); }
@@ -109,6 +111,48 @@
         const visitDate = document.getElementById('tanggal_kunjungan');
         const quotaAvailability = document.getElementById('quotaAvailability');
         let nextIndex = 1;
+
+        const showBookingValidation = (input, warning, message) => {
+            const invalid = Boolean(message);
+            input.classList.toggle('is-invalid', invalid);
+            input.setCustomValidity(message);
+            warning.textContent = message;
+            warning.hidden = !invalid;
+        };
+        const validateBookingName = (input, warning) => {
+            const message = input.value.length > 0 && !/^[\p{L}\s]+$/u.test(input.value) ? 'Nama lengkap hanya boleh berisi huruf dan spasi.' : '';
+            showBookingValidation(input, warning, message);
+        };
+        const validateBookingEmail = () => {
+            const input = document.getElementById('ketua_email');
+            const warning = document.querySelector('[data-booking-email-warning]');
+            const message = input.value.length > 0 && !/@gmail\.com$/i.test(input.value.trim()) ? 'Email harus menggunakan alamat @gmail.com.' : '';
+            showBookingValidation(input, warning, message);
+        };
+        const validateBookingPhone = () => {
+            const input = document.getElementById('ketua_no_hp');
+            const warning = document.querySelector('[data-booking-phone-warning]');
+            const invalidCharacters = /[^0-9]/.test(input.value);
+            const message = invalidCharacters ? 'Nomor telepon hanya boleh berisi angka.' : input.value.length > 0 && input.value.length < 10 ? 'Nomor telepon minimal 10 angka.' : input.value.length > 12 ? 'Nomor telepon maksimal 12 angka.' : '';
+            showBookingValidation(input, warning, message);
+        };
+        const bookingForm = document.getElementById('bookingForm');
+        const leaderNameInput = document.getElementById('ketua_nama');
+        const leaderNameWarning = document.querySelector('[data-booking-name-warning]');
+        leaderNameInput.addEventListener('input', () => validateBookingName(leaderNameInput, leaderNameWarning));
+        document.getElementById('ketua_email').addEventListener('input', validateBookingEmail);
+        document.getElementById('ketua_no_hp').addEventListener('input', validateBookingPhone);
+        document.getElementById('ketua_no_hp').addEventListener('keydown', (event) => {
+            if (event.key.length === 1 && !/[0-9]/.test(event.key)) {
+                event.preventDefault();
+                validateBookingPhone();
+            }
+        });
+        bookingForm.addEventListener('submit', () => {
+            validateBookingName(leaderNameInput, leaderNameWarning);
+            validateBookingEmail();
+            validateBookingPhone();
+        });
 
         const updateQuotaAvailability = async () => {
             if (!visitDate.value) {
@@ -152,8 +196,14 @@
             const row = document.createElement('div');
             row.className = 'participant-row public-card p-3';
             row.dataset.index = nextIndex;
-            row.innerHTML = `<div class="d-flex justify-content-between align-items-center mb-3"><strong>Peserta ${nextIndex + 1} · Anggota</strong><button type="button" class="btn btn-sm btn-outline-danger rounded-pill remove-participant"><i class="bi bi-trash"></i><span class="visually-hidden">Hapus anggota</span></button></div><div class="row g-3"><div class="col-md-6"><label class="form-label" for="participant-name-${nextIndex}">Nama peserta</label><input id="participant-name-${nextIndex}" name="peserta[${nextIndex}][nama]" class="form-control" placeholder="Masukkan nama peserta" required></div><div class="col-md-6"><label class="form-label" for="participant-ticket-${nextIndex}">Jenis tiket</label><select id="participant-ticket-${nextIndex}" name="peserta[${nextIndex}][id_jenis_tiket]" class="form-select participant-ticket" required><option value="">Pilih jenis tiket</option>@foreach($destination->jenisTiket as $ticket)<option value="{{ $ticket->id_jenis_tiket }}" data-price="{{ $ticket->harga }}">{{ $ticket->nama_jenis }} · Rp {{ number_format($ticket->harga, 0, ',', '.') }}</option>@endforeach</select></div></div>`;
+            row.innerHTML = `<div class="d-flex justify-content-between align-items-center mb-3"><strong>Peserta ${nextIndex + 1} · Anggota</strong><button type="button" class="btn btn-sm btn-outline-danger rounded-pill remove-participant"><i class="bi bi-trash"></i><span class="visually-hidden">Hapus anggota</span></button></div><div class="row g-3"><div class="col-md-6"><label class="form-label" for="participant-name-${nextIndex}">Nama peserta</label><input id="participant-name-${nextIndex}" name="peserta[${nextIndex}][nama]" class="form-control" placeholder="Masukkan nama peserta" required><small class="booking-field-warning participant-name-warning" hidden></small></div><div class="col-md-6"><label class="form-label" for="participant-ticket-${nextIndex}">Jenis tiket</label><select id="participant-ticket-${nextIndex}" name="peserta[${nextIndex}][id_jenis_tiket]" class="form-select participant-ticket" required><option value="">Pilih jenis tiket</option>@foreach($destination->jenisTiket as $ticket)<option value="{{ $ticket->id_jenis_tiket }}" data-price="{{ $ticket->harga }}">{{ $ticket->nama_jenis }} · Rp {{ number_format($ticket->harga, 0, ',', '.') }}</option>@endforeach</select></div></div>`;
             participants.appendChild(row);
+            const participantName = row.querySelector('input[name*="[nama]"]');
+            const participantNameWarning = row.querySelector('.participant-name-warning');
+            participantName.addEventListener('input', () => {
+                const invalid = participantName.value.length > 0 && !/^[\p{L}\s]+$/u.test(participantName.value);
+                showBookingValidation(participantName, participantNameWarning, invalid ? 'Nama peserta hanya boleh berisi huruf dan spasi.' : '');
+            });
             nextIndex++;
             updateCount();
         });

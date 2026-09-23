@@ -28,8 +28,11 @@
         .receipt-row { display: flex; justify-content: space-between; gap: 1rem; }
         .receipt-row strong:last-child { text-align: right; }
         .receipt-section-title { margin: 8px 0 4px; font-weight: 700; text-transform: uppercase; }
-        .ticket-item { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 5px 0; border-bottom: 1px dotted #b9c1c8; }
+        .ticket-item { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 5px 0; border-bottom: 1px dotted #b9c1c8; align-items: center; }
         .ticket-item:last-child { border-bottom: 0; }
+        .ticket-item .participant-name { display: block; font-weight: 700; word-break: break-word; }
+        .ticket-item .participant-meta { display: block; color: #637181; }
+        .ticket-item .qty { font-weight: 700; }
         .total { margin-top: 6px; font-size: 14px; font-weight: 700; }
         .receipt-footer { margin-top: 14px; text-align: center; }
         .receipt-footer p { margin: 3px 0; }
@@ -63,10 +66,17 @@
         <div class="muted">{{ $booking->ketua_no_hp }}</div>
         <div class="rule"></div>
         <div class="receipt-section-title">Rincian tiket</div>
-        @foreach($verifiedTickets as $index => $ticket)
-            @php($participant = $participants->get($index, ['nama' => 'Peserta '.($index + 1), 'id_jenis_tiket' => 0]))
-            @php($ticketType = $booking->detailPemesanan->firstWhere('id_jenis_tiket', (int) $participant['id_jenis_tiket'])?->jenisTiket?->nama_jenis ?? 'Tiket wisata')
-            <div class="ticket-item"><span>{{ $participant['nama'] }}<br><span class="muted">{{ $ticketType }}</span></span><strong>1</strong></div>
+        @foreach($participants as $index => $participant)
+            @php($participantName = data_get($participant, 'nama', 'Peserta '.($index + 1)))
+            @php($participantTypeId = (int) data_get($participant, 'id_jenis_tiket', 0))
+            @php($ticketType = $booking->detailPemesanan->firstWhere('id_jenis_tiket', $participantTypeId)?->jenisTiket?->nama_jenis ?? 'Tiket wisata')
+            <div class="ticket-item">
+                <span>
+                    <span class="participant-name">{{ $participantName }}</span>
+                    <span class="participant-meta">{{ $ticketType }}</span>
+                </span>
+                <strong class="qty">1</strong>
+            </div>
         @endforeach
         <div class="receipt-row total"><span>Total bayar</span><strong>Rp {{ number_format($booking->total_harga, 0, ',', '.') }}</strong></div>
         <div class="rule"></div>

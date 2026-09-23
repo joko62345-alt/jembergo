@@ -1,3 +1,8 @@
+@php
+    $hasLoggedInUser = session()->has('jg_role') || session()->has('jg_user_name');
+    $userRole = session('jg_role');
+@endphp
+
 <nav class="navbar navbar-expand-lg jg-navbar">
     <div class="d-flex align-items-center justify-content-between w-100 px-3">
         <a class="navbar-brand d-flex align-items-center gap-2" href="{{ route('home') }}">
@@ -32,13 +37,13 @@
                     </a>
                 </li>
 
-                @if (session('jg_role'))
+                @if ($hasLoggedInUser)
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center gap-1" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-person-circle"></i> Akun Saya
+                            Akun Saya <i class="bi bi-chevron-down"></i>
                         </a>
                         <ul class="dropdown-menu border-0 shadow-lg rounded-3 mt-2 p-2" style="min-width: 220px;">
-                            @if (session('jg_role') === 'CUSTOMER')
+                            @if ($userRole === 'CUSTOMER')
                                 <li>
                                     <a class="dropdown-item rounded-2 py-2 px-3 d-flex align-items-center gap-2" href="{{ route('customer.profile') }}">
                                         <i class="bi bi-person text-orange"></i>
@@ -51,7 +56,7 @@
                                         <span>Tiket Saya</span>
                                     </a>
                                 </li>
-                            @elseif (session('jg_role') === 'ADMIN_PARIWISATA' || session('jg_role') === 'SUPER_ADMIN')
+                            @elseif (in_array($userRole, ['ADMIN_PARIWISATA', 'SUPER_ADMIN'], true))
                                 <li>
                                     <a class="dropdown-item rounded-2 py-2 px-3 d-flex align-items-center gap-2" href="{{ route('dashboard') }}">
                                         <i class="bi bi-speedometer2 text-orange"></i>
@@ -75,7 +80,7 @@
             </ul>
 
             <div class="d-flex align-items-center gap-2 mt-3 mt-lg-0">
-                @if (session('jg_role'))
+                @if ($hasLoggedInUser)
                     <span class="d-none d-md-inline text-muted small me-2">
                         Halo, <strong class="text-dark">{{ session('jg_user_name', 'User') }}</strong>
                     </span>
@@ -90,4 +95,45 @@
             </div>
         </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.bootstrap) {
+                return;
+            }
+
+            const closeDropdowns = () => {
+                document.querySelectorAll('.nav-item.dropdown.show').forEach((dropdown) => {
+                    dropdown.classList.remove('show');
+                    const menu = dropdown.querySelector('.dropdown-menu');
+                    if (menu) {
+                        menu.classList.remove('show');
+                    }
+                });
+            };
+
+            document.querySelectorAll('.nav-item.dropdown > .dropdown-toggle').forEach((toggle) => {
+                toggle.addEventListener('click', (event) => {
+                    event.preventDefault();
+
+                    const dropdown = toggle.closest('.nav-item.dropdown');
+                    const menu = dropdown?.querySelector('.dropdown-menu');
+                    const shouldOpen = !dropdown?.classList.contains('show');
+
+                    closeDropdowns();
+
+                    if (shouldOpen && dropdown && menu) {
+                        dropdown.classList.add('show');
+                        menu.classList.add('show');
+                    }
+                });
+            });
+
+            document.addEventListener('click', (event) => {
+                if (!event.target.closest('.nav-item.dropdown')) {
+                    closeDropdowns();
+                }
+            });
+        });
+    </script>
 </nav>

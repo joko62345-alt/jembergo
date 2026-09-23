@@ -48,9 +48,18 @@ class VerificationController extends Controller
         }
 
         $booking->expireTicketsIfPastVisitDate();
-        if (date('Y-m-d', strtotime((string) $booking->tanggal_kunjungan)) < today()->toDateString()) {
+        if ($booking->tanggal_kunjungan && $booking->tanggal_kunjungan->lt(today()->toDateString())) {
             return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Tiket sudah kadaluarsa karena tanggal kunjungan telah lewat.');
         }
+
+        $visitDate = $booking->tanggal_kunjungan ? $booking->tanggal_kunjungan->toDateString() : null;
+        if ($visitDate === today()->toDateString()) {
+            $closingTime = $booking->destinasi?->closingTime();
+            if ($closingTime !== null && now()->gte(Carbon::parse($visitDate)->setTimeFromTimeString($closingTime))) {
+                return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Tiket sudah kadaluarsa karena jam operasional destinasi telah berakhir.');
+            }
+        }
+
         if (! $booking->pembayaran || $booking->pembayaran->status_pembayaran !== 'PAID') {
             return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Tiket belum dibayar.');
         }
@@ -168,5 +177,4 @@ class VerificationController extends Controller
 
         return view('admin.bookings', compact('bookings', 'report'));
     }
-
 }

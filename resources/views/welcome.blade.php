@@ -19,11 +19,11 @@
             <div class="carousel-inner">
                 @php
                     $heroSlides = [
-                    ['image' => route('assets.hero2'), 'icon' => 'bi-sunrise-fill', 'eyebrow' => 'Wisata Alam', 'title' => 'Mulai langkah dari hijaunya Jember.', 'copy' => 'Dari lereng yang berkabut hingga kebun yang hangat oleh matahari, alam Jember selalu punya cara untuk menyambutmu.'],
-                    ['image' => route('assets.hero3'), 'icon' => 'bi-tree-fill', 'eyebrow' => 'Petualangan Alam', 'title' => 'Dengar air jatuh, rasakan bumi bernapas.', 'copy' => 'Air terjun, hutan, dan pegunungan menunggu untuk dijelajahi dalam perjalanan yang benar-benar menyegarkan.'],
-                    ['image' => route('assets.hero4'), 'icon' => 'bi-water', 'eyebrow' => 'Wisata Bahari', 'title' => 'Biarkan ombak membawa ceritamu.', 'copy' => 'Temukan garis pantai selatan Jember, tempat langit luas, laut biru, dan matahari bertemu dalam satu perjalanan.'],
-                    ['image' => route('assets.hero6'), 'icon' => 'bi-compass-fill', 'eyebrow' => 'Wisata Buatan', 'title' => 'Satu kota, banyak cara untuk berlibur.', 'copy' => 'Nikmati ruang rekreasi, pengalaman lokal, dan tempat seru yang membuat perjalanan di Jember terasa lengkap.'],
-                    ['image' => route('assets.background'), 'icon' => 'bi-stars', 'eyebrow' => 'Jember Penuh Cerita', 'title' => 'Alam, bahari, dan buatan dalam satu rasa.', 'copy' => 'Pilih tujuanmu, susun perjalananmu, lalu biarkan Jember meninggalkan cerita yang ingin kamu ulangi.'],
+                    ['image' => route('assets.background').'?v=20260923-8', 'icon' => 'bi-compass-fill', 'eyebrow' => 'Pemandangan Indah', 'title' => 'Lihat lebih jauh, rasakan lebih banyak.', 'copy' => 'Biarkan cahaya, udara segar, dan lanskap yang luas membuka awal perjalanan yang baru.'],
+                    ['image' => route('assets.hero2').'?v=20260923-7', 'icon' => 'bi-water', 'eyebrow' => 'Pesona Alam', 'title' => 'Biarkan keindahan alam mengubah suasana.', 'copy' => 'Temukan ruang untuk bernapas di antara warna hijau, langit, dan udara yang menenangkan.'],
+                    ['image' => route('assets.hero3').'?v=20260923-7', 'icon' => 'bi-sunrise-fill', 'eyebrow' => 'Momen Perjalanan', 'title' => 'Temukan tenang di tempat yang indah.', 'copy' => 'Nikmati pemandangan, warna alam, dan momen sederhana yang terasa istimewa.'],
+                    ['image' => route('assets.hero4').'?v=20260923-7', 'icon' => 'bi-tree-fill', 'eyebrow' => 'Ruang Hijau', 'title' => 'Jeda sejenak dari ramainya rutinitas.', 'copy' => 'Masuk lebih dekat ke alam dan biarkan suasana hijau menyegarkan pikiranmu.'],
+                    ['image' => route('assets.hero5').'?v=20260923-7', 'icon' => 'bi-stars', 'eyebrow' => 'Pengalaman Wisata', 'title' => 'Buat setiap perjalanan terasa istimewa.', 'copy' => 'Jelajahi tempat baru, nikmati suasana, dan bawa pulang cerita yang ingin kamu ulangi.'],
                     ];
                 @endphp
                 @foreach($heroSlides as $index => $slide)

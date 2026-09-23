@@ -163,8 +163,25 @@ class Pemesanan extends Model
 
     public function expireTicketsIfPastVisitDate(): void
     {
-        if ($this->tanggal_kunjungan && date('Y-m-d', strtotime((string) $this->tanggal_kunjungan)) < today()->toDateString()) {
+        if (! $this->tanggal_kunjungan) {
+            return;
+        }
+
+        $visitDate = Carbon::parse((string) $this->tanggal_kunjungan)->startOfDay();
+        $today = Carbon::today();
+
+        if ($visitDate->lt($today)) {
             $this->tiket()->where('status_tiket', 'ACTIVE')->update(['status_tiket' => 'EXPIRED']);
+
+            return;
+        }
+
+        if ($visitDate->isSameDay($today)) {
+            $closingTime = $this->destinasi?->closingTime();
+
+            if ($closingTime !== null && Carbon::now()->gte($visitDate->copy()->setTimeFromTimeString($closingTime))) {
+                $this->tiket()->where('status_tiket', 'ACTIVE')->update(['status_tiket' => 'EXPIRED']);
+            }
         }
     }
 }

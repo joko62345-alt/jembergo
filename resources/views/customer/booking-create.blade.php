@@ -37,7 +37,7 @@
                                     <div class="col-md-6"><label class="form-label" for="ketua_nama">Nama lengkap</label><input id="ketua_nama" name="ketua_nama" value="{{ old('ketua_nama') }}" class="form-control" placeholder="Masukkan nama lengkap" required data-booking-name><small class="booking-field-warning" data-booking-name-warning hidden></small></div>
                                     <div class="col-md-6"><label class="form-label" for="ketua_email">Email</label><input id="ketua_email" name="ketua_email" type="email" value="{{ old('ketua_email') }}" class="form-control" placeholder="Masukkan email anda" required data-booking-email><small class="booking-field-warning" data-booking-email-warning hidden></small></div>
                                     <div class="col-md-6"><label class="form-label" for="ketua_no_hp">Nomor WhatsApp</label><input id="ketua_no_hp" name="ketua_no_hp" type="tel" inputmode="numeric" value="{{ old('ketua_no_hp') }}" class="form-control" placeholder="Masukkan nomor anda" minlength="10" required data-booking-phone><small class="booking-field-warning" data-booking-phone-warning hidden></small></div>
-                                    <div class="col-md-6"><label class="form-label" for="tanggal_kunjungan">Tanggal kunjungan</label><input id="tanggal_kunjungan" type="date" name="tanggal_kunjungan" value="{{ old('tanggal_kunjungan') }}" class="form-control" min="{{ date('Y-m-d') }}" required><small id="quotaAvailability" class="form-text text-secondary">Pilih tanggal untuk melihat sisa tiket.</small></div>
+                                    <div class="col-md-6"><label class="form-label" for="tanggal_kunjungan">Tanggal kunjungan</label><input id="tanggal_kunjungan" type="date" name="tanggal_kunjungan" value="{{ old('tanggal_kunjungan') }}" class="form-control" min="{{ date('Y-m-d') }}" max="{{ now()->addMonths(2)->format('Y-m-d') }}" required><small id="quotaAvailability" class="form-text text-secondary">Pilih tanggal untuk melihat sisa tiket.</small></div>
                                 </div>
                             </section>
 
@@ -160,6 +160,15 @@
                 return;
             }
 
+            const maxDate = new Date('{{ now()->addMonths(2)->format('Y-m-d') }}');
+            const selectedDate = new Date(visitDate.value + 'T00:00:00');
+            if (selectedDate > maxDate) {
+                quotaAvailability.textContent = 'Tanggal kunjungan maksimal 2 bulan dari hari ini.';
+                visitDate.setCustomValidity('Tanggal kunjungan maksimal 2 bulan dari hari ini.');
+                return;
+            }
+
+            visitDate.setCustomValidity('');
             quotaAvailability.textContent = 'Memeriksa sisa tiket...';
             try {
                 const response = await fetch('{{ route('customer.booking.quota', $destination->id_destinasi) }}?date=' + encodeURIComponent(visitDate.value), { headers: { Accept: 'application/json' } });
@@ -190,6 +199,7 @@
             updateCount();
         }));
         visitDate.addEventListener('change', updateQuotaAvailability);
+        visitDate.addEventListener('input', updateQuotaAvailability);
 
         addButton.addEventListener('click', () => {
             if (participants.children.length >= 10) return;

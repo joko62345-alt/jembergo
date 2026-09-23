@@ -55,8 +55,19 @@ class BookingController extends Controller
 
         $destination = DestinasiWisata::with('jenisTiket')->findOrFail($id);
         abort_if($destination->status_aktif !== 'aktif', 422, 'Destinasi wisata ini sudah tidak aktif untuk pemesanan baru.');
+
+        $request->merge([
+            'tanggal_kunjungan' => trim((string) $request->input('tanggal_kunjungan')),
+        ]);
+
+        $maxVisitDate = now()->addMonths(2)->endOfDay();
         $data = $request->validate([
-            'tanggal_kunjungan' => ['required', 'date', 'after_or_equal:today'],
+            'tanggal_kunjungan' => [
+                'required',
+                'date',
+                'after_or_equal:today',
+                'before_or_equal:'.$maxVisitDate->format('Y-m-d'),
+            ],
             'ketua_nama' => ['required', 'string', 'max:150', 'regex:/^[\p{L}\s]+$/u'],
             'ketua_email' => ['required', 'email', 'max:150', 'regex:/@gmail\.com$/i'],
             'ketua_no_hp' => ['required', 'digits_between:10,12'],
@@ -64,6 +75,7 @@ class BookingController extends Controller
             'peserta.*.nama' => ['required', 'string', 'max:150', 'regex:/^[\p{L}\s]+$/u'],
             'peserta.*.id_jenis_tiket' => ['required', 'integer', 'exists:jenis_tiket,id_jenis_tiket'],
         ], [
+            'tanggal_kunjungan.before_or_equal' => 'Tanggal kunjungan maksimal 2 bulan dari hari ini.',
             'ketua_nama.regex' => 'Nama lengkap hanya boleh berisi huruf dan spasi.',
             'ketua_email.regex' => 'Email harus menggunakan alamat @gmail.com.',
             'ketua_no_hp.digits_between' => 'Nomor telepon harus berisi 10 sampai 12 angka.',
@@ -219,11 +231,19 @@ class BookingController extends Controller
         $booking = $this->ownedBooking($id);
         $this->ensureActivePaidBooking($booking);
         $remaining = 10 - (1 + count($booking->anggota_names ?? []));
+        $maxVisitDate = now()->addMonths(2)->endOfDay();
         $data = $request->validate([
-            'tanggal_kunjungan' => ['required', 'date', 'after_or_equal:today'],
+            'tanggal_kunjungan' => [
+                'required',
+                'date',
+                'after_or_equal:today',
+                'before_or_equal:'.$maxVisitDate->format('Y-m-d'),
+            ],
             'anggota' => ['nullable', 'array', 'max:'.max(0, $remaining)],
             'anggota.*.nama' => ['nullable', 'string', 'max:150'],
             'anggota.*.id_jenis_tiket' => ['nullable', 'integer', 'exists:jenis_tiket,id_jenis_tiket'],
+        ], [
+            'tanggal_kunjungan.before_or_equal' => 'Tanggal kunjungan maksimal 2 bulan dari hari ini.',
         ]);
         $destination = $booking->destinasi()->with('jenisTiket')->firstOrFail();
         $availableTypes = $destination->jenisTiket->keyBy('id_jenis_tiket');

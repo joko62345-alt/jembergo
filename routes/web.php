@@ -14,11 +14,11 @@ use App\Http\Controllers\VerificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/assets/jembergo-logo.png', fn () => response()->file(resource_path('images/logo.png')))->name('assets.logo');
-Route::get('/assets/jembergo-hero.png', fn () => response()->file(resource_path('images/hero.png')))->name('assets.hero');
+Route::get('/assets/jembergo-hero.png', fn () => response()->file(resource_path('images/bg.png')))->name('assets.hero1');
 Route::get('/assets/jembergo-hero-2.png', fn () => response()->file(resource_path('images/hero2.png')))->name('assets.hero2');
 Route::get('/assets/jembergo-hero-3.png', fn () => response()->file(resource_path('images/hero3.png')))->name('assets.hero3');
 Route::get('/assets/jembergo-hero-4.png', fn () => response()->file(resource_path('images/hero4.png')))->name('assets.hero4');
-Route::get('/assets/jembergo-hero-6.png', fn () => response()->file(resource_path('images/hero6.png')))->name('assets.hero6');
+Route::get('/assets/jembergo-hero-5.png', fn () => response()->file(resource_path('images/hero6.png')))->name('assets.hero5');
 Route::get('/assets/jembergo-background.png', fn () => response()->file(resource_path('images/bg.png')))->name('assets.background');
 Route::get('/assets/jembergo-login.png', fn () => response()->file(resource_path('images/login.png')))->name('assets.login');
 Route::get('/', [PublicController::class, 'home'])->name('home');

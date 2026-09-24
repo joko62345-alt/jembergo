@@ -11,9 +11,15 @@ class Artikel extends Model
     use HasFactory;
 
     protected $table = 'artikel';
+
     protected $primaryKey = 'id_artikel';
+
     protected $fillable = ['id_superadmin', 'judul', 'isi', 'gambar', 'tanggal_publikasi', 'status'];
+
     protected $casts = ['tanggal_publikasi' => 'datetime'];
 
-    public function superAdmin(): BelongsTo { return $this->belongsTo(SuperAdmin::class, 'id_superadmin'); }
+    public function superAdmin(): BelongsTo
+    {
+        return $this->belongsTo(SuperAdmin::class, 'id_superadmin');
+    }
 }

@@ -9,14 +9,23 @@
         <td>Dicetak: {{ now()->format('d/m/Y H:i') }}</td>
     </tr>
     <tr>
-        <td>Periode: {{ $from?->format('d/m/Y') ?? 'Semua tanggal' }} s.d. {{ $to?->format('d/m/Y') ?? 'sekarang' }}</td>
+        <td>Periode: {{ $from?->format('d/m/Y') ?? 'Semua tanggal' }} s.d.
+            {{ $to?->format('d/m/Y') ?? 'sekarang' }}</td>
         <td>Dokumen resmi JemberGo</td>
     </tr>
 </table>
 
 <table class="report-table">
     <thead>
-        <tr><th>No.</th><th>Kode Booking</th><th>Destinasi</th><th>Tanggal Pesan</th><th>Status Tiket</th><th>Status Pembayaran</th><th>Total</th></tr>
+        <tr>
+            <th>No.</th>
+            <th>Kode Booking</th>
+            <th>Destinasi</th>
+            <th>Tanggal Pesan</th>
+            <th>Status Tiket</th>
+            <th>Status Pembayaran</th>
+            <th>Total</th>
+        </tr>
     </thead>
     <tbody>
         @forelse($orders as $order)
@@ -31,16 +40,21 @@
                 <td>Rp {{ number_format($order->total_harga, 0, ',', '.') }}</td>
             </tr>
         @empty
-            <tr><td class="empty" colspan="7">Belum ada transaksi pada filter laporan ini.</td></tr>
+            <tr>
+                <td class="empty" colspan="7">Belum ada transaksi pada filter laporan ini.</td>
+            </tr>
         @endforelse
     </tbody>
 </table>
 
 <table class="summary">
     <tr>
-        <td><span class="summary-label">TOTAL TRANSAKSI</span><br><strong>{{ $orders->count() }}</strong></td>
-        <td><span class="summary-label">TOTAL PENDAPATAN</span><br><strong>Rp {{ number_format($totalPendapatan, 0, ',', '.') }}</strong></td>
+        <td><span class="summary-label">TOTAL
+                TRANSAKSI</span><br><strong>{{ $orders->count() }}</strong></td>
+        <td><span class="summary-label">TOTAL PENDAPATAN</span><br><strong>Rp
+                {{ number_format($totalPendapatan, 0, ',', '.') }}</strong></td>
     </tr>
 </table>
 
-<div class="document-footer">Laporan ini dibuat oleh sistem JemberGo dan dicetak untuk keperluan administrasi.</div>
+<div class="document-footer">Laporan ini dibuat oleh sistem JemberGo dan dicetak untuk keperluan
+    administrasi.</div>

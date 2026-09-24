@@ -96,8 +96,20 @@ Route::middleware('role:SUPER_ADMIN')->prefix('superadmin')->name('superadmin.')
     Route::post('/destinasi', [SuperAdminController::class, 'storeDestination'])->name('destinations.store');
     Route::put('/destinasi/{id}', [SuperAdminController::class, 'updateDestination'])->whereNumber('id')->name('destinations.update');
     Route::delete('/destinasi/{id}', [SuperAdminController::class, 'destroyDestination'])->whereNumber('id')->name('destinations.destroy');
-    Route::delete('/destinasi/{destination}/jenis-tiket/{ticket}', [SuperAdminController::class, 'destroyTicketType'])->whereNumber('destination')->whereNumber('ticket')->name('destinations.ticket-types.destroy');
-    Route::delete('/destinasi/{destination}/galeri/{gallery}', [SuperAdminController::class, 'destroyGallery'])->whereNumber('destination')->whereNumber('gallery')->name('destinations.galleries.destroy');
+    Route::delete(
+        '/destinasi/{destination}/jenis-tiket/{ticket}',
+        [SuperAdminController::class, 'destroyTicketType']
+    )
+        ->whereNumber('destination')
+        ->whereNumber('ticket')
+        ->name('destinations.ticket-types.destroy');
+    Route::delete(
+        '/destinasi/{destination}/galeri/{gallery}',
+        [SuperAdminController::class, 'destroyGallery']
+    )
+        ->whereNumber('destination')
+        ->whereNumber('gallery')
+        ->name('destinations.galleries.destroy');
     Route::get('/laporan', [SuperAdminController::class, 'report'])->name('report');
     Route::get('/laporan/export', [SuperAdminManagementController::class, 'export'])->name('report.export');
     Route::get('/laporan/preview', [SuperAdminManagementController::class, 'reportPreview'])->name('report.preview');

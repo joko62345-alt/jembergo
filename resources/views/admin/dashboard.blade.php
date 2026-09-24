@@ -1,38 +1,181 @@
 <x-admin-layout title="Dashboard Admin Pariwisata" active="dashboard">
     <div class="admin-dashboard-shell">
         <div class="admin-dashboard-heading">
-            <div><span class="admin-kicker">Operasional destinasi</span><h1>Dashboard Admin Pariwisata</h1><p>Kelola dan pantau aktivitas pariwisata pada {{ $destination->nama_wisata }}.</p></div>
-            <span class="admin-destination-chip"><i class="bi bi-geo-alt" aria-hidden="true"></i>{{ $destination->nama_wisata }}</span>
+            <div><span class="admin-kicker">Operasional destinasi</span>
+                <h1>Dashboard Admin Pariwisata</h1>
+                <p>Kelola dan pantau aktivitas pariwisata pada {{ $destination->nama_wisata }}.</p>
+            </div>
+            <span class="admin-destination-chip"><i class="bi bi-geo-alt"
+                    aria-hidden="true"></i>{{ $destination->nama_wisata }}</span>
         </div>
 
-        @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
-        @if($errors->any())<div class="alert alert-danger">{{ $errors->first() }}</div>@endif
+        @if (session('success'))
+            <div class="alert alert-success">{{ session('success') }}</div>
+        @endif
+        @if ($errors->any())
+            <div class="alert alert-danger">{{ $errors->first() }}</div>
+        @endif
 
-        <section class="admin-panel mb-4"><div class="admin-panel-heading"><div><span class="admin-kicker">Kapasitas kunjungan</span><h2>Kuota tiket harian</h2><p>Atur batas total peserta per tanggal kunjungan.</p></div></div><form method="POST" action="{{ route('admin.quota.update') }}" class="row g-3 align-items-end">@csrf @method('PUT')<div class="col-md-4"><label class="form-label" for="kuota_harian">Maksimal peserta per hari</label><input id="kuota_harian" name="kuota_harian" type="number" min="1" max="100000" class="form-control" value="{{ old('kuota_harian', $destination->kuota_harian) }}" @disabled(! old('kuota_harian_aktif', $destination->kuota_harian_aktif))></div><div class="col-md-5"><div class="form-check form-switch mb-2"><input id="kuota_harian_aktif" name="kuota_harian_aktif" value="1" type="checkbox" class="form-check-input" @checked(old('kuota_harian_aktif', $destination->kuota_harian_aktif))><label for="kuota_harian_aktif" class="form-check-label">Terapkan kuota harian</label></div><small class="text-secondary">Matikan untuk menerima peserta tanpa batas harian.</small></div><div class="col-md-3"><button class="btn btn-warning w-100" type="submit"><i class="bi bi-check2 me-1" aria-hidden="true"></i>Simpan kuota</button></div></form></section>
+        <section class="admin-panel mb-4">
+            <div class="admin-panel-heading">
+                <div><span class="admin-kicker">Kapasitas kunjungan</span>
+                    <h2>Kuota tiket harian</h2>
+                    <p>Atur batas total peserta per tanggal kunjungan.</p>
+                </div>
+            </div>
+            <form method="POST" action="{{ route('admin.quota.update') }}"
+                class="row g-3 align-items-end">@csrf @method('PUT')<div class="col-md-4"><label
+                        class="form-label" for="kuota_harian">Maksimal peserta per
+                        hari</label><input id="kuota_harian" name="kuota_harian" type="number"
+                        min="1" max="100000" class="form-control"
+                        value="{{ old('kuota_harian', $destination->kuota_harian) }}"
+                        @disabled(!old('kuota_harian_aktif', $destination->kuota_harian_aktif))></div>
+                <div class="col-md-5">
+                    <div class="form-check form-switch mb-2"><input id="kuota_harian_aktif"
+                            name="kuota_harian_aktif" value="1" type="checkbox"
+                            class="form-check-input" @checked(old('kuota_harian_aktif', $destination->kuota_harian_aktif))><label
+                            for="kuota_harian_aktif" class="form-check-label">Terapkan kuota
+                            harian</label></div><small class="text-secondary">Matikan untuk menerima
+                        peserta tanpa batas harian.</small>
+                </div>
+                <div class="col-md-3"><button class="btn btn-warning w-100" type="submit"><i
+                            class="bi bi-check2 me-1" aria-hidden="true"></i>Simpan kuota</button>
+                </div>
+            </form>
+        </section>
 
         <section class="admin-stat-grid" aria-label="Ringkasan destinasi">
-            <article class="admin-stat-card"><div class="admin-stat-icon"><i class="bi bi-calendar-check" aria-hidden="true"></i></div><span>Total pemesanan</span><strong>{{ number_format($adminStats['orders']) }}</strong><small>Semua booking destinasi</small></article>
-            <article class="admin-stat-card"><div class="admin-stat-icon admin-stat-icon-orange"><i class="bi bi-hourglass-split" aria-hidden="true"></i></div><span>Menunggu verifikasi</span><strong>{{ number_format($adminStats['pending']) }}</strong><small>Tiket masih aktif</small></article>
-            <article class="admin-stat-card"><div class="admin-stat-icon admin-stat-icon-green"><i class="bi bi-patch-check" aria-hidden="true"></i></div><span>Tiket terverifikasi</span><strong>{{ number_format($adminStats['verified']) }}</strong><small>Sudah digunakan</small></article>
-            <article class="admin-stat-card"><div class="admin-stat-icon admin-stat-icon-blue"><i class="bi bi-wallet2" aria-hidden="true"></i></div><span>Pendapatan</span><strong>Rp {{ number_format($adminStats['revenue'], 0, ',', '.') }}</strong><small>Dari transaksi lunas</small></article>
+            <article class="admin-stat-card">
+                <div class="admin-stat-icon"><i class="bi bi-calendar-check" aria-hidden="true"></i>
+                </div><span>Total
+                    pemesanan</span><strong>{{ number_format($adminStats['orders']) }}</strong><small>Semua
+                    booking destinasi</small>
+            </article>
+            <article class="admin-stat-card">
+                <div class="admin-stat-icon admin-stat-icon-orange"><i class="bi bi-hourglass-split"
+                        aria-hidden="true"></i></div><span>Menunggu
+                    verifikasi</span><strong>{{ number_format($adminStats['pending']) }}</strong><small>Tiket
+                    masih aktif</small>
+            </article>
+            <article class="admin-stat-card">
+                <div class="admin-stat-icon admin-stat-icon-green"><i class="bi bi-patch-check"
+                        aria-hidden="true"></i></div><span>Tiket
+                    terverifikasi</span><strong>{{ number_format($adminStats['verified']) }}</strong><small>Sudah
+                    digunakan</small>
+            </article>
+            <article class="admin-stat-card">
+                <div class="admin-stat-icon admin-stat-icon-blue"><i class="bi bi-wallet2"
+                        aria-hidden="true"></i></div><span>Pendapatan</span><strong>Rp
+                    {{ number_format($adminStats['revenue'], 0, ',', '.') }}</strong><small>Dari
+                    transaksi lunas</small>
+            </article>
         </section>
 
         <section class="admin-dashboard-grid">
-            <article class="admin-panel admin-verification-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">Prioritas hari ini</span><h2>Menunggu verifikasi</h2><p>Booking dengan tiket aktif yang siap diperiksa.</p></div><a href="{{ route('admin.verification') }}" class="admin-text-link">Verifikasi tiket <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></div>
+            <article class="admin-panel admin-verification-panel">
+                <div class="admin-panel-heading">
+                    <div><span class="admin-kicker">Prioritas hari ini</span>
+                        <h2>Menunggu verifikasi</h2>
+                        <p>Booking dengan tiket aktif yang siap diperiksa.</p>
+                    </div><a href="{{ route('admin.verification') }}"
+                        class="admin-text-link">Verifikasi tiket <i class="bi bi-arrow-up-right"
+                            aria-hidden="true"></i></a>
+                </div>
                 @forelse($pendingVerification as $booking)
-                    <div class="admin-verification-item"><div class="admin-item-avatar"><i class="bi bi-person" aria-hidden="true"></i></div><div class="admin-item-content"><strong>{{ $booking->customer->nama ?? $booking->ketua_nama }}</strong><small>{{ $booking->kode_booking }} · {{ $booking->tiket->where('status_tiket', 'ACTIVE')->count() }} tiket aktif</small></div><div class="admin-item-meta"><strong>{{ $booking->tanggal_kunjungan->format('d/m/Y') }}</strong><small>{{ \App\Support\StatusLabel::payment($booking->pembayaran?->status_pembayaran) }}</small></div></div>
+                    <div class="admin-verification-item">
+                        <div class="admin-item-avatar"><i class="bi bi-person"
+                                aria-hidden="true"></i></div>
+                        <div class="admin-item-content">
+                            <strong>{{ $booking->customer->nama ?? $booking->ketua_nama }}</strong><small>{{ $booking->kode_booking }}
+                                · {{ $booking->tiket->where('status_tiket', 'ACTIVE')->count() }}
+                                tiket aktif</small>
+                        </div>
+                        <div class="admin-item-meta">
+                            <strong>{{ $booking->tanggal_kunjungan->format('d/m/Y') }}</strong><small>{{ \App\Support\StatusLabel::payment($booking->pembayaran?->status_pembayaran) }}</small>
+                        </div>
+                    </div>
                 @empty
-                    <div class="admin-empty"><i class="bi bi-check2-circle" aria-hidden="true"></i><strong>Belum ada tiket yang perlu diverifikasi</strong><span>Semua tiket aktif akan muncul di sini.</span></div>
+                    <div class="admin-empty"><i class="bi bi-check2-circle"
+                            aria-hidden="true"></i><strong>Belum ada tiket yang perlu
+                            diverifikasi</strong><span>Semua tiket aktif akan muncul di sini.</span>
+                    </div>
                 @endforelse
             </article>
-            <article class="admin-panel admin-action-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">Akses cepat</span><h2>Quick action</h2><p>Akses pekerjaan operasional utama.</p></div></div><div class="admin-quick-actions"><a href="{{ route('admin.verification') }}" class="admin-quick-action"><span><i class="bi bi-qr-code-scan" aria-hidden="true"></i></span><div><strong>Verifikasi tiket</strong><small>Scan atau cari kode booking</small></div><i class="bi bi-arrow-right" aria-hidden="true"></i></a><a href="{{ route('admin.bookings') }}" class="admin-quick-action"><span><i class="bi bi-list-check" aria-hidden="true"></i></span><div><strong>Lihat pemesanan</strong><small>Semua booking destinasi Anda</small></div><i class="bi bi-arrow-right" aria-hidden="true"></i></a></div></article>
+            <article class="admin-panel admin-action-panel">
+                <div class="admin-panel-heading">
+                    <div><span class="admin-kicker">Akses cepat</span>
+                        <h2>Quick action</h2>
+                        <p>Akses pekerjaan operasional utama.</p>
+                    </div>
+                </div>
+                <div class="admin-quick-actions"><a href="{{ route('admin.verification') }}"
+                        class="admin-quick-action"><span><i class="bi bi-qr-code-scan"
+                                aria-hidden="true"></i></span>
+                        <div><strong>Verifikasi tiket</strong><small>Scan atau cari kode
+                                booking</small></div><i class="bi bi-arrow-right"
+                            aria-hidden="true"></i>
+                    </a><a href="{{ route('admin.bookings') }}" class="admin-quick-action"><span><i
+                                class="bi bi-list-check" aria-hidden="true"></i></span>
+                        <div><strong>Lihat pemesanan</strong><small>Semua booking destinasi
+                                Anda</small></div><i class="bi bi-arrow-right"
+                            aria-hidden="true"></i>
+                    </a></div>
+            </article>
         </section>
 
-        <section class="admin-panel admin-bookings-panel"><div class="admin-panel-heading"><div><span class="admin-kicker">Aktivitas terbaru</span><h2>Pemesanan terbaru</h2><p>Booking terbaru pada destinasi yang Anda kelola.</p></div><a href="{{ route('admin.bookings') }}" class="admin-text-link">Lihat semua <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></div><div class="table-responsive"><table class="table admin-bookings-table align-middle mb-0"><thead><tr><th>Kode & pemesan</th><th>Kunjungan</th><th>Pembayaran</th><th>Verifikasi</th><th class="text-end">Total</th></tr></thead><tbody>@forelse($recentBookings as $booking)<tr><td><strong>{{ $booking->kode_booking }}</strong><small>{{ $booking->customer->nama ?? $booking->ketua_nama }}</small></td><td>{{ $booking->tanggal_kunjungan->format('d/m/Y') }}<small>{{ $booking->tiket->count() }} tiket</small></td><td><span class="admin-status-text">{{ \App\Support\StatusLabel::payment($booking->pembayaran?->status_pembayaran) }}</span></td><td><span class="admin-status-text">{{ $booking->tiket->contains('status_tiket', 'USED') ? 'Sudah digunakan' : ($booking->tiket->contains('status_tiket', 'EXPIRED') ? 'Kadaluarsa' : ($booking->tiket->contains('status_tiket', 'ACTIVE') ? 'Menunggu verifikasi' : 'Belum tersedia')) }}</span></td><td class="text-end">Rp {{ number_format($booking->total_harga, 0, ',', '.') }}</td></tr>@empty<tr><td colspan="5"><div class="admin-empty"><i class="bi bi-calendar2-x" aria-hidden="true"></i><strong>Belum ada pemesanan</strong><span>Booking untuk destinasi ini akan muncul di sini.</span></div></td></tr>@endforelse</tbody></table></div></section>
+        <section class="admin-panel admin-bookings-panel">
+            <div class="admin-panel-heading">
+                <div><span class="admin-kicker">Aktivitas terbaru</span>
+                    <h2>Pemesanan terbaru</h2>
+                    <p>Booking terbaru pada destinasi yang Anda kelola.</p>
+                </div><a href="{{ route('admin.bookings') }}" class="admin-text-link">Lihat semua
+                    <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a>
+            </div>
+            <div class="table-responsive">
+                <table class="table admin-bookings-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Kode & pemesan</th>
+                            <th>Kunjungan</th>
+                            <th>Pembayaran</th>
+                            <th>Verifikasi</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($recentBookings as $booking)
+                            <tr>
+                                <td><strong>{{ $booking->kode_booking }}</strong><small>{{ $booking->customer->nama ?? $booking->ketua_nama }}</small>
+                                </td>
+                                <td>{{ $booking->tanggal_kunjungan->format('d/m/Y') }}<small>{{ $booking->tiket->count() }}
+                                        tiket</small></td>
+                                <td><span
+                                        class="admin-status-text">{{ \App\Support\StatusLabel::payment($booking->pembayaran?->status_pembayaran) }}</span>
+                                </td>
+                                <td><span
+                                        class="admin-status-text">{{ $booking->tiket->contains('status_tiket', 'USED') ? 'Sudah digunakan' : ($booking->tiket->contains('status_tiket', 'EXPIRED') ? 'Kadaluarsa' : ($booking->tiket->contains('status_tiket', 'ACTIVE') ? 'Menunggu verifikasi' : 'Belum tersedia')) }}</span>
+                                </td>
+                                <td class="text-end">Rp
+                                    {{ number_format($booking->total_harga, 0, ',', '.') }}</td>
+                        </tr>@empty<tr>
+                                <td colspan="5">
+                                    <div class="admin-empty"><i class="bi bi-calendar2-x"
+                                            aria-hidden="true"></i><strong>Belum ada
+                                            pemesanan</strong><span>Booking untuk destinasi ini akan
+                                            muncul di sini.</span></div>
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </section>
     </div>
 </x-admin-layout>
 <script>
     const quotaToggle = document.getElementById('kuota_harian_aktif');
     const quotaInput = document.getElementById('kuota_harian');
-    quotaToggle?.addEventListener('change', () => { quotaInput.disabled = !quotaToggle.checked; });
+    quotaToggle?.addEventListener('change', () => {
+        quotaInput.disabled = !quotaToggle.checked;
+    });
 </script>

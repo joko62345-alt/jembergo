@@ -73,14 +73,21 @@ class SuperAdminManagementController extends Controller
 
     public function facility(Request $request): RedirectResponse
     {
-        Fasilitas::create($request->validate(['id_destinasi' => ['required', 'exists:destinasi_wisata,id_destinasi'], 'nama_fasilitas' => ['required', 'string', 'max:100']]));
+        Fasilitas::create($request->validate([
+            'id_destinasi' => ['required', 'exists:destinasi_wisata,id_destinasi'],
+            'nama_fasilitas' => ['required', 'string', 'max:100'],
+        ]));
 
         return back()->with('success', 'Fasilitas berhasil ditambahkan.');
     }
 
     public function gallery(Request $request): RedirectResponse
     {
-        GaleriDestinasi::create($request->validate(['id_destinasi' => ['required', 'exists:destinasi_wisata,id_destinasi'], 'url_foto' => ['required', 'url', 'max:500'], 'keterangan' => ['nullable', 'string', 'max:200']]));
+        GaleriDestinasi::create($request->validate([
+            'id_destinasi' => ['required', 'exists:destinasi_wisata,id_destinasi'],
+            'url_foto' => ['required', 'url', 'max:500'],
+            'keterangan' => ['nullable', 'string', 'max:200'],
+        ]));
 
         return back()->with('success', 'Galeri berhasil ditambahkan.');
     }
@@ -115,14 +122,23 @@ class SuperAdminManagementController extends Controller
 
     public function article(Request $request): RedirectResponse
     {
-        $data = $request->validate(['judul' => ['required', 'string', 'max:200'], 'isi' => ['required', 'string'], 'gambar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'], 'status' => ['required', 'in:DRAFT,PUBLISHED']]);
+        $data = $request->validate([
+            'judul' => ['required', 'string', 'max:200'],
+            'isi' => ['required', 'string'],
+            'gambar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'status' => ['required', 'in:DRAFT,PUBLISHED'],
+        ]);
         if ($request->hasFile('gambar')) {
             $path = $request->file('gambar')->store('articles', 'public');
             $data['gambar'] = '/storage/'.ltrim($path, '/');
         } else {
             $data['gambar'] = null;
         }
-        Artikel::create([...$data, 'id_superadmin' => session('jg_user_id'), 'tanggal_publikasi' => $data['status'] === 'PUBLISHED' ? now() : null]);
+        Artikel::create([
+            ...$data,
+            'id_superadmin' => session('jg_user_id'),
+            'tanggal_publikasi' => $data['status'] === 'PUBLISHED' ? now() : null,
+        ]);
 
         return back()->with('success', 'Artikel berhasil disimpan.');
     }
@@ -130,7 +146,12 @@ class SuperAdminManagementController extends Controller
     public function updateArticle(Request $request, int $id): RedirectResponse
     {
         $article = Artikel::findOrFail($id);
-        $data = $request->validate(['judul' => ['required', 'string', 'max:200'], 'isi' => ['required', 'string'], 'gambar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'], 'status' => ['required', 'in:DRAFT,PUBLISHED']]);
+        $data = $request->validate([
+            'judul' => ['required', 'string', 'max:200'],
+            'isi' => ['required', 'string'],
+            'gambar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'status' => ['required', 'in:DRAFT,PUBLISHED'],
+        ]);
         unset($data['gambar']);
 
         if ($request->hasFile('gambar')) {
@@ -146,14 +167,32 @@ class SuperAdminManagementController extends Controller
 
     public function admin(Request $request): RedirectResponse
     {
-        $data = $request->validate(['id_destinasi' => ['required', 'exists:destinasi_wisata,id_destinasi'], 'nama' => ['required', 'string', 'max:150', 'unique:admin_pariwisata,nama'], 'email' => ['required', 'email', 'regex:/@gmail\.com$/i', 'unique:admin_pariwisata,email'], 'no_hp' => ['required', 'regex:/^[0-9]+$/', 'unique:admin_pariwisata,no_hp', 'min:10', 'max:12'], 'password' => ['required', 'string', 'min:8']], ['nama.unique' => 'Nama tersebut sudah digunakan oleh admin lain.', 'email.regex' => 'Email admin harus menggunakan @gmail.com.', 'email.unique' => 'Email tersebut sudah digunakan oleh admin lain.', 'no_hp.regex' => 'Nomor HP hanya boleh berisi angka.', 'no_hp.unique' => 'Nomor HP tersebut sudah digunakan oleh admin pariwisata lain.', 'no_hp.min' => 'Nomor HP minimal 10 angka.', 'no_hp.max' => 'Nomor HP maksimal 12 angka.']);
+        $data = $request->validate([
+            'id_destinasi' => ['required', 'exists:destinasi_wisata,id_destinasi'],
+            'nama' => ['required', 'string', 'max:150', 'unique:admin_pariwisata,nama'],
+            'email' => ['required', 'email', 'regex:/@gmail\.com$/i', 'unique:admin_pariwisata,email'],
+            'no_hp' => ['required', 'regex:/^[0-9]+$/', 'unique:admin_pariwisata,no_hp', 'min:10', 'max:12'],
+            'password' => ['required', 'string', 'min:8'],
+        ], [
+            'nama.unique' => 'Nama tersebut sudah digunakan oleh admin lain.',
+            'email.regex' => 'Email admin harus menggunakan @gmail.com.',
+            'email.unique' => 'Email tersebut sudah digunakan oleh admin lain.',
+            'no_hp.regex' => 'Nomor HP hanya boleh berisi angka.',
+            'no_hp.unique' => 'Nomor HP tersebut sudah digunakan oleh admin pariwisata lain.',
+            'no_hp.min' => 'Nomor HP minimal 10 angka.',
+            'no_hp.max' => 'Nomor HP maksimal 12 angka.',
+        ]);
         $destination = DestinasiWisata::findOrFail($data['id_destinasi']);
         $adminName = preg_replace('/^admin\s+/iu', '', trim($data['nama']));
         $normalizeName = static fn (string $name): string => mb_strtolower((string) preg_replace('/\s+/u', ' ', trim($name)));
         if ($normalizeName($adminName) !== $normalizeName($destination->nama_wisata)) {
             return back()->withInput()->withErrors(['id_destinasi' => 'Destinasi tugas harus sesuai dengan nama admin. Contoh: Admin Teluk Love memilih destinasi Teluk Love.']);
         }
-        AdminPariwisata::create([...$data, 'password' => Hash::make($data['password']), 'status_akun' => $destination->status_aktif === 'aktif' ? 'AKTIF' : 'NONAKTIF']);
+        AdminPariwisata::create([
+            ...$data,
+            'password' => Hash::make($data['password']),
+            'status_akun' => $destination->status_aktif === 'aktif' ? 'AKTIF' : 'NONAKTIF',
+        ]);
 
         return back()->with('success', 'Akun admin pariwisata berhasil dibuat.');
     }
@@ -168,7 +207,14 @@ class SuperAdminManagementController extends Controller
             fputcsv($handle, ['Kode Booking', 'Destinasi', 'Tanggal', 'Status Tiket', 'Status Pembayaran', 'Total']);
             foreach ($orders as $order) {
                 $ticketStatus = StatusLabel::ticketStatus($order->tiket->pluck('status_tiket'), $order->status_pemesanan);
-                fputcsv($handle, [$order->kode_booking, $order->destinasi->nama_wisata, $order->tanggal_pemesanan->format('Y-m-d H:i'), StatusLabel::ticket($ticketStatus), StatusLabel::order($order->status_pemesanan), $order->total_harga]);
+                fputcsv($handle, [
+                    $order->kode_booking,
+                    $order->destinasi->nama_wisata,
+                    $order->tanggal_pemesanan->format('Y-m-d H:i'),
+                    StatusLabel::ticket($ticketStatus),
+                    StatusLabel::order($order->status_pemesanan),
+                    $order->total_harga,
+                ]);
             }
             fclose($handle);
         }, $filename, ['Content-Type' => 'text/csv']);

@@ -49,10 +49,15 @@ class CustomerDashboardController extends Controller
         abort_unless(Schema::hasTable('customer') && session()->has('jg_user_id'), 401, 'Sesi customer tidak ditemukan. Silakan login kembali.');
         $customer = Customer::where('id_customer', session('jg_user_id'))->firstOrFail();
         $data = $request->validate([
-            'nama' => ['required', 'string', 'max:150'],
-            'email' => ['required', 'email', 'unique:customer,email,'.$customer->id_customer.',id_customer'],
-            'no_hp' => ['nullable', 'string', 'max:30'],
+            'nama' => ['required', 'string', 'max:150', 'regex:/^[\p{L}\s]+$/u'],
+            'email' => ['required', 'email', 'regex:/@gmail\.com$/i', 'unique:customer,email,'.$customer->id_customer.',id_customer'],
+            'no_hp' => ['nullable', 'regex:/^[0-9]+$/', 'digits_between:10,12'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+        ], [
+            'nama.regex' => 'Nama hanya boleh berisi huruf dan spasi.',
+            'email.regex' => 'Email harus menggunakan alamat @gmail.com.',
+            'no_hp.regex' => 'Nomor WhatsApp hanya boleh berisi angka.',
+            'no_hp.digits_between' => 'Nomor WhatsApp harus berisi 10 sampai 12 angka.',
         ]);
         if (! empty($data['password'])) {
             $data['password'] = Hash::make($data['password']);

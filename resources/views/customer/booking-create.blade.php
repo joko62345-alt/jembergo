@@ -349,12 +349,23 @@
             const leaderNameWarning = document.querySelector('[data-booking-name-warning]');
             leaderNameInput.addEventListener('input', () => validateBookingName(leaderNameInput,
                 leaderNameWarning));
+            leaderNameInput.addEventListener('keydown', (event) => {
+                if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey &&
+                    !/^[\p{L}\s]$/u.test(event.key)) {
+                    event.preventDefault();
+                    showBookingValidation(leaderNameInput, leaderNameWarning,
+                        'Nama lengkap hanya boleh berisi huruf dan spasi.');
+                }
+            });
             document.getElementById('ketua_email').addEventListener('input', validateBookingEmail);
             document.getElementById('ketua_no_hp').addEventListener('input', validateBookingPhone);
             document.getElementById('ketua_no_hp').addEventListener('keydown', (event) => {
                 if (event.key.length === 1 && !/[0-9]/.test(event.key)) {
                     event.preventDefault();
-                    validateBookingPhone();
+                    const input = document.getElementById('ketua_no_hp');
+                    const warning = document.querySelector('[data-booking-phone-warning]');
+                    showBookingValidation(input, warning,
+                        'Nomor telepon hanya boleh berisi angka.');
                 }
             });
             bookingForm.addEventListener('submit', () => {

@@ -16,10 +16,10 @@
     <main class="container profile-page">
         <div class="row justify-content-center">
             <div class="col-lg-7">
-                <a href="{{ route('home') }}" class="profile-back"><i class="bi bi-arrow-left"></i>
-                    Kembali ke JemberGo</a>
+                <a href="{{ route('home') }}" class="profile-back"><i class=""></i>
+                   </a>
                 <div class="profile-heading"><span class="profile-eyebrow">Akun saya</span>
-                    <h1>Profil saya</h1>
+
                     <p>Kelola informasi akun dan keamananmu di JemberGo.</p>
                 </div>
                 <div class="customer-card profile-card mt-4">
@@ -49,18 +49,28 @@
                                 <div class="col-md-6"><label class="form-label" for="nama">Nama
                                         lengkap</label><input id="nama" name="nama"
                                         value="{{ old('nama', $customer->nama) }}"
-                                        class="form-control" placeholder="Nama lengkap" required>
+                                    class="form-control @error('nama') is-invalid @enderror"
+                                    placeholder="masukkan nama lengkap" required
+                                    data-profile-name><small class="profile-field-warning"
+                                    data-profile-name-warning @if (!$errors->has('nama')) hidden @endif>{{ $errors->first('nama') }}</small>
                                 </div>
                                 <div class="col-md-6"><label class="form-label"
                                         for="email">Alamat email</label><input id="email"
                                         name="email" type="email"
                                         value="{{ old('email', $customer->email) }}"
-                                        class="form-control" placeholder="nama@email.com" required>
+                                    class="form-control @error('email') is-invalid @enderror"
+                                    placeholder="masukkan email" required
+                                    data-profile-email><small class="profile-field-warning"
+                                    data-profile-email-warning @if (!$errors->has('email')) hidden @endif>{{ $errors->first('email') }}</small>
                                 </div>
                                 <div class="col-md-6"><label class="form-label" for="no_hp">Nomor
-                                        WhatsApp</label><input id="no_hp" name="no_hp"
+                                    WhatsApp</label><input id="no_hp" name="no_hp" type="tel"
+                                    inputmode="numeric"
                                         value="{{ old('no_hp', $customer->no_hp) }}"
-                                        class="form-control" placeholder="08xxxxxxxxxx"></div>
+                                    class="form-control @error('no_hp') is-invalid @enderror"
+                                    placeholder="masukkan nomor telepon " data-profile-phone><small
+                                    class="profile-field-warning" data-profile-phone-warning
+                                    @if (!$errors->has('no_hp')) hidden @endif>{{ $errors->first('no_hp') }}</small></div>
                             </div>
 
                             <div class="profile-security">
@@ -220,6 +230,18 @@
             background: #fff;
         }
 
+        .profile-field-warning {
+            display: block;
+            margin-top: .25rem;
+            color: #dc3545;
+            font-size: .75rem;
+        }
+
+        .profile-page .form-control.is-invalid {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 .2rem rgba(220, 53, 69, .12);
+        }
+
         .profile-form .input-group .form-control {
             border-right: 0;
         }
@@ -278,6 +300,61 @@
     </style>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        const showProfileValidation = (input, warning, message) => {
+            const invalid = Boolean(message);
+            input.classList.toggle('is-invalid', invalid);
+            input.setCustomValidity(message);
+            warning.textContent = message;
+            warning.hidden = !invalid;
+        };
+
+        const nameInput = document.querySelector('[data-profile-name]');
+        const nameWarning = document.querySelector('[data-profile-name-warning]');
+        const validateName = () => {
+            const invalid = nameInput.value.length > 0 && !/^[\p{L}\s]+$/u.test(nameInput.value);
+            showProfileValidation(nameInput, nameWarning, invalid ?
+                'Nama hanya boleh berisi huruf dan spasi.' : '');
+        };
+        nameInput.addEventListener('input', validateName);
+        nameInput.addEventListener('keydown', (event) => {
+            if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey &&
+                !/^[\p{L}\s]$/u.test(event.key)) {
+                event.preventDefault();
+                showProfileValidation(nameInput, nameWarning,
+                    'Nama hanya boleh berisi huruf dan spasi.');
+            }
+        });
+
+        const emailInput = document.querySelector('[data-profile-email]');
+        const emailWarning = document.querySelector('[data-profile-email-warning]');
+        const validateEmail = () => {
+            const invalid = emailInput.value.length > 0 && (emailInput.validity.typeMismatch ||
+                !/^[^\s@]+@gmail\.com$/i.test(emailInput.value.trim()));
+            showProfileValidation(emailInput, emailWarning, invalid ?
+                'Email harus menggunakan alamat @gmail.com.' : '');
+        };
+        emailInput.addEventListener('input', validateEmail);
+
+        const phoneInput = document.querySelector('[data-profile-phone]');
+        const phoneWarning = document.querySelector('[data-profile-phone-warning]');
+        const validatePhone = () => {
+            const message = /[^0-9]/.test(phoneInput.value) ?
+                'Nomor WhatsApp hanya boleh berisi angka.' :
+                phoneInput.value.length > 0 && phoneInput.value.length < 10 ?
+                'Nomor WhatsApp minimal 10 angka.' : phoneInput.value.length > 12 ?
+                'Nomor WhatsApp maksimal 12 angka.' : '';
+            showProfileValidation(phoneInput, phoneWarning, message);
+        };
+        phoneInput.addEventListener('input', validatePhone);
+        phoneInput.addEventListener('keydown', (event) => {
+            if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey &&
+                !/[0-9]/.test(event.key)) {
+                event.preventDefault();
+                showProfileValidation(phoneInput, phoneWarning,
+                    'Nomor WhatsApp hanya boleh berisi angka.');
+            }
+        });
+
         document.querySelectorAll('.password-toggle').forEach(button => button.addEventListener('click',
             () => {
                 const input = document.getElementById(button.dataset.target);

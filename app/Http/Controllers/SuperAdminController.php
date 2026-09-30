@@ -10,6 +10,7 @@ use App\Models\JenisTiket;
 use App\Models\Pemesanan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -138,11 +139,17 @@ class SuperAdminController extends Controller
         }
 
         if ($request->hasFile('galeri')) {
-            $uploads = collect($request->file('galeri', []))->filter(fn ($gallery) => ! empty($gallery['foto']));
+            $uploads = collect($request->file('galeri', []))->filter(
+                fn (mixed $gallery): bool => is_array($gallery) && ($gallery['foto'] ?? null) instanceof UploadedFile
+            );
 
             if ($uploads->isNotEmpty()) {
                 $destination->galeri()->delete();
                 foreach ($uploads as $index => $gallery) {
+                    if (! is_array($gallery) || ! isset($gallery['foto']) || ! $gallery['foto'] instanceof UploadedFile) {
+                        continue;
+                    }
+
                     $path = $gallery['foto']->store('destinations', 'public');
                     GaleriDestinasi::create(['id_destinasi' => $destination->id_destinasi, 'url_foto' => '/storage/'.ltrim($path, '/'), 'keterangan' => $request->input("galeri.$index.keterangan")]);
                 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Customer;
 use App\Models\DestinasiWisata;
 use App\Models\Pemesanan;
 use App\Models\PerubahanPemesanan;
@@ -22,6 +23,7 @@ class BookingController extends Controller
 {
     public function create(int $id): View
     {
+        $customer = Customer::findOrFail(session('jg_user_id'));
         $destination = DestinasiWisata::with('jenisTiket')->findOrFail($id);
         $quota = $destination->kuota_harian_aktif === 'aktif' ? $destination->kuota_harian : null;
         $ticketOptions = $destination->jenisTiket->map(function ($ticket): array {
@@ -31,7 +33,7 @@ class BookingController extends Controller
             ];
         })->values()->all();
 
-        return view('customer.booking-create', compact('destination', 'ticketOptions', 'quota'));
+        return view('customer.booking-create', compact('customer', 'destination', 'ticketOptions', 'quota'));
     }
 
     public function quotaAvailability(Request $request, int $id): JsonResponse

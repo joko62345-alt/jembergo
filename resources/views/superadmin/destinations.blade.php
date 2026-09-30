@@ -464,7 +464,98 @@
             const normalizeDestinationName = (value) => String(value || '').trim().replace(/\s+/g,
                 ' ').toLocaleLowerCase();
             const existingDestinationNames = @js($destinationNames->values()->all());
+            let destinationFormIndex = 0;
             document.querySelectorAll('.destination-form').forEach((form) => {
+                const currentFormIndex = ++destinationFormIndex;
+                const isRequiredField = (field) => field.matches(
+                    'input[required], select[required], textarea[required]') &&
+                    field.type !== 'hidden' && !field.matches(
+                        '.destination-name-input, [data-coordinate-input]');
+                let requiredErrorIndex = 0;
+                const validateRequiredField = (field, reveal = false) => {
+                    if (!isRequiredField(field)) return;
+                    if (reveal) field.dataset.requiredTouched = 'true';
+                    const isEmpty = !String(field.value || '').trim();
+                    const shouldShow = field.dataset.requiredTouched === 'true' &&
+                        isEmpty;
+                    const anchor = field.closest('.input-group') || field;
+                    let error = anchor.nextElementSibling;
+                    if (!error?.matches('[data-required-feedback]')) {
+                        error = document.createElement('small');
+                        error.className = 'form-required-error d-block text-danger';
+                        error.dataset.requiredFeedback = '';
+                        error.id = `${form.id || 'destination-form'}-${currentFormIndex}` +
+                            `-required-error-${++requiredErrorIndex}`;
+                        anchor.insertAdjacentElement('afterend', error);
+                    }
+                    const label = field.labels?.[0]?.textContent.trim() || field
+                        .placeholder?.replace(/^Masukkan\s+/, '') || 'Isian ini';
+                    error.textContent = `${label} wajib diisi.`;
+                    error.hidden = !shouldShow;
+                    field.classList.toggle('is-invalid', shouldShow);
+                    field.setAttribute('aria-invalid', shouldShow ? 'true' : 'false');
+                    const describedBy = new Set((field.getAttribute('aria-describedby') || '')
+                        .split(/\s+/).filter(Boolean));
+                    describedBy.add(error.id);
+                    field.setAttribute('aria-describedby', [...describedBy].join(' '));
+                };
+                form.addEventListener('focusin', (event) => validateRequiredField(event
+                    .target, true));
+                form.addEventListener('focusout', (event) => validateRequiredField(event
+                    .target, true));
+                form.addEventListener('input', (event) => validateRequiredField(event
+                    .target));
+                form.addEventListener('change', (event) => validateRequiredField(event
+                    .target));
+                form.addEventListener('invalid', (event) => validateRequiredField(event
+                    .target, true), true);
+                form.querySelectorAll('[data-coordinate-input]').forEach((input) => {
+                    const validateCoordinate = (reveal = false) => {
+                        const label = input.name === 'latitude' ? 'Latitude' :
+                            'Longitude';
+                        const error = input.parentElement.querySelector(
+                            '[data-coordinate-error]');
+                        const isInvalid = !input.validity.valid;
+                        let message = '';
+                        if (input.validity.badInput) {
+                            message = `${label} harus berupa angka.`;
+                        } else if (input.validity.valueMissing) {
+                            message = `${label} wajib diisi.`;
+                        } else if (input.validity.rangeUnderflow || input.validity
+                            .rangeOverflow) {
+                            message = input.name === 'latitude' ?
+                                'Latitude harus berada antara -90 dan 90.' :
+                                'Longitude harus berada antara -180 dan 180.';
+                        }
+                        const showError = (reveal || input.dataset.coordinateInvalid ===
+                            'true') && isInvalid;
+                        input.classList.toggle('is-invalid', showError);
+                        input.setAttribute('aria-invalid', showError ? 'true' : 'false');
+                        if (error) {
+                            error.hidden = !showError;
+                            if (showError) error.textContent = message;
+                        }
+                    };
+                    input.addEventListener('keydown', (event) => {
+                        if (event.ctrlKey || event.metaKey || event.altKey || event.key
+                            .length !== 1 || /^[0-9eE.,+-]$/.test(event.key)) return;
+                        event.preventDefault();
+                        const label = input.name === 'latitude' ? 'Latitude' :
+                            'Longitude';
+                        const error = input.parentElement.querySelector(
+                            '[data-coordinate-error]');
+                        input.classList.add('is-invalid');
+                        input.setAttribute('aria-invalid', 'true');
+                        if (error) {
+                            error.hidden = false;
+                            error.textContent = `${label} harus berupa angka.`;
+                        }
+                    });
+                    input.addEventListener('input', () => validateCoordinate(true));
+                    input.addEventListener('focus', () => validateCoordinate(true));
+                    input.addEventListener('blur', () => validateCoordinate(true));
+                    input.addEventListener('invalid', () => validateCoordinate(true));
+                });
                 const nameInput = form.querySelector('.destination-name-input');
                 const warning = form.querySelector('.destination-name-warning');
                 const warningText = warning?.querySelector('span');
@@ -474,27 +565,40 @@
                 const currentName = normalizeDestinationName(form.dataset.currentName);
                 const validateDestinationName = () => {
                     const name = normalizeDestinationName(nameInput?.value);
+                    const isEmpty = !name;
+                    const isRequiredError = isEmpty && nameInput?.dataset.requiredTouched ===
+                        'true';
                     const isDuplicate = Boolean(name) && existingNames.includes(name) &&
                         name !== currentName;
                     const hasInvalidCharacters = /[^\p{L}\s]/u.test(nameInput?.value ||
                         '');
                     if (warning) {
-                        warning.hidden = !isDuplicate && !hasInvalidCharacters;
-                        warning.style.display = isDuplicate || hasInvalidCharacters ?
-                            'block' : 'none';
+                        warning.hidden = !isDuplicate && !hasInvalidCharacters &&
+                            !isRequiredError;
+                        warning.style.display = isDuplicate || hasInvalidCharacters ||
+                            isRequiredError ? 'block' : 'none';
                     }
-                    if (warningText) warningText.textContent = hasInvalidCharacters ?
-                        'Hanya huruf dan spasi yang diperbolehkan.' :
-                        'Destinasi sudah ada. Gunakan nama yang berbeda.';
+                    if (warningText) warningText.textContent = isRequiredError ?
+                        'Nama destinasi wajib diisi.' : hasInvalidCharacters ?
+                            'Hanya huruf dan spasi yang diperbolehkan.' :
+                            'Destinasi sudah ada. Gunakan nama yang berbeda.';
                     nameInput?.classList.toggle('is-invalid', isDuplicate ||
-                        hasInvalidCharacters);
+                        hasInvalidCharacters || isRequiredError);
                     nameInput?.setCustomValidity(hasInvalidCharacters ?
                         'Hanya huruf dan spasi yang diperbolehkan.' : (isDuplicate ?
                             'Destinasi sudah ada. Gunakan nama yang berbeda.' : ''));
                     if (submitButton && !submitButton.dataset.submitting) submitButton
                         .disabled = isDuplicate || hasInvalidCharacters;
                 };
-                nameInput?.addEventListener('input', validateDestinationName);
+                nameInput?.addEventListener('input', () => {
+                    nameInput.dataset.requiredTouched = 'true';
+                    validateDestinationName();
+                });
+                ['focus', 'blur', 'invalid'].forEach((eventName) => nameInput
+                    ?.addEventListener(eventName, () => {
+                        nameInput.dataset.requiredTouched = 'true';
+                        validateDestinationName();
+                    }));
                 form.addEventListener('submit', (event) => {
                     validateDestinationName();
                     if (nameInput?.validity.customError) event.preventDefault();

@@ -50,7 +50,7 @@ class Pemesanan extends Model
             if (json_last_error() === JSON_ERROR_NONE) {
                 $value = $decoded;
             } else {
-                preg_match_all('/"nama"\s*:\s*"((?:\\.|[^"\\])*)"/u', $value, $matches, PREG_SET_ORDER);
+                preg_match_all('/"nama"\s*:\s*"((?:\\\\.|[^"\\\\])*)"/u', $value, $matches, PREG_SET_ORDER);
                 if (! empty($matches)) {
                     $value = collect($matches)
                         ->map(fn (array $match) => ['nama' => stripcslashes($match[1])])

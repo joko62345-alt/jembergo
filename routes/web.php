@@ -28,8 +28,10 @@ Route::get('/destinasi/cari', [PublicController::class, 'destinations'])->name('
 Route::get('/destinasi/{id}', [PublicController::class, 'destination'])->whereNumber('id')->name('destinations.show');
 Route::get('/artikel', [PublicController::class, 'articles'])->name('articles.index');
 Route::get('/artikel/{id}', [PublicController::class, 'article'])->whereNumber('id')->name('articles.show');
+Route::get('/tiket/scan', [VerificationController::class, 'ticketScan'])->name('ticket.scan');
 Route::post('/payment/midtrans/notification', [PaymentWebhookController::class, 'handle'])->name('payment.midtrans.notification');
 Route::post('/api/midtrans/notification', [PaymentWebhookController::class, 'handle'])->name('api.midtrans.notification');
+Route::get('/api/tickets/scan', [VerificationController::class, 'ticketData'])->name('api.tickets.scan');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');

@@ -154,13 +154,35 @@
         <div class="col-md-6"><label class="form-label"
                 for="{{ $prefix }}-latitude">Latitude</label><input
                 id="{{ $prefix }}-latitude" name="latitude" type="number" step="any"
-                value="{{ old('latitude', $destination?->latitude) }}" class="form-control"
-                placeholder="Masukkan Latitude" required></div>
+                min="-90" max="90" data-coordinate-input
+                aria-describedby="{{ $prefix }}-latitude-error"
+                aria-invalid="{{ $errors->has('latitude') ? 'true' : 'false' }}"
+                data-coordinate-invalid="{{ $errors->has('latitude') ? 'true' : 'false' }}"
+                value="{{ old('latitude', $destination?->latitude) }}"
+                class="form-control @error('latitude') is-invalid @enderror"
+                placeholder="Masukkan Latitude" required>
+            <small id="{{ $prefix }}-latitude-error" class="coordinate-error text-danger"
+                data-coordinate-error role="alert" aria-live="polite"
+                @if (!$errors->has('latitude')) hidden @endif>
+                @error('latitude'){{ $message }}@enderror
+            </small>
+        </div>
         <div class="col-md-6"><label class="form-label"
                 for="{{ $prefix }}-longitude">Longitude</label><input
                 id="{{ $prefix }}-longitude" name="longitude" type="number" step="any"
-                value="{{ old('longitude', $destination?->longitude) }}" class="form-control"
-                placeholder="Masukkan Longitude" required></div>
+                min="-180" max="180" data-coordinate-input
+                aria-describedby="{{ $prefix }}-longitude-error"
+                aria-invalid="{{ $errors->has('longitude') ? 'true' : 'false' }}"
+                data-coordinate-invalid="{{ $errors->has('longitude') ? 'true' : 'false' }}"
+                value="{{ old('longitude', $destination?->longitude) }}"
+                class="form-control @error('longitude') is-invalid @enderror"
+                placeholder="Masukkan Longitude" required>
+            <small id="{{ $prefix }}-longitude-error" class="coordinate-error text-danger"
+                data-coordinate-error role="alert" aria-live="polite"
+                @if (!$errors->has('longitude')) hidden @endif>
+                @error('longitude'){{ $message }}@enderror
+            </small>
+        </div>
     </div>
 </div>
 <div class="form-section">

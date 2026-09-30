@@ -95,6 +95,7 @@
 
             @php($groupTicket = $booking->tiket->first())
             @if ($groupTicket)
+                @php($verificationUrl = route('ticket.scan', ['kode_qr' => $groupTicket->kode_qr]))
                 <article class="customer-card ticket-card ticket-group-card">
                     <div class="row g-0">
                         <div class="col-12 ticket-qr-panel">
@@ -103,7 +104,7 @@
                                             class="badge {{ $groupTicket->status_tiket === 'ACTIVE' ? 'text-bg-success' : ($groupTicket->status_tiket === 'EXPIRED' ? 'text-bg-danger' : 'text-bg-secondary') }}">{{ \App\Support\StatusLabel::ticket($groupTicket->status_tiket) }}</span></span>
                                 </div>
                                 <div class="ticket-qr-frame"><img
-                                        src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ urlencode($groupTicket->kode_qr) }}"
+                                    src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ urlencode($verificationUrl) }}"
                                         class="img-fluid" width="220" height="220"
                                         alt="QR grup {{ $booking->kode_booking }}"></div>
                                 <h2 class="h5 fw-bold mb-1">Kode QR booking</h2>

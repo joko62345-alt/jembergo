@@ -6,8 +6,10 @@ use App\Models\AdminPariwisata;
 use App\Models\Pemesanan;
 use App\Models\Tiket;
 use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\View\View;
 
@@ -16,6 +18,49 @@ class VerificationController extends Controller
     public function index(): View
     {
         return view('admin.verification-page');
+    }
+
+    public function ticketScan(Request $request): View
+    {
+        return view('public.ticket-scan', ['scanData' => $this->ticketScanData($request)]);
+    }
+
+    public function ticketData(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->ticketScanData($request)]);
+    }
+
+    private function ticketScanData(Request $request): array
+    {
+        $data = $request->validate(['kode_qr' => ['required', 'string', 'max:740']]);
+        $ticket = Tiket::query()
+            ->with(['pemesanan.destinasi', 'pemesanan.pembayaran', 'pemesanan.detailPemesanan.jenisTiket'])
+            ->where('kode_qr', $data['kode_qr'])
+            ->firstOrFail();
+        $booking = $ticket->pemesanan;
+        $participants = collect($booking->anggota_names)
+            ->prepend(['nama' => $booking->ketua_nama, 'id_jenis_tiket' => (int) $booking->ketua_jenis_tiket])
+            ->values()
+            ->map(function (array $participant) use ($booking): array {
+                $ticketTypeId = (int) ($participant['id_jenis_tiket'] ?? 0);
+
+                return [
+                    'nama' => $participant['nama'],
+                    'jenis_tiket' => $booking->detailPemesanan
+                        ->firstWhere('id_jenis_tiket', $ticketTypeId)?->jenisTiket?->nama_jenis,
+                ];
+            });
+
+        return [
+            'kode_booking' => $booking->kode_booking,
+            'destinasi' => $booking->destinasi?->nama_wisata,
+            'tanggal_kunjungan' => $booking->tanggal_kunjungan?->toDateString(),
+            'status_pembayaran' => $booking->pembayaran?->status_pembayaran,
+            'total_harga' => (float) $booking->total_harga,
+            'peserta' => $participants,
+            'status_tiket' => $ticket->status_tiket,
+            'waktu_verifikasi' => $ticket->waktu_verifikasi?->toIso8601String(),
+        ];
     }
 
     public function lookup(Request $request): View|RedirectResponse
@@ -48,11 +93,14 @@ class VerificationController extends Controller
         }
 
         $booking->expireTicketsIfPastVisitDate();
-        if ($booking->tanggal_kunjungan && $booking->tanggal_kunjungan->lt(today()->toDateString())) {
+        $visitDate = $booking->tanggal_kunjungan
+            ? Carbon::parse($booking->tanggal_kunjungan)->toDateString()
+            : null;
+
+        if ($visitDate !== null && $visitDate < today()->toDateString()) {
             return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Tiket sudah kadaluarsa karena tanggal kunjungan telah lewat.');
         }
 
-        $visitDate = $booking->tanggal_kunjungan ? $booking->tanggal_kunjungan->toDateString() : null;
         if ($visitDate === today()->toDateString()) {
             $closingTime = $booking->destinasi?->closingTime();
             if ($closingTime !== null && now()->gte(Carbon::parse($visitDate)->setTimeFromTimeString($closingTime))) {
@@ -64,7 +112,7 @@ class VerificationController extends Controller
             return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Tiket belum dibayar.');
         }
 
-        if (today()->lt($booking->tanggal_kunjungan)) {
+        if ($visitDate !== null && $visitDate > today()->toDateString()) {
             return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Tiket belum dapat diverifikasi. Jadwal kunjungan baru pada '.date('d/m/Y', strtotime((string) $booking->tanggal_kunjungan)).'.');
         }
 

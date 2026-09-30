@@ -127,7 +127,7 @@ class SuperAdminController extends Controller
             ],
             'foto_utama' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'deskripsi' => ['required', 'string'],
-            'kategori' => ['required', 'string', 'max:80'],
+            'kategori' => ['required', Rule::in(['Alam', 'Bahari', 'Buatan'])],
             'alamat' => ['required', 'string'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],

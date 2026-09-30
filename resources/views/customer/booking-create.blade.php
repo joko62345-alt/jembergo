@@ -45,21 +45,21 @@
                                         <div class="col-md-6"><label class="form-label"
                                                 for="ketua_nama">Nama lengkap</label><input
                                                 id="ketua_nama" name="ketua_nama"
-                                                value="{{ old('ketua_nama') }}" class="form-control"
+                                                value="{{ old('ketua_nama', $customer->nama) }}" class="form-control"
                                                 placeholder="Masukkan nama lengkap" required
                                                 data-booking-name><small class="booking-field-warning"
                                                 data-booking-name-warning hidden></small></div>
                                         <div class="col-md-6"><label class="form-label"
                                                 for="ketua_email">Email</label><input id="ketua_email"
                                                 name="ketua_email" type="email"
-                                                value="{{ old('ketua_email') }}" class="form-control"
+                                                value="{{ old('ketua_email', $customer->email) }}" class="form-control"
                                                 placeholder="Masukkan email anda" required
                                                 data-booking-email><small class="booking-field-warning"
                                                 data-booking-email-warning hidden></small></div>
                                         <div class="col-md-6"><label class="form-label"
                                                 for="ketua_no_hp">Nomor WhatsApp</label><input
                                                 id="ketua_no_hp" name="ketua_no_hp" type="tel"
-                                                inputmode="numeric" value="{{ old('ketua_no_hp') }}"
+                                                inputmode="numeric" value="{{ old('ketua_no_hp', $customer->no_hp) }}"
                                                 class="form-control" placeholder="Masukkan nomor anda"
                                                 minlength="10" required data-booking-phone><small
                                                 class="booking-field-warning" data-booking-phone-warning
@@ -97,7 +97,7 @@
                                                         for="participant-name-0">Nama
                                                         ketua</label><input id="participant-name-0"
                                                         name="peserta[0][nama]"
-                                                        value="{{ old('peserta.0.nama', old('ketua_nama')) }}"
+                                                        value="{{ old('peserta.0.nama', old('ketua_nama', $customer->nama)) }}"
                                                         class="form-control"
                                                         placeholder="Nama ketua mengikuti data di atas"
                                                         readonly required></div>

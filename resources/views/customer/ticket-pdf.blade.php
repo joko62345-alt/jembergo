@@ -297,8 +297,9 @@
     </table>
 
     @if ($groupTicket)
+        @php($verificationUrl = route('ticket.scan', ['kode_qr' => $groupTicket->kode_qr]))
         <div class="qr-section"><img
-                src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={{ urlencode($groupTicket->kode_qr) }}"
+            src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={{ urlencode($verificationUrl) }}"
                 alt="QR grup {{ $booking->kode_booking }}">
             <div class="qr-caption">QR BOOKING GRUP</div>
             <div class="qr-code">Scan satu QR ini untuk seluruh {{ $participants->count() }}

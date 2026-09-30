@@ -40,6 +40,7 @@ class DashboardController extends Controller
         if ($role === 'ADMIN_PARIWISATA') {
             $admin = AdminPariwisata::findOrFail(session('jg_user_id'));
             Pemesanan::expirePendingPayments($admin->id_destinasi);
+            Pemesanan::expireTicketsPastVisitDate($admin->id_destinasi);
             $destination = DestinasiWisata::findOrFail($admin->id_destinasi);
             $destinationOrders = Pemesanan::query()
                 ->where('id_destinasi', $admin->id_destinasi)

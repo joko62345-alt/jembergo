@@ -11,9 +11,15 @@ class AdminPariwisata extends Model
     use HasFactory;
 
     protected $table = 'admin_pariwisata';
+
     protected $primaryKey = 'id_admin';
+
     protected $fillable = ['id_destinasi', 'nama', 'email', 'no_hp', 'password', 'status_akun'];
+
     protected $hidden = ['password'];
 
-    public function destinasi(): BelongsTo { return $this->belongsTo(DestinasiWisata::class, 'id_destinasi'); }
+    public function destinasi(): BelongsTo
+    {
+        return $this->belongsTo(DestinasiWisata::class, 'id_destinasi');
+    }
 }

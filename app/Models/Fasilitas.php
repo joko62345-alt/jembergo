@@ -11,8 +11,13 @@ class Fasilitas extends Model
     use HasFactory;
 
     protected $table = 'fasilitas';
+
     protected $primaryKey = 'id_fasilitas';
+
     protected $fillable = ['id_destinasi', 'nama_fasilitas'];
 
-    public function destinasi(): BelongsTo { return $this->belongsTo(DestinasiWisata::class, 'id_destinasi'); }
+    public function destinasi(): BelongsTo
+    {
+        return $this->belongsTo(DestinasiWisata::class, 'id_destinasi');
+    }
 }

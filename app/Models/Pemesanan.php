@@ -50,7 +50,7 @@ class Pemesanan extends Model
             if (json_last_error() === JSON_ERROR_NONE) {
                 $value = $decoded;
             } else {
-                preg_match_all('/"nama"\s*:\s*"((?:\\.|[^"\\])*)"/u', $value, $matches, PREG_SET_ORDER);
+                preg_match_all('/"nama"\s*:\s*"((?:\\\\.|[^"\\\\])*)"/u', $value, $matches, PREG_SET_ORDER);
                 if (! empty($matches)) {
                     $value = collect($matches)
                         ->map(fn (array $match) => ['nama' => stripcslashes($match[1])])
@@ -150,10 +150,38 @@ class Pemesanan extends Model
             ->update(['status_pembayaran' => 'EXPIRED', 'transaction_status' => 'expire']);
     }
 
+    public static function expireTicketsPastVisitDate(?int $destinationId = null): void
+    {
+        Tiket::query()
+            ->where('status_tiket', 'ACTIVE')
+            ->whereHas('pemesanan', function ($query) use ($destinationId): void {
+                $query->whereDate('tanggal_kunjungan', '<', today())
+                    ->when($destinationId, fn ($destinationQuery) => $destinationQuery->where('id_destinasi', $destinationId));
+            })
+            ->update(['status_tiket' => 'EXPIRED']);
+    }
+
     public function expireTicketsIfPastVisitDate(): void
     {
-        if ($this->tanggal_kunjungan && date('Y-m-d', strtotime((string) $this->tanggal_kunjungan)) < today()->toDateString()) {
+        if (! $this->tanggal_kunjungan) {
+            return;
+        }
+
+        $visitDate = Carbon::parse((string) $this->tanggal_kunjungan)->startOfDay();
+        $today = Carbon::today();
+
+        if ($visitDate->lt($today)) {
             $this->tiket()->where('status_tiket', 'ACTIVE')->update(['status_tiket' => 'EXPIRED']);
+
+            return;
+        }
+
+        if ($visitDate->isSameDay($today)) {
+            $closingTime = $this->destinasi?->closingTime();
+
+            if ($closingTime !== null && Carbon::now()->gte($visitDate->copy()->setTimeFromTimeString($closingTime))) {
+                $this->tiket()->where('status_tiket', 'ACTIVE')->update(['status_tiket' => 'EXPIRED']);
+            }
         }
     }
 }

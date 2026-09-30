@@ -53,6 +53,14 @@ class AuthController extends Controller
 
             $user = $account['model']::query()->where('email', $credentials['email'])->first();
 
+            if ($user && Hash::check($credentials['password'], $user->password) && $account['role'] === 'ADMIN_PARIWISATA') {
+                $user->loadMissing('destinasi');
+
+                if ($user->destinasi && $user->destinasi->status_aktif !== 'aktif') {
+                    return back()->withInput($request->only('email'))->with('error', 'Destinasi yang dikelola sedang dinonaktifkan.');
+                }
+            }
+
             if ($user && Hash::check($credentials['password'], $user->password) && ($account['role'] !== 'ADMIN_PARIWISATA' || $user->status_akun === 'AKTIF')) {
                 $request->session()->regenerate();
                 $request->session()->put([
@@ -140,12 +148,15 @@ class AuthController extends Controller
         }
 
         $data = $request->validate([
-            'nama' => ['required', 'string', 'max:150'],
+            'nama' => ['required', 'string', 'max:150', 'regex:/^[\p{L}\s]+$/u'],
             'email' => ['required', 'email', 'max:150', 'unique:customer,email'],
-            'no_hp' => ['nullable', 'string', 'max:30'],
+            'no_hp' => ['required', 'digits_between:10,12'],
             'password' => ['required', 'string', 'min:8'],
         ], [
+            'nama.regex' => 'Nama lengkap hanya boleh berisi huruf dan spasi.',
             'email.unique' => 'Email tersebut sudah terdaftar.',
+            'no_hp.required' => 'Nomor telepon wajib diisi.',
+            'no_hp.digits_between' => 'Nomor telepon harus berisi 10 sampai 12 angka.',
             'password.min' => 'Password minimal 8 karakter.',
         ]);
 

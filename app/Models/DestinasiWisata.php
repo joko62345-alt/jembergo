@@ -74,4 +74,19 @@ class DestinasiWisata extends Model
             })
             ->sum('jumlah');
     }
+
+    public function closingTime(): ?string
+    {
+        $raw = trim((string) $this->jam_operasional);
+
+        if ($raw === '') {
+            return null;
+        }
+
+        if (preg_match('/\d{1,2}:\d{2}\s*-\s*(\d{1,2}:\d{2})/i', $raw, $matches) === 1) {
+            return $matches[1];
+        }
+
+        return null;
+    }
 }

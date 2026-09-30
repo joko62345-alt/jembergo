@@ -67,7 +67,7 @@ class BookingMemberNormalizationTest extends TestCase
             'id_superadmin' => null,
             'nama_wisata' => 'Pantai Kuta',
             'deskripsi' => 'Deskripsi',
-            'kategori' => 'Wisata Alam',
+            'kategori' => 'Alam',
             'latitude' => -8.7,
             'longitude' => 115.2,
             'alamat' => 'Jl. Contoh No. 1',
@@ -115,7 +115,7 @@ class BookingMemberNormalizationTest extends TestCase
 
         $response->assertOk();
         $response->assertSee("window.alert('Pembayaran berhasil. Anda akan diarahkan ke tiket saya.')");
-        $response->assertSee("window.location.href = ticketUrl;");
+        $response->assertSee('window.location.href = ticketUrl;');
     }
 
     public function test_additional_payment_payload_matches_total_charge(): void
@@ -136,7 +136,7 @@ class BookingMemberNormalizationTest extends TestCase
             'id_superadmin' => null,
             'nama_wisata' => 'Pantai Kuta',
             'deskripsi' => 'Deskripsi',
-            'kategori' => 'Wisata Alam',
+            'kategori' => 'Alam',
             'latitude' => -8.7,
             'longitude' => 115.2,
             'alamat' => 'Jl. Contoh No. 1',
@@ -174,11 +174,10 @@ class BookingMemberNormalizationTest extends TestCase
             'subtotal' => 200000,
         ]);
 
-        $gateway = new MidtransGateway();
+        $gateway = new MidtransGateway;
         $gateway->createPaymentForAmount($booking, 'QRIS', 25000);
 
-        Http::assertSent(fn ($request) =>
-            (int) $request['transaction_details']['gross_amount'] === 25000
+        Http::assertSent(fn ($request) => (int) $request['transaction_details']['gross_amount'] === 25000
             && collect($request['item_details'])->sum(fn ($item) => (int) $item['price'] * (int) $item['quantity']) === 25000
         );
     }

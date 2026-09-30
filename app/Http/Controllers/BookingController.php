@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Customer;
 use App\Models\DestinasiWisata;
 use App\Models\Pemesanan;
 use App\Models\PerubahanPemesanan;
@@ -22,6 +23,7 @@ class BookingController extends Controller
 {
     public function create(int $id): View
     {
+        $customer = Customer::findOrFail(session('jg_user_id'));
         $destination = DestinasiWisata::with('jenisTiket')->findOrFail($id);
         $quota = $destination->kuota_harian_aktif === 'aktif' ? $destination->kuota_harian : null;
         $ticketOptions = $destination->jenisTiket->map(function ($ticket): array {
@@ -31,7 +33,7 @@ class BookingController extends Controller
             ];
         })->values()->all();
 
-        return view('customer.booking-create', compact('destination', 'ticketOptions', 'quota'));
+        return view('customer.booking-create', compact('customer', 'destination', 'ticketOptions', 'quota'));
     }
 
     public function quotaAvailability(Request $request, int $id): JsonResponse
@@ -55,14 +57,32 @@ class BookingController extends Controller
 
         $destination = DestinasiWisata::with('jenisTiket')->findOrFail($id);
         abort_if($destination->status_aktif !== 'aktif', 422, 'Destinasi wisata ini sudah tidak aktif untuk pemesanan baru.');
+
+        $request->merge([
+            'tanggal_kunjungan' => trim((string) $request->input('tanggal_kunjungan')),
+        ]);
+
+        $maxVisitDate = now()->addMonths(2)->endOfDay();
         $data = $request->validate([
-            'tanggal_kunjungan' => ['required', 'date', 'after_or_equal:today'],
-            'ketua_nama' => ['required', 'string', 'max:150'],
-            'ketua_email' => ['required', 'email', 'max:150'],
-            'ketua_no_hp' => ['required', 'string', 'max:30'],
+            'tanggal_kunjungan' => [
+                'required',
+                'date',
+                'after_or_equal:today',
+                'before_or_equal:'.$maxVisitDate->format('Y-m-d'),
+            ],
+            'ketua_nama' => ['required', 'string', 'max:150', 'regex:/^[\p{L}\s]+$/u'],
+            'ketua_email' => ['required', 'email', 'max:150', 'regex:/@gmail\.com$/i'],
+            'ketua_no_hp' => ['required', 'digits_between:10,12'],
             'peserta' => ['required', 'array', 'min:1', 'max:10'],
-            'peserta.*.nama' => ['required', 'string', 'max:150'],
+            'peserta.*.nama' => ['required', 'string', 'max:150', 'regex:/^[\p{L}\s]+$/u'],
             'peserta.*.id_jenis_tiket' => ['required', 'integer', 'exists:jenis_tiket,id_jenis_tiket'],
+        ], [
+            'tanggal_kunjungan.before_or_equal' => 'Tanggal kunjungan maksimal 2 bulan dari hari ini.',
+            'ketua_nama.regex' => 'Nama lengkap hanya boleh berisi huruf dan spasi.',
+            'ketua_email.regex' => 'Email harus menggunakan alamat @gmail.com.',
+            'ketua_no_hp.digits_between' => 'Nomor telepon harus berisi 10 sampai 12 angka.',
+            'ketua_no_hp.digits' => 'Nomor telepon hanya boleh berisi angka.',
+            'peserta.*.nama.regex' => 'Nama peserta hanya boleh berisi huruf dan spasi.',
         ]);
         $participants = collect($data['peserta']);
         $availableTypes = $destination->jenisTiket->keyBy('id_jenis_tiket');
@@ -72,7 +92,7 @@ class BookingController extends Controller
 
         if ($this->hasDuplicateBookingIdentity($data)) {
             return back()->withInput()->withErrors([
-                'booking' => 'Nama, email, dan nomor telepon yang sama sudah pernah melakukan pemesanan sebelumnya. Harap gunakan data yang berbeda untuk membuat pemesanan baru.',
+                'booking' => 'Nomor telepon tersebut sudah digunakan untuk pemesanan pada destinasi dan tanggal yang sama.',
             ]);
         }
 
@@ -124,16 +144,12 @@ class BookingController extends Controller
             ->whereDate('tanggal_kunjungan', $candidateVisitDate)
             ->where('id_destinasi', (int) $candidateDestinationId)
             ->get()
-            ->contains(function (Pemesanan $booking) use ($candidateName, $candidateEmail, $candidatePhone): bool {
+            ->contains(function (Pemesanan $booking) use ($candidatePhone): bool {
                 $currentName = strtolower(trim((string) $booking->ketua_nama));
                 $currentEmail = strtolower(trim((string) $booking->ketua_email));
                 $currentPhone = $this->normalizePhoneNumber((string) $booking->ketua_no_hp);
 
-                return $currentName !== ''
-                    && $currentEmail !== ''
-                    && $currentPhone !== ''
-                    && $currentName === $candidateName
-                    && $currentEmail === $candidateEmail
+                return $currentPhone !== ''
                     && $currentPhone === $candidatePhone;
             });
     }
@@ -217,11 +233,19 @@ class BookingController extends Controller
         $booking = $this->ownedBooking($id);
         $this->ensureActivePaidBooking($booking);
         $remaining = 10 - (1 + count($booking->anggota_names ?? []));
+        $maxVisitDate = now()->addMonths(2)->endOfDay();
         $data = $request->validate([
-            'tanggal_kunjungan' => ['required', 'date', 'after_or_equal:today'],
+            'tanggal_kunjungan' => [
+                'required',
+                'date',
+                'after_or_equal:today',
+                'before_or_equal:'.$maxVisitDate->format('Y-m-d'),
+            ],
             'anggota' => ['nullable', 'array', 'max:'.max(0, $remaining)],
             'anggota.*.nama' => ['nullable', 'string', 'max:150'],
             'anggota.*.id_jenis_tiket' => ['nullable', 'integer', 'exists:jenis_tiket,id_jenis_tiket'],
+        ], [
+            'tanggal_kunjungan.before_or_equal' => 'Tanggal kunjungan maksimal 2 bulan dari hari ini.',
         ]);
         $destination = $booking->destinasi()->with('jenisTiket')->firstOrFail();
         $availableTypes = $destination->jenisTiket->keyBy('id_jenis_tiket');

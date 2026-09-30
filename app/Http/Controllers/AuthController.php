@@ -53,6 +53,14 @@ class AuthController extends Controller
 
             $user = $account['model']::query()->where('email', $credentials['email'])->first();
 
+            if ($user && Hash::check($credentials['password'], $user->password) && $account['role'] === 'ADMIN_PARIWISATA') {
+                $user->loadMissing('destinasi');
+
+                if ($user->destinasi && $user->destinasi->status_aktif !== 'aktif') {
+                    return back()->withInput($request->only('email'))->with('error', 'Destinasi yang dikelola sedang dinonaktifkan.');
+                }
+            }
+
             if ($user && Hash::check($credentials['password'], $user->password) && ($account['role'] !== 'ADMIN_PARIWISATA' || $user->status_akun === 'AKTIF')) {
                 $request->session()->regenerate();
                 $request->session()->put([

@@ -18,7 +18,7 @@ class PublicController extends Controller
 
         return view('welcome', [
             'destinations' => $hasDestinationTable
-                ? DestinasiWisata::query()->with(['galeri', 'jenisTiket'])->withAvg('review', 'rating')->latest('id_destinasi')->take(5)->get()
+                ? DestinasiWisata::query()->where('status_aktif', 'aktif')->with(['galeri', 'jenisTiket'])->withAvg('review', 'rating')->latest('id_destinasi')->take(5)->get()
                 : collect(),
             'articles' => $hasArticleTable
                 ? Artikel::query()->where('status', 'PUBLISHED')->latest('tanggal_publikasi')->take(3)->get()
@@ -32,6 +32,7 @@ class PublicController extends Controller
         $category = trim((string) $request->query('kategori', ''));
         $destinations = Schema::hasTable('destinasi_wisata')
             ? DestinasiWisata::query()
+                ->where('status_aktif', 'aktif')
                 ->with(['jenisTiket', 'galeri'])
                 ->when($query !== '', fn ($builder) => $builder->where(function ($search) use ($query): void {
                     $search->where('nama_wisata', 'like', '%'.$query.'%')

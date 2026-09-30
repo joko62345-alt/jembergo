@@ -35,7 +35,7 @@ class SuperAdminManagementController extends Controller
     public function createAdmin(): View
     {
         return view('superadmin.admin-create', [
-            'destinations' => DestinasiWisata::orderBy('nama_wisata')->get(),
+            'destinations' => DestinasiWisata::where('status_aktif', 'aktif')->orderBy('nama_wisata')->get(),
             'existingAdmins' => AdminPariwisata::query()->get(['nama', 'email', 'no_hp']),
         ]);
     }
@@ -169,12 +169,13 @@ class SuperAdminManagementController extends Controller
     {
         $data = $request->validate([
             'id_destinasi' => ['required', 'exists:destinasi_wisata,id_destinasi'],
-            'nama' => ['required', 'string', 'max:150', 'unique:admin_pariwisata,nama'],
+            'nama' => ['required', 'string', 'max:150', 'regex:/^[\p{L}\p{N}\s]+$/u', 'unique:admin_pariwisata,nama'],
             'email' => ['required', 'email', 'regex:/@gmail\.com$/i', 'unique:admin_pariwisata,email'],
             'no_hp' => ['required', 'regex:/^[0-9]+$/', 'unique:admin_pariwisata,no_hp', 'min:10', 'max:12'],
             'password' => ['required', 'string', 'min:8'],
         ], [
             'nama.unique' => 'Nama tersebut sudah digunakan oleh admin lain.',
+            'nama.regex' => 'Nama hanya boleh berisi huruf, angka, dan spasi.',
             'email.regex' => 'Email admin harus menggunakan @gmail.com.',
             'email.unique' => 'Email tersebut sudah digunakan oleh admin lain.',
             'no_hp.regex' => 'Nomor HP hanya boleh berisi angka.',
@@ -185,8 +186,12 @@ class SuperAdminManagementController extends Controller
         $destination = DestinasiWisata::findOrFail($data['id_destinasi']);
         $adminName = preg_replace('/^admin\s+/iu', '', trim($data['nama']));
         $normalizeName = static fn (string $name): string => mb_strtolower((string) preg_replace('/\s+/u', ' ', trim($name)));
-        if ($normalizeName($adminName) !== $normalizeName($destination->nama_wisata)) {
-            return back()->withInput()->withErrors(['id_destinasi' => 'Destinasi tugas harus sesuai dengan nama admin. Contoh: Admin Teluk Love memilih destinasi Teluk Love.']);
+        $normalizedAdminName = $normalizeName($adminName);
+        $normalizedDestinationName = $normalizeName($destination->nama_wisata);
+        $matchesDestination = $normalizedAdminName === $normalizedDestinationName
+            || str_ends_with($normalizedDestinationName, ' '.$normalizedAdminName);
+        if (! $matchesDestination) {
+            return back()->withInput()->withErrors(['id_destinasi' => 'Nama admin harus sesuai dengan destinasi.']);
         }
         AdminPariwisata::create([
             ...$data,

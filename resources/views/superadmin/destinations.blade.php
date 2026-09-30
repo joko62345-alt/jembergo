@@ -153,8 +153,9 @@
             <div class="dialog-header">
                 <div><span class="page-kicker text-danger">Tindakan permanen</span>
                     <h2 id="delete-destination-title">Hapus destinasi?</h2>
-                    <p>Anda akan menghapus <strong id="delete-destination-name"></strong>. Data yang
-                        sudah dihapus tidak dapat dikembalikan.</p>
+                    <p>Destinasi <strong id="delete-destination-name"></strong>, akun Admin
+                        Pariwisata, pesanan, tiket, pembayaran, dan ulasan terkait akan dihapus
+                        permanen. Tindakan ini tidak dapat dibatalkan.</p>
                 </div><button type="button" class="dialog-close" data-close-dialog
                     aria-label="Tutup dialog"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
             </div>
@@ -482,7 +483,7 @@
                     let error = anchor.nextElementSibling;
                     if (!error?.matches('[data-required-feedback]')) {
                         error = document.createElement('small');
-                        error.className = 'form-required-error d-block text-danger';
+                        error.className = 'form-required-error text-danger';
                         error.dataset.requiredFeedback = '';
                         error.id = `${form.id || 'destination-form'}-${currentFormIndex}` +
                             `-required-error-${++requiredErrorIndex}`;
@@ -492,6 +493,7 @@
                         .placeholder?.replace(/^Masukkan\s+/, '') || 'Isian ini';
                     error.textContent = `${label} wajib diisi.`;
                     error.hidden = !shouldShow;
+                    error.classList.toggle('d-block', shouldShow);
                     field.classList.toggle('is-invalid', shouldShow);
                     field.setAttribute('aria-invalid', shouldShow ? 'true' : 'false');
                     const describedBy = new Set((field.getAttribute('aria-describedby') || '')
@@ -570,7 +572,7 @@
                         'true';
                     const isDuplicate = Boolean(name) && existingNames.includes(name) &&
                         name !== currentName;
-                    const hasInvalidCharacters = /[^\p{L}\s]/u.test(nameInput?.value ||
+                    const hasInvalidCharacters = /[^\p{L}\p{N}\s]/u.test(nameInput?.value ||
                         '');
                     if (warning) {
                         warning.hidden = !isDuplicate && !hasInvalidCharacters &&
@@ -580,12 +582,12 @@
                     }
                     if (warningText) warningText.textContent = isRequiredError ?
                         'Nama destinasi wajib diisi.' : hasInvalidCharacters ?
-                            'Hanya huruf dan spasi yang diperbolehkan.' :
+                            'Hanya huruf, angka, dan spasi yang diperbolehkan.' :
                             'Destinasi sudah ada. Gunakan nama yang berbeda.';
                     nameInput?.classList.toggle('is-invalid', isDuplicate ||
                         hasInvalidCharacters || isRequiredError);
                     nameInput?.setCustomValidity(hasInvalidCharacters ?
-                        'Hanya huruf dan spasi yang diperbolehkan.' : (isDuplicate ?
+                        'Hanya huruf, angka, dan spasi yang diperbolehkan.' : (isDuplicate ?
                             'Destinasi sudah ada. Gunakan nama yang berbeda.' : ''));
                     if (submitButton && !submitButton.dataset.submitting) submitButton
                         .disabled = isDuplicate || hasInvalidCharacters;

@@ -10,6 +10,7 @@ use App\Models\JenisTiket;
 use App\Models\Pemesanan;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -55,9 +56,15 @@ class SuperAdminController extends Controller
 
     public function destroyDestination(int $id): RedirectResponse
     {
-        DestinasiWisata::findOrFail($id)->delete();
+        DB::transaction(function () use ($id): void {
+            $destination = DestinasiWisata::query()->lockForUpdate()->findOrFail($id);
+            $destination->review()->delete();
+            $destination->pemesanan()->delete();
+            $destination->adminPariwisata()->delete();
+            $destination->delete();
+        });
 
-        return back()->with('success', 'Destinasi berhasil dihapus.');
+        return back()->with('success', 'Destinasi dan seluruh data terkait berhasil dihapus permanen.');
     }
 
     public function destroyTicketType(int $destination, int $ticket): RedirectResponse
@@ -122,7 +129,7 @@ class SuperAdminController extends Controller
                 'required',
                 'string',
                 'max:150',
-                'regex:/^[\p{L}\s]+$/u',
+                'regex:/^[\p{L}\p{N}\s]+$/u',
                 Rule::unique('destinasi_wisata', 'nama_wisata')->ignore($destinationId, 'id_destinasi'),
             ],
             'foto_utama' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
@@ -147,7 +154,7 @@ class SuperAdminController extends Controller
             'status_aktif' => ['nullable', 'boolean'],
         ], [
             'nama_wisata.unique' => 'Destinasi dengan nama tersebut sudah terdaftar.',
-            'nama_wisata.regex' => 'Nama destinasi hanya boleh berisi huruf dan spasi.',
+            'nama_wisata.regex' => 'Nama destinasi hanya boleh berisi huruf, angka, dan spasi.',
         ]);
     }
 

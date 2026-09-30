@@ -18,8 +18,16 @@
                         class="row g-3">@csrf
                         <div class="col-md-6"><label class="form-label"
                                 for="nama">Nama</label><input id="nama" name="nama"
-                                class="form-control" placeholder="Masukkan Nama"
-                                value="{{ old('nama') }}" required><small id="nama_warning"
+                                class="form-control @error('nama') is-invalid @enderror"
+                                placeholder="Masukkan Nama" value="{{ old('nama') }}" required>
+                            <small id="nama_format_warning" class="text-danger" role="alert"
+                                @if (!$errors->has('nama')) hidden @endif>
+                                @error('nama')
+                                    {{ $message }}
+                                @else
+                                    Nama hanya boleh berisi huruf, angka, dan spasi.
+                                @enderror
+                            </small><small id="nama_warning"
                                 class="text-danger" hidden>Nama tersebut sudah digunakan oleh admin
                                 lain.</small></div>
                         <div class="col-md-6"><label class="form-label"
@@ -60,7 +68,7 @@
                                 @error('id_destinasi')
                                     {{ $message }}
                                 @else
-                                    Destinasi tugas harus sesuai dengan nama admin.
+                                    Nama admin harus sesuai dengan destinasi.
                                 @enderror
                             </small></div>
                         <div class="col-12"><button class="btn btn-warning" type="submit">Simpan akun
@@ -75,12 +83,6 @@
     <script>
         const existingAdmins = @js($existingAdmins);
         const duplicateFields = [{
-                input: document.getElementById('nama'),
-                warning: document.getElementById('nama_warning'),
-                key: 'nama',
-                message: 'Nama tersebut sudah digunakan oleh admin lain.'
-            },
-            {
                 input: document.getElementById('email'),
                 warning: document.getElementById('email_warning'),
                 key: 'email',
@@ -88,6 +90,27 @@
             },
         ];
         const normalizeDuplicateValue = (value) => String(value || '').trim().toLowerCase();
+        const nameInput = document.getElementById('nama');
+        const nameFormatWarning = document.getElementById('nama_format_warning');
+        const nameWarning = document.getElementById('nama_warning');
+        const validateAdminName = () => {
+            const name = nameInput?.value || '';
+            const hasValue = Boolean(name.trim());
+            const invalidFormat = hasValue && !/^[\p{L}\p{N}\s]+$/u.test(name);
+            const duplicate = hasValue && existingAdmins.some((admin) => normalizeDuplicateValue(
+                admin.nama) === normalizeDuplicateValue(name));
+            const formatMessage = 'Nama hanya boleh berisi huruf, angka, dan spasi.';
+            const duplicateMessage = 'Nama tersebut sudah digunakan oleh admin lain.';
+            nameInput?.classList.toggle('is-invalid', invalidFormat || duplicate);
+            nameInput?.setCustomValidity(invalidFormat ? formatMessage : (duplicate ? duplicateMessage : ''));
+            if (nameFormatWarning) {
+                nameFormatWarning.textContent = formatMessage;
+                nameFormatWarning.hidden = !invalidFormat;
+            }
+            if (nameWarning) {
+                nameWarning.hidden = !duplicate || invalidFormat;
+            }
+        };
         const emailInput = document.getElementById('email');
         const emailWarning = document.getElementById('email_warning');
         const validateAdminEmail = () => {
@@ -111,10 +134,13 @@
         const validateAdminDestination = () => {
             const selectedDestination = destinationInput?.selectedOptions[0]?.dataset
                 .destinationName || '';
-            const hasMismatch = Boolean(document.getElementById('nama')?.value.trim() &&
-                selectedDestination) && normalizeDestinationName(document.getElementById('nama')
-                .value) !== normalizeDestinationName(selectedDestination);
-            const message = 'Destinasi  harus sesuai dengan nama admin.';
+            const normalizedAdminName = normalizeDestinationName(nameInput?.value);
+            const normalizedDestinationName = normalizeDestinationName(selectedDestination);
+            const matchesDestination = normalizedAdminName === normalizedDestinationName ||
+                normalizedDestinationName.endsWith(` ${normalizedAdminName}`);
+            const hasMismatch = Boolean(normalizedAdminName && selectedDestination) &&
+                !matchesDestination;
+            const message = 'Nama admin harus sesuai dengan destinasi.';
             destinationInput?.classList.toggle('is-invalid', hasMismatch);
             destinationInput?.setCustomValidity(hasMismatch ? message : '');
             if (destinationWarning) {
@@ -140,8 +166,10 @@
             input
         }) => input?.addEventListener('input', validateDuplicates));
         emailInput?.addEventListener('input', validateAdminEmail);
-        document.getElementById('nama')?.addEventListener('input', validateAdminDestination);
+        nameInput?.addEventListener('input', validateAdminName);
+        nameInput?.addEventListener('input', validateAdminDestination);
         destinationInput?.addEventListener('change', validateAdminDestination);
+        validateAdminName();
         validateDuplicates();
         validateAdminEmail();
         validateAdminDestination();
@@ -179,11 +207,13 @@
         adminPhoneInput?.addEventListener('input', validateAdminPhone);
         adminPhoneInput?.form.addEventListener('submit', (event) => {
             validateDuplicates();
+            validateAdminName();
             validateAdminEmail();
             validateAdminPhone();
             validateAdminDestination();
             if (/[^0-9]/.test(adminPhoneInput.value) || adminPhoneInput.value.length < 10 ||
-                adminPhoneInput.value.length > 12 || duplicateFields.some(({
+                adminPhoneInput.value.length > 12 || nameInput?.validity.customError ||
+                duplicateFields.some(({
                     input
                 }) => input.validity.customError) || destinationInput?.validity.customError)
                 event.preventDefault();

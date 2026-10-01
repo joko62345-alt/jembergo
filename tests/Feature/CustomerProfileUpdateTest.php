@@ -27,6 +27,7 @@ class CustomerProfileUpdateTest extends TestCase
         ];
         $invalidInputs = [
             ['field' => 'nama', 'value' => 'Nama1'],
+            ['field' => 'nama', 'value' => str_repeat('A', 101)],
             ['field' => 'email', 'value' => 'customer@example.com'],
             ['field' => 'no_hp', 'value' => '08123abc'],
             ['field' => 'no_hp', 'value' => '123456789'],
@@ -65,7 +66,7 @@ class CustomerProfileUpdateTest extends TestCase
             'auth_provider' => 'manual',
         ]);
 
-        foreach (['0812345678', '081234567890'] as $phoneNumber) {
+        foreach (['0812345678', '081234567890', '+6281234567890'] as $phoneNumber) {
             $response = $this->withSession([
                 'jg_user_id' => $customer->id_customer,
                 'jg_role' => 'CUSTOMER',

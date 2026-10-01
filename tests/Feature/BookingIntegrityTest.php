@@ -53,7 +53,7 @@ class BookingIntegrityTest extends TestCase
             ->post(route('customer.booking.store', $destination->id_destinasi), [
                 'ketua_nama' => 'Citra Sari',
                 'ketua_email' => 'citra.sari@gmail.com',
-                'ketua_no_hp' => '081234567893',
+                'ketua_no_hp' => '+6281234567893',
                 'tanggal_kunjungan' => now()->addDay()->toDateString(),
                 'peserta' => [[
                     'nama' => 'Citra Sari',
@@ -66,7 +66,7 @@ class BookingIntegrityTest extends TestCase
             'id_customer' => $customer->id_customer,
             'ketua_nama' => 'Citra Sari',
             'ketua_email' => 'citra.sari@gmail.com',
-            'ketua_no_hp' => '081234567893',
+            'ketua_no_hp' => '+6281234567893',
         ]);
     }
 

@@ -171,17 +171,15 @@ class SuperAdminManagementController extends Controller
             'id_destinasi' => ['required', 'exists:destinasi_wisata,id_destinasi'],
             'nama' => ['required', 'string', 'max:150', 'regex:/^[\p{L}\p{N}\s]+$/u', 'unique:admin_pariwisata,nama'],
             'email' => ['required', 'email', 'regex:/@gmail\.com$/i', 'unique:admin_pariwisata,email'],
-            'no_hp' => ['required', 'regex:/^[0-9]+$/', 'unique:admin_pariwisata,no_hp', 'min:10', 'max:12'],
+            'no_hp' => ['required', 'regex:/^[0-9]{10,12}$/', 'unique:admin_pariwisata,no_hp'],
             'password' => ['required', 'string', 'min:8'],
         ], [
             'nama.unique' => 'Nama tersebut sudah digunakan oleh admin lain.',
             'nama.regex' => 'Nama hanya boleh berisi huruf, angka, dan spasi.',
             'email.regex' => 'Email admin harus menggunakan @gmail.com.',
             'email.unique' => 'Email tersebut sudah digunakan oleh admin lain.',
-            'no_hp.regex' => 'Nomor HP hanya boleh berisi angka.',
+            'no_hp.regex' => 'Nomor HP harus berisi 10 sampai 12 angka.',
             'no_hp.unique' => 'Nomor HP tersebut sudah digunakan oleh admin pariwisata lain.',
-            'no_hp.min' => 'Nomor HP minimal 10 angka.',
-            'no_hp.max' => 'Nomor HP maksimal 12 angka.',
         ]);
         $destination = DestinasiWisata::findOrFail($data['id_destinasi']);
         $adminName = preg_replace('/^admin\s+/iu', '', trim($data['nama']));

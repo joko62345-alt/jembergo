@@ -124,7 +124,7 @@ class SuperAdminController extends Controller
                 : $request->input('jam_operasional'),
         ]);
 
-        return $request->validate([
+        $data = $request->validate([
             'nama_wisata' => [
                 'required',
                 'string',
@@ -156,6 +156,10 @@ class SuperAdminController extends Controller
             'nama_wisata.unique' => 'Destinasi dengan nama tersebut sudah terdaftar.',
             'nama_wisata.regex' => 'Nama destinasi hanya boleh berisi huruf, angka, dan spasi.',
         ]);
+
+        unset($data['foto_utama']);
+
+        return $data;
     }
 
     private function syncAmenities(Request $request, DestinasiWisata $destination): void

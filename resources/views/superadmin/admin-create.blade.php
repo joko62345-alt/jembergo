@@ -38,7 +38,8 @@
                                 @gmail.com.</small></div>
                         <div class="col-md-6"><label class="form-label" for="no_hp">Nomor
                                 HP</label><input id="no_hp" name="no_hp" type="tel"
-                                inputmode="numeric" pattern="[0-9]+" class="form-control"
+                                inputmode="numeric" pattern="[0-9]{10,12}" minlength="10"
+                                maxlength="12" class="form-control"
                                 placeholder="Masukkan Nomor HP" value="{{ old('no_hp') }}"
                                 required><small id="no_hp_format_warning" class="text-danger"
                                 hidden></small><small id="no_hp_warning" class="text-danger"
@@ -177,25 +178,25 @@
         const adminPhoneFormatWarning = document.getElementById('no_hp_format_warning');
         const adminPhoneWarning = document.getElementById('no_hp_warning');
         const validateAdminPhone = () => {
-            const invalid = /[^0-9]/.test(adminPhoneInput.value);
-            const tooShort = adminPhoneInput.value.length > 0 && adminPhoneInput.value.length < 10;
-            const tooLong = adminPhoneInput.value.length > 12;
+            const invalid = adminPhoneInput.value.length > 0 &&
+                !/^[0-9]{10,12}$/.test(adminPhoneInput.value);
             const duplicate = Boolean(adminPhoneInput.value.trim()) && existingAdmins.some((
                 admin) => normalizeDuplicateValue(admin.no_hp) === normalizeDuplicateValue(
                 adminPhoneInput.value));
-            const formatMessage = invalid ? 'Nomor HP hanya boleh berisi angka.' : (tooShort ?
-                'Nomor HP minimal 10 angka.' : (tooLong ? 'Nomor HP maksimal 12 angka.' : ''));
+            const formatMessage = invalid ?
+                'Nomor HP harus berisi 10 sampai 12 angka.' : '';
             const duplicateMessage =
                 'Nomor HP tersebut sudah digunakan oleh admin pariwisata lain.';
             adminPhoneInput.setCustomValidity(formatMessage || (duplicate ? duplicateMessage : ''));
-            adminPhoneInput.classList.toggle('is-invalid', invalid || tooShort || tooLong ||
+            adminPhoneInput.classList.toggle('is-invalid', invalid ||
                 duplicate);
             adminPhoneFormatWarning.textContent = formatMessage;
             adminPhoneFormatWarning.hidden = !formatMessage;
             adminPhoneWarning.hidden = !duplicate || Boolean(formatMessage);
         };
         adminPhoneInput?.addEventListener('keydown', (event) => {
-            if (event.key.length === 1 && !/[0-9]/.test(event.key)) {
+            if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey &&
+                !/[0-9]/.test(event.key)) {
                 event.preventDefault();
                 adminPhoneFormatWarning.textContent = 'Nomor HP hanya boleh berisi angka.';
                 adminPhoneFormatWarning.hidden = false;
@@ -211,8 +212,9 @@
             validateAdminEmail();
             validateAdminPhone();
             validateAdminDestination();
-            if (/[^0-9]/.test(adminPhoneInput.value) || adminPhoneInput.value.length < 10 ||
-                adminPhoneInput.value.length > 12 || nameInput?.validity.customError ||
+            if ((adminPhoneInput.value &&
+                    !/^[0-9]{10,12}$/.test(adminPhoneInput.value)) ||
+                nameInput?.validity.customError ||
                 duplicateFields.some(({
                     input
                 }) => input.validity.customError) || destinationInput?.validity.customError)

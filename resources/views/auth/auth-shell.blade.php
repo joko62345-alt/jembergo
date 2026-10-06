@@ -530,14 +530,16 @@
                             <div class="auth-field"><label for="register-name">Nama
                                     Lengkap</label><input id="register-name" name="nama"
                                     class="form-control" placeholder="Nama lengkap"
-                                    value="{{ old('nama') }}" required pattern="[\p{L}\s]+"
+                                    value="{{ old('nama') }}" required maxlength="100"
+                                    pattern="[\p{L}\s]+"
                                     data-register-name><small class="auth-field-warning"
                                     data-register-name-warning hidden></small></div>
                             <div class="auth-field"><label for="register-phone">Nomor
                                     Telepon</label><input id="register-phone" name="no_hp"
                                     type="tel" class="form-control"
                                     placeholder="Masukkan Nomor Telepone"
-                                    value="{{ old('no_hp') }}" inputmode="numeric" minlength="10"
+                                    value="{{ old('no_hp') }}" inputmode="tel"
+                                    pattern="(?:[0-9]{10,12}|\+[0-9]{10,15})" maxlength="16"
                                     required data-register-phone><small class="auth-field-warning"
                                     data-register-phone-warning hidden></small></div>
                             <div class="auth-field"><label for="register-email">Email</label><input
@@ -619,12 +621,8 @@
         };
         const validateRegisterPhone = () => {
             const value = registerPhoneInput.value;
-            const invalidCharacters = /[^0-9]/.test(value);
-            const message = invalidCharacters ? 'Nomor telepon hanya boleh berisi angka.' : value
-                .length > 0 && value.length < 10 ? 'Nomor telepon minimal 10 angka.' : value
-                .length > 12 ? 'Nomor telepon maksimal 12 angka.' : '';
-            const invalid = invalidCharacters || (value.length > 0 && value.length < 10) || value
-                .length > 12;
+            const invalid = value.length > 0 && !/^(?:[0-9]{10,12}|\+[0-9]{10,15})$/.test(value);
+            const message = invalid ? 'Gunakan 10-12 digit lokal atau awali + untuk nomor internasional (maksimal 15 digit).' : '';
             registerPhoneInput.classList.toggle('is-invalid', invalid);
             registerPhoneInput.setCustomValidity(message);
             registerPhoneWarning.textContent = message;
@@ -633,12 +631,15 @@
         registerNameInput?.addEventListener('input', validateRegisterName);
         registerPhoneInput?.addEventListener('input', validateRegisterPhone);
         registerPhoneInput?.addEventListener('keydown', event => {
-            if (event.key.length === 1 && !/[0-9]/.test(event.key)) {
+            const isLeadingPlus = event.key === '+' && event.target.selectionStart === 0 &&
+                !event.target.value.includes('+');
+            if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey &&
+                !/[0-9]/.test(event.key) && !isLeadingPlus) {
                 event.preventDefault();
-                registerPhoneWarning.textContent = 'Nomor telepon hanya boleh berisi angka.';
+                registerPhoneWarning.textContent = 'Gunakan angka dan tanda + hanya di awal nomor.';
                 registerPhoneWarning.hidden = false;
                 registerPhoneInput.classList.add('is-invalid');
-                registerPhoneInput.setCustomValidity('Nomor telepon hanya boleh berisi angka.');
+                registerPhoneInput.setCustomValidity('Gunakan angka dan tanda + hanya di awal nomor.');
             }
         });
         registerNameInput && validateRegisterName();

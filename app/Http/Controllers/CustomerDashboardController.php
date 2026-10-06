@@ -49,15 +49,14 @@ class CustomerDashboardController extends Controller
         abort_unless(Schema::hasTable('customer') && session()->has('jg_user_id'), 401, 'Sesi customer tidak ditemukan. Silakan login kembali.');
         $customer = Customer::where('id_customer', session('jg_user_id'))->firstOrFail();
         $data = $request->validate([
-            'nama' => ['required', 'string', 'max:150', 'regex:/^[\p{L}\s]+$/u'],
+            'nama' => ['required', 'string', 'max:100', 'regex:/^[\p{L}\s]+$/u'],
             'email' => ['required', 'email', 'regex:/@gmail\.com$/i', 'unique:customer,email,'.$customer->id_customer.',id_customer'],
-            'no_hp' => ['nullable', 'regex:/^[0-9]+$/', 'digits_between:10,12'],
+            'no_hp' => ['nullable', 'regex:/^(?:[0-9]{10,12}|\+[0-9]{10,15})$/'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ], [
             'nama.regex' => 'Nama hanya boleh berisi huruf dan spasi.',
             'email.regex' => 'Email harus menggunakan alamat @gmail.com.',
-            'no_hp.regex' => 'Nomor WhatsApp hanya boleh berisi angka.',
-            'no_hp.digits_between' => 'Nomor WhatsApp harus berisi 10 sampai 12 angka.',
+            'no_hp.regex' => 'Gunakan 10-12 digit lokal atau awali + untuk nomor internasional (maksimal 15 digit).',
         ]);
         if (! empty($data['password'])) {
             $data['password'] = Hash::make($data['password']);

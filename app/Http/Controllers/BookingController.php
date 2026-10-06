@@ -72,7 +72,7 @@ class BookingController extends Controller
             ],
             'ketua_nama' => ['required', 'string', 'max:150', 'regex:/^[\p{L}\s]+$/u'],
             'ketua_email' => ['required', 'email', 'max:150', 'regex:/@gmail\.com$/i'],
-            'ketua_no_hp' => ['required', 'digits_between:10,12'],
+            'ketua_no_hp' => ['required', 'regex:/^(?:[0-9]{10,12}|\+[0-9]{10,15})$/'],
             'peserta' => ['required', 'array', 'min:1', 'max:10'],
             'peserta.*.nama' => ['required', 'string', 'max:150', 'regex:/^[\p{L}\s]+$/u'],
             'peserta.*.id_jenis_tiket' => ['required', 'integer', 'exists:jenis_tiket,id_jenis_tiket'],
@@ -80,8 +80,7 @@ class BookingController extends Controller
             'tanggal_kunjungan.before_or_equal' => 'Tanggal kunjungan maksimal 2 bulan dari hari ini.',
             'ketua_nama.regex' => 'Nama lengkap hanya boleh berisi huruf dan spasi.',
             'ketua_email.regex' => 'Email harus menggunakan alamat @gmail.com.',
-            'ketua_no_hp.digits_between' => 'Nomor telepon harus berisi 10 sampai 12 angka.',
-            'ketua_no_hp.digits' => 'Nomor telepon hanya boleh berisi angka.',
+            'ketua_no_hp.regex' => 'Gunakan 10-12 digit lokal atau awali + untuk nomor internasional (maksimal 15 digit).',
             'peserta.*.nama.regex' => 'Nama peserta hanya boleh berisi huruf dan spasi.',
         ]);
         $participants = collect($data['peserta']);

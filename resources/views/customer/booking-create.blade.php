@@ -59,7 +59,8 @@
                                         <div class="col-md-6"><label class="form-label"
                                                 for="ketua_no_hp">Nomor WhatsApp</label><input
                                                 id="ketua_no_hp" name="ketua_no_hp" type="tel"
-                                                inputmode="numeric" value="{{ old('ketua_no_hp', $customer->no_hp) }}"
+                                                inputmode="tel" pattern="(?:[0-9]{10,12}|\+[0-9]{10,15})"
+                                                maxlength="16" value="{{ old('ketua_no_hp', $customer->no_hp) }}"
                                                 class="form-control" placeholder="Masukkan nomor anda"
                                                 minlength="10" required data-booking-phone><small
                                                 class="booking-field-warning" data-booking-phone-warning
@@ -337,11 +338,10 @@
             const validateBookingPhone = () => {
                 const input = document.getElementById('ketua_no_hp');
                 const warning = document.querySelector('[data-booking-phone-warning]');
-                const invalidCharacters = /[^0-9]/.test(input.value);
-                const message = invalidCharacters ? 'Nomor telepon hanya boleh berisi angka.' :
-                    input.value.length > 0 && input.value.length < 10 ?
-                    'Nomor telepon minimal 10 angka.' : input.value.length > 12 ?
-                    'Nomor telepon maksimal 12 angka.' : '';
+                const invalid = input.value.length > 0 &&
+                    !/^(?:[0-9]{10,12}|\+[0-9]{10,15})$/.test(input.value);
+                const message = invalid ?
+                    'Gunakan 10-12 digit lokal atau awali + untuk nomor internasional (maksimal 15 digit).' : '';
                 showBookingValidation(input, warning, message);
             };
             const bookingForm = document.getElementById('bookingForm');
@@ -360,12 +360,15 @@
             document.getElementById('ketua_email').addEventListener('input', validateBookingEmail);
             document.getElementById('ketua_no_hp').addEventListener('input', validateBookingPhone);
             document.getElementById('ketua_no_hp').addEventListener('keydown', (event) => {
-                if (event.key.length === 1 && !/[0-9]/.test(event.key)) {
+                const isLeadingPlus = event.key === '+' && event.target.selectionStart === 0 &&
+                    !event.target.value.includes('+');
+                if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey &&
+                    !/[0-9]/.test(event.key) && !isLeadingPlus) {
                     event.preventDefault();
                     const input = document.getElementById('ketua_no_hp');
                     const warning = document.querySelector('[data-booking-phone-warning]');
                     showBookingValidation(input, warning,
-                        'Nomor telepon hanya boleh berisi angka.');
+                        'Gunakan angka dan tanda + hanya di awal nomor.');
                 }
             });
             bookingForm.addEventListener('submit', () => {

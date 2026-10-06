@@ -48,7 +48,7 @@
                             <div class="row g-3">
                                 <div class="col-md-6"><label class="form-label" for="nama">Nama
                                         lengkap</label><input id="nama" name="nama"
-                                        value="{{ old('nama', $customer->nama) }}"
+                                        value="{{ old('nama', $customer->nama) }}" maxlength="100"
                                     class="form-control @error('nama') is-invalid @enderror"
                                     placeholder="masukkan nama lengkap" required
                                     data-profile-name><small class="profile-field-warning"
@@ -65,7 +65,8 @@
                                 </div>
                                 <div class="col-md-6"><label class="form-label" for="no_hp">Nomor
                                     WhatsApp</label><input id="no_hp" name="no_hp" type="tel"
-                                    inputmode="numeric"
+                                    inputmode="tel" pattern="(?:[0-9]{10,12}|\+[0-9]{10,15})"
+                                    maxlength="16"
                                         value="{{ old('no_hp', $customer->no_hp) }}"
                                     class="form-control @error('no_hp') is-invalid @enderror"
                                     placeholder="masukkan nomor telepon " data-profile-phone><small
@@ -338,20 +339,21 @@
         const phoneInput = document.querySelector('[data-profile-phone]');
         const phoneWarning = document.querySelector('[data-profile-phone-warning]');
         const validatePhone = () => {
-            const message = /[^0-9]/.test(phoneInput.value) ?
-                'Nomor WhatsApp hanya boleh berisi angka.' :
-                phoneInput.value.length > 0 && phoneInput.value.length < 10 ?
-                'Nomor WhatsApp minimal 10 angka.' : phoneInput.value.length > 12 ?
-                'Nomor WhatsApp maksimal 12 angka.' : '';
+            const invalid = phoneInput.value.length > 0 &&
+                !/^(?:[0-9]{10,12}|\+[0-9]{10,15})$/.test(phoneInput.value);
+            const message = invalid ?
+                'Gunakan 10-12 digit lokal atau awali + untuk nomor internasional (maksimal 15 digit).' : '';
             showProfileValidation(phoneInput, phoneWarning, message);
         };
         phoneInput.addEventListener('input', validatePhone);
         phoneInput.addEventListener('keydown', (event) => {
+            const isLeadingPlus = event.key === '+' && event.target.selectionStart === 0 &&
+                !event.target.value.includes('+');
             if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey &&
-                !/[0-9]/.test(event.key)) {
+                !/[0-9]/.test(event.key) && !isLeadingPlus) {
                 event.preventDefault();
                 showProfileValidation(phoneInput, phoneWarning,
-                    'Nomor WhatsApp hanya boleh berisi angka.');
+                    'Gunakan angka dan tanda + hanya di awal nomor.');
             }
         });
 

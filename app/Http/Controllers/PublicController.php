@@ -20,6 +20,23 @@ class PublicController extends Controller
             'destinations' => $hasDestinationTable
                 ? DestinasiWisata::query()->where('status_aktif', 'aktif')->with(['galeri', 'jenisTiket'])->withAvg('review', 'rating')->latest('id_destinasi')->take(5)->get()
                 : collect(),
+            'mapDestinations' => $hasDestinationTable
+                ? DestinasiWisata::query()
+                    ->where('status_aktif', 'aktif')
+                    ->whereNotNull('latitude')
+                    ->whereNotNull('longitude')
+                    ->latest('id_destinasi')
+                    ->get(['id_destinasi', 'nama_wisata', 'kategori', 'alamat', 'latitude', 'longitude'])
+                    ->map(fn (DestinasiWisata $destination): array => [
+                        'name' => $destination->nama_wisata,
+                        'category' => $destination->kategori,
+                        'address' => $destination->alamat,
+                        'latitude' => (float) $destination->latitude,
+                        'longitude' => (float) $destination->longitude,
+                        'url' => route('destinations.show', $destination->id_destinasi),
+                    ])
+                    ->values()
+                : collect(),
             'articles' => $hasArticleTable
                 ? Artikel::query()->where('status', 'PUBLISHED')->latest('tanggal_publikasi')->take(3)->get()
                 : collect(),

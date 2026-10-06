@@ -81,7 +81,7 @@
                                             {{ $slide['eyebrow'] }}</span>
                                         <h1 class="hero-title mt-3">“{{ $slide['title'] }}”</h1>
                                         <p class="lead">{{ $slide['copy'] }}</p>
-                                        <div class="d-flex flex-wrap gap-3 mt-4">
+                                        <div class="hero-actions d-flex flex-wrap gap-3 mt-4">
                                             <a href="{{ route('destinations.index') }}"
                                                 class="btn btn-jg-primary btn-lg">Mulai Eksplorasi <i
                                                     class="bi bi-arrow-right"></i></a>
@@ -319,6 +319,50 @@
             </div>
         </section>
 
+        <section id="peta-wisata" class="section-pad" data-reveal-section>
+            <div class="container">
+                <div class="section-heading d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+                    <div>
+                        <span class="eyebrow text-orange">Jelajahi Jember</span>
+                        <h2 class="mt-2 mb-0">Peta <em>Wisata</em></h2>
+                    </div>
+                    <a href="{{ route('destinations.index') }}" class="text-dark text-decoration-none fw-semibold">
+                        Semua destinasi <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                </div>
+
+                <div class="tourism-map-tools">
+                    <label class="tourism-map-search">
+                        <i class="bi bi-search" aria-hidden="true"></i>
+                        <input id="tourism-map-search" type="search" placeholder="Cari nama wisata..."
+                            aria-label="Cari nama wisata di peta">
+                    </label>
+                    <label class="tourism-map-category">
+                        <span class="visually-hidden">Filter kategori</span>
+                        <select id="tourism-map-category" aria-label="Filter kategori wisata">
+                            <option value="">Semua kategori</option>
+                        </select>
+                    </label>
+                    <span id="tourism-map-count" class="tourism-map-count" aria-live="polite"></span>
+                </div>
+
+                <div class="tourism-map-frame">
+                    <div id="tourism-map" role="region" aria-label="Peta destinasi wisata Jember"></div>
+                    @if ($mapDestinations->isEmpty())
+                        <div class="tourism-map-empty">Belum ada destinasi aktif dengan koordinat untuk ditampilkan.</div>
+                    @endif
+                </div>
+                <div class="tourism-map-legend" aria-label="Kategori wisata">
+                    <span><i class="bi bi-geo-alt-fill tourism-map-legend-icon tourism-map-legend-icon-alam"
+                            aria-hidden="true"></i>Alam</span>
+                    <span><i class="bi bi-geo-alt-fill tourism-map-legend-icon tourism-map-legend-icon-bahari"
+                            aria-hidden="true"></i>Bahari</span>
+                    <span><i class="bi bi-geo-alt-fill tourism-map-legend-icon tourism-map-legend-icon-buatan"
+                            aria-hidden="true"></i>Buatan</span>
+                </div>
+            </div>
+        </section>
+
         <!-- CTA Section -->
         <section class="section-pad" data-reveal-section>
             <div class="container">
@@ -340,8 +384,229 @@
     </main>
 
     <x-public-footer />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        .tourism-map-tools {
+            display: grid;
+            grid-template-columns: minmax(220px, 1fr) minmax(170px, 240px) auto;
+            gap: .75rem;
+            align-items: center;
+            margin-bottom: .85rem;
+        }
+
+        .tourism-map-search,
+        .tourism-map-category {
+            display: flex;
+            min-height: 44px;
+            align-items: center;
+            gap: .65rem;
+            border: 1px solid var(--jg-border);
+            border-radius: .5rem;
+            background: #fff;
+            color: var(--jg-text);
+            padding: 0 .8rem;
+        }
+
+        .tourism-map-search input,
+        .tourism-map-category select {
+            width: 100%;
+            min-width: 0;
+            border: 0;
+            outline: 0;
+            background: transparent;
+            color: var(--jg-dark);
+        }
+
+        .tourism-map-count {
+            color: var(--jg-text);
+            font-size: .9rem;
+            text-align: right;
+        }
+
+        .tourism-map-frame {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--jg-border);
+            border-radius: .65rem;
+            background: #e7edf0;
+        }
+
+        #tourism-map {
+            z-index: 0;
+            width: 100%;
+            height: 500px;
+        }
+
+        .tourism-map-empty {
+            position: absolute;
+            z-index: 500;
+            inset: auto 1rem 1rem;
+            border-radius: .4rem;
+            background: #fff;
+            padding: .65rem .8rem;
+            color: var(--jg-text);
+            text-align: center;
+        }
+
+        .tourism-map-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: .8rem;
+            color: var(--jg-text);
+            font-size: .9rem;
+        }
+
+        .tourism-map-legend span {
+            display: inline-flex;
+            align-items: center;
+            gap: .4rem;
+        }
+
+        .tourism-map-legend-icon {
+            font-size: 1rem;
+            line-height: 1;
+        }
+
+        .tourism-map-legend-icon-alam { color: #168a62; }
+        .tourism-map-legend-icon-bahari { color: #1685b5; }
+        .tourism-map-legend-icon-buatan { color: #e47b16; }
+
+        .tourism-map-marker {
+            border: 0;
+            background: transparent;
+        }
+
+        .tourism-map-marker-icon {
+            font-size: 2rem;
+            filter: drop-shadow(0 1px 2px rgba(15, 39, 71, .45));
+            line-height: 1;
+        }
+
+        .tourism-map-popup-title {
+            margin: 0 0 .2rem;
+            color: #1f2937;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .tourism-map-popup-category,
+        .tourism-map-popup-address {
+            margin: 0 0 .45rem;
+            color: #64748b;
+        }
+
+        @media (max-width: 640px) {
+            .tourism-map-tools {
+                grid-template-columns: 1fr;
+            }
+
+            .tourism-map-count {
+                text-align: left;
+            }
+
+            #tourism-map {
+                height: 390px;
+            }
+        }
+    </style>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         (() => {
+            const locations = @json($mapDestinations);
+            const mapElement = document.getElementById('tourism-map');
+            const searchInput = document.getElementById('tourism-map-search');
+            const categorySelect = document.getElementById('tourism-map-category');
+            const resultCount = document.getElementById('tourism-map-count');
+            const map = L.map(mapElement).setView([-8.17, 113.70], 10);
+            const markerLayer = L.featureGroup().addTo(map);
+            const markerColors = {
+                Alam: '#168a62',
+                Bahari: '#1685b5',
+                Buatan: '#e47b16'
+            };
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+
+            [...new Set(locations.map((location) => location.category).filter(Boolean))]
+                .sort((first, second) => first.localeCompare(second, 'id'))
+                .forEach((category) => {
+                    const option = document.createElement('option');
+                    option.value = category;
+                    option.textContent = category;
+                    categorySelect.append(option);
+                });
+
+            const createPopup = (location) => {
+                const content = document.createElement('div');
+                const title = document.createElement('p');
+                title.className = 'tourism-map-popup-title';
+                title.textContent = location.name;
+                content.append(title);
+
+                const category = document.createElement('p');
+                category.className = 'tourism-map-popup-category';
+                category.textContent = location.category || 'Wisata';
+                content.append(category);
+
+                if (location.address) {
+                    const address = document.createElement('p');
+                    address.className = 'tourism-map-popup-address';
+                    address.textContent = location.address;
+                    content.append(address);
+                }
+
+                const link = document.createElement('a');
+                link.href = location.url;
+                link.textContent = 'Lihat detail';
+                link.className = 'fw-semibold text-decoration-none';
+                content.append(link);
+
+                return content;
+            };
+
+            const renderMarkers = () => {
+                const query = searchInput.value.trim().toLocaleLowerCase('id');
+                const selectedCategory = categorySelect.value;
+                const visibleLocations = locations.filter((location) => {
+                    const matchesName = location.name.toLocaleLowerCase('id').includes(query);
+                    const matchesCategory = !selectedCategory || location.category === selectedCategory;
+
+                    return matchesName && matchesCategory;
+                });
+
+                markerLayer.clearLayers();
+                visibleLocations.forEach((location) => {
+                    const markerColor = markerColors[location.category] || '#d94a48';
+                    const marker = L.marker([location.latitude, location.longitude], {
+                        icon: L.divIcon({
+                            className: 'tourism-map-marker',
+                            html: `<i class="bi bi-geo-alt-fill tourism-map-marker-icon" style="color: ${markerColor}" aria-hidden="true"></i>`,
+                            iconSize: [30, 36],
+                            iconAnchor: [15, 36],
+                            popupAnchor: [0, -34]
+                        })
+                    }).bindPopup(createPopup(location));
+
+                    marker.addTo(markerLayer);
+                });
+
+                resultCount.textContent = `${visibleLocations.length} dari ${locations.length} destinasi`;
+
+                if (visibleLocations.length) {
+                    map.fitBounds(markerLayer.getBounds().pad(.12), { maxZoom: 13 });
+                } else {
+                    map.setView([-8.17, 113.70], 10);
+                }
+            };
+
+            searchInput.addEventListener('input', renderMarkers);
+            categorySelect.addEventListener('change', renderMarkers);
+            renderMarkers();
+
             const revealItems = document.querySelectorAll(
                 '[data-reveal-section], [data-reveal-item]');
             if (!('IntersectionObserver' in window)) {

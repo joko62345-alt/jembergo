@@ -15,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -123,10 +124,13 @@ class SuperAdminManagementController extends Controller
     public function article(Request $request): RedirectResponse
     {
         $data = $request->validate([
-            'judul' => ['required', 'string', 'max:200'],
-            'isi' => ['required', 'string'],
+            'judul' => ['required', 'string', 'max:200', Rule::unique('artikel', 'judul')],
+            'isi' => ['required', 'string', Rule::unique('artikel', 'isi')],
             'gambar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'status' => ['required', 'in:DRAFT,PUBLISHED'],
+        ], [
+            'judul.unique' => 'Judul artikel sudah digunakan.',
+            'isi.unique' => 'Isi artikel sudah digunakan.',
         ]);
         if ($request->hasFile('gambar')) {
             $path = $request->file('gambar')->store('articles', 'public');
@@ -147,10 +151,13 @@ class SuperAdminManagementController extends Controller
     {
         $article = Artikel::findOrFail($id);
         $data = $request->validate([
-            'judul' => ['required', 'string', 'max:200'],
-            'isi' => ['required', 'string'],
+            'judul' => ['required', 'string', 'max:200', Rule::unique('artikel', 'judul')->ignore($article->id_artikel, 'id_artikel')],
+            'isi' => ['required', 'string', Rule::unique('artikel', 'isi')->ignore($article->id_artikel, 'id_artikel')],
             'gambar' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'status' => ['required', 'in:DRAFT,PUBLISHED'],
+        ], [
+            'judul.unique' => 'Judul artikel sudah digunakan.',
+            'isi.unique' => 'Isi artikel sudah digunakan.',
         ]);
         unset($data['gambar']);
 

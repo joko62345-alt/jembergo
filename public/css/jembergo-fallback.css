@@ -220,6 +220,17 @@ em {
         margin-left: 0;
         padding: 0 1.25rem;
     }
+    .hero-carousel-item .hero-actions {
+        max-width: 18rem;
+        flex-direction: column;
+        gap: 0.65rem !important;
+        margin-top: 1.25rem !important;
+    }
+    .hero-carousel-item .hero-actions .btn {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
     .hero-carousel-overlay {
         background: linear-gradient(
             90deg,
@@ -1867,5 +1878,35 @@ em {
     .jg-logo-navbar {
         width: 48px;
         height: 48px;
+    }
+}
+
+@media (max-width: 991.98px) {
+    .jg-navbar #publicNav {
+        margin-top: 0.65rem;
+        padding-top: 0.55rem;
+        border-top: 1px solid var(--jg-border);
+    }
+
+    .jg-navbar #publicNav > .navbar-nav {
+        align-items: stretch !important;
+        margin-right: 0 !important;
+        margin-left: 0 !important;
+        padding-top: 0;
+    }
+
+    .jg-navbar #publicNav > .navbar-nav .nav-link {
+        text-align: left;
+    }
+
+    .jg-navbar #publicNav > .d-flex {
+        gap: 0.6rem;
+        padding-top: 0.65rem;
+    }
+
+    .jg-navbar #publicNav > .d-flex .btn {
+        flex: 0 0 calc((100% - 0.6rem) / 2);
+        justify-content: center;
+        min-width: 0;
     }
 }

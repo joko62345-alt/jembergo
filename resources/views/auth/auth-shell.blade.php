@@ -6,6 +6,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $authMode === 'register' ? 'Daftar' : 'Masuk' }} | JemberGo</title>
+    <link rel="icon" type="image/svg+xml" href="{{ route('assets.logo') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
@@ -80,11 +81,14 @@
         .auth-form-inner {
             width: min(100%, 360px);
             max-height: 100%;
+            text-align: center;
         }
 
         .auth-brand-mark {
-            display: inline-flex;
+            display: flex;
             align-items: center;
+            justify-content: center;
+            width: 100%;
             gap: .5rem;
             color: #123b78;
             text-decoration: none;
@@ -93,9 +97,11 @@
         }
 
         .auth-brand-mark img {
-            width: 132px;
-            height: 54px;
+            display: block;
+            width: 150px;
+            height: auto;
             object-fit: contain;
+            margin: 0 auto;
         }
 
         .auth-kicker {
@@ -396,8 +402,8 @@
             }
 
             .auth-brand-mark img {
-                width: 112px;
-                height: 45px;
+                width: 130px;
+                height: auto;
             }
 
             .auth-kicker {
@@ -462,7 +468,7 @@
             id="authShell">
             <div class="auth-panel auth-form-panel">
                 <div class="auth-form-inner">
-                    <a href="{{ route('home') }}" class="auth-brand-mark"><img
+                    <a href="{{ route('home') }}" class="auth-brand-mark" aria-label="Beranda JemberGo"><img
                             src="{{ route('assets.logo') }}" alt="JemberGo"></a>
                     <span class="auth-kicker d-block mt-4">Sistem Informasi dan Layanan Pariwisata
                         Kabupaten Jember</span>

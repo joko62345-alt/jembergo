@@ -1847,11 +1847,10 @@ em {
 }
 .jg-logo-navbar {
     position: static;
-    width: 58px;
-    height: 58px;
+    width: 116px;
+    height: auto;
     max-width: none;
-    transform: scale(2);
-    transform-origin: left center;
+    transform: none;
 }
 .jg-navbar .navbar-nav {
     align-items: center;
@@ -1876,8 +1875,8 @@ em {
         flex-basis: 150px;
     }
     .jg-logo-navbar {
-        width: 48px;
-        height: 48px;
+        width: 96px;
+        height: auto;
     }
 }
 

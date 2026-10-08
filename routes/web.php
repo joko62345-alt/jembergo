@@ -13,7 +13,8 @@ use App\Http\Controllers\SuperAdminManagementController;
 use App\Http\Controllers\VerificationController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/assets/jembergo-logo.png', fn () => response()->file(resource_path('images/logo.png')))->name('assets.logo');
+Route::get('/assets/jembergo-logo.png', fn () => response()->file(resource_path('images/logo.png')))->name('assets.logo.raster');
+Route::get('/assets/jembergo-logo.svg', fn () => response()->file(resource_path('images/logo.svg'), ['Content-Type' => 'image/svg+xml']))->name('assets.logo');
 Route::get('/assets/jembergo-hero.png', fn () => response()->file(resource_path('images/bg.png')))->name('assets.hero1');
 Route::get('/assets/jembergo-hero-2.png', fn () => response()->file(resource_path('images/hero2.png')))->name('assets.hero2');
 Route::get('/assets/jembergo-hero-3.png', fn () => response()->file(resource_path('images/hero3.png')))->name('assets.hero3');

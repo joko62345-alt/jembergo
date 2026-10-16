@@ -67,6 +67,7 @@ Route::middleware('role:CUSTOMER')->prefix('customer')->name('customer.')->group
     Route::get('/pemesanan/{id}/checkout', [BookingController::class, 'checkout'])->whereNumber('id')->name('checkout');
     Route::post('/pemesanan/{id}/bayar', [BookingController::class, 'pay'])->whereNumber('id')->name('payment');
     Route::get('/pemesanan/{id}/qris', [BookingController::class, 'qrisPayment'])->whereNumber('id')->name('qris');
+    Route::get('/pemesanan/{id}/qris/image', [BookingController::class, 'qrisImage'])->whereNumber('id')->name('qris.image');
     Route::post('/pemesanan/{id}/reschedule', [BookingController::class, 'reschedule'])->whereNumber('id')->name('reschedule');
     Route::post('/pemesanan/{id}/anggota', [BookingController::class, 'addMembers'])->whereNumber('id')->name('members.add');
     Route::get('/pemesanan/{id}/kelola', [BookingController::class, 'manage'])->whereNumber('id')->name('manage');
@@ -74,6 +75,7 @@ Route::middleware('role:CUSTOMER')->prefix('customer')->name('customer.')->group
     Route::get('/pemesanan/{id}/perubahan/{change}/bayar', [BookingController::class, 'additionalCheckout'])->whereNumber('id')->whereNumber('change')->name('change.checkout');
     Route::post('/pemesanan/{id}/perubahan/{change}/bayar', [BookingController::class, 'payAdditional'])->whereNumber('id')->whereNumber('change')->name('change.payment');
     Route::get('/pemesanan/{id}/perubahan/{change}/qris', [BookingController::class, 'additionalQrisPayment'])->whereNumber('id')->whereNumber('change')->name('change.qris');
+    Route::get('/pemesanan/{id}/perubahan/{change}/qris/image', [BookingController::class, 'additionalQrisImage'])->whereNumber('id')->whereNumber('change')->name('change.qris.image');
     Route::get('/pemesanan/{id}/e-ticket', [BookingController::class, 'ticket'])->whereNumber('id')->name('ticket');
     Route::get('/pemesanan/{id}/e-ticket/pdf', [BookingController::class, 'ticketPdf'])->whereNumber('id')->name('ticket.pdf');
     Route::get('/tiket/{id}/review', [ReviewController::class, 'create'])->whereNumber('id')->name('review.create');

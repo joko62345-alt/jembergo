@@ -90,16 +90,12 @@
                         <div class="summary-total"><span>TOTAL PEMBAYARAN</span><strong>Rp
                                 {{ number_format($change->nominal, 0, ',', '.') }}</strong></div>
                         @if ((float) $change->nominal > 0)
-                            @if ($change->snap_token)
-                                <button class="review-action" id="change-pay-button"
-                                    type="button">Lanjut ke Pembayaran <i
-                                    class="bi bi-arrow-right"></i></button>@else<form method="POST"
-                                    action="{{ route('customer.change.payment', [$booking->id_pemesanan, $change->id_perubahan]) }}">
-                                    @csrf<input type="hidden" name="metode_pembayaran"
-                                        value="QRIS"><button class="review-action"
-                                        type="submit">Lanjut ke Pembayaran <i
-                                            class="bi bi-arrow-right"></i></button></form>
-                            @endif
+                            <form method="POST"
+                                action="{{ route('customer.change.payment', [$booking->id_pemesanan, $change->id_perubahan]) }}">
+                                @csrf<input type="hidden" name="metode_pembayaran"
+                                    value="QRIS"><button class="review-action"
+                                    type="submit">Lanjut ke Pembayaran <i
+                                        class="bi bi-arrow-right"></i></button></form>
                             <small class="summary-note">
                                 Pembayaran diproses melalui QRIS. Booking diperbarui setelah
                             berhasil.</small>@else<form method="POST"
@@ -516,52 +512,4 @@
             </div>
         </div>
     </div>
-    @if ($change->snap_token)
-        <script src="https://app.sandbox.midtrans.com/snap/snap.js"
-            data-client-key="{{ config('services.midtrans.client_key') }}"></script>
-        <script>
-            const ticketUrl = @json(route('customer.ticket', $booking->id_pemesanan));
-            const showPaymentSuccessModal = () => {
-                const modal = document.getElementById('paymentSuccessModal');
-                if (window.bootstrap && modal) {
-                    const bsModal = new bootstrap.Modal(modal);
-                    bsModal.show();
-                    setTimeout(() => window.location.href = ticketUrl, 1400);
-                    return;
-                }
-
-                window.alert('Pembayaran berhasil. Anda akan diarahkan ke tiket saya.');
-                window.location.href = ticketUrl;
-            };
-
-            const openChangeSnap = () => window.snap.pay(@json($change->snap_token), {
-                onSuccess: () => showPaymentSuccessModal(),
-                onPending: () => {
-                    window.alert('Pembayaran masih menunggu konfirmasi.');
-                },
-                onError: () => {
-                    window.alert('Pembayaran gagal. Silakan coba lagi.');
-                },
-                onClose: () => {
-                    window.alert('Pembayaran belum selesai.');
-                },
-            });
-            document.getElementById('change-pay-button').addEventListener('click', openChangeSnap);
-            @if (session('open_snap'))
-                openChangeSnap();
-            @endif
-            setInterval(async () => {
-                try {
-                    const response = await fetch(window.location.href, {
-                        cache: 'no-store',
-                        headers: {
-                            Accept: 'application/json'
-                        }
-                    });
-                    const data = response.ok ? await response.json() : {};
-                    if (data.status === 'PAID') showPaymentSuccessModal();
-                } catch (error) {}
-            }, 10000);
-        </script>
-    @endif
 @endsection

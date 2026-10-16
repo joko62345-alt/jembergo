@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureApiRole;
 use App\Http\Middleware\RoleMiddleware;
 use App\Models\Pemesanan;
 use Illuminate\Console\Scheduling\Schedule;
@@ -11,6 +12,7 @@ use Illuminate\Http\Request;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
@@ -18,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: ['payment/midtrans/notification', 'api/midtrans/notification']);
         $middleware->alias([
             'role' => RoleMiddleware::class,
+            'api.role' => EnsureApiRole::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Review;
 use App\Models\Tiket;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -18,7 +19,7 @@ class ReviewController extends Controller
         return view('customer.review', compact('ticket'));
     }
 
-    public function store(Request $request, int $id): RedirectResponse
+    public function store(Request $request, int $id): JsonResponse|RedirectResponse
     {
         $ticket = $this->usedOwnedTicket($id);
         abort_if(Review::where('id_tiket', $ticket->id_tiket)->exists(), 422, 'Tiket ini sudah memiliki ulasan.');
@@ -28,13 +29,17 @@ class ReviewController extends Controller
         ]);
 
         Review::create([
-            'id_customer' => session('jg_user_id'),
+            'id_customer' => auth('sanctum')->id() ?? session('jg_user_id'),
             'id_destinasi' => $ticket->pemesanan->id_destinasi,
             'id_tiket' => $ticket->id_tiket,
             'rating' => $data['rating'],
             'ulasan' => $data['ulasan'],
             'tanggal_review' => now(),
         ]);
+
+        if ($request->is('api/*')) {
+            return response()->json(['message' => 'Ulasan berhasil disimpan.'], 201);
+        }
 
         return redirect()->route('customer.ticket', $ticket->id_pemesanan)->with('success', 'Terima kasih, ulasanmu sudah diterbitkan.');
     }
@@ -44,7 +49,7 @@ class ReviewController extends Controller
         $ticket = Tiket::with('pemesanan')
             ->where('id_tiket', $id)
             ->where('status_tiket', 'USED')
-            ->whereHas('pemesanan', fn ($query) => $query->where('id_customer', session('jg_user_id')))
+            ->whereHas('pemesanan', fn ($query) => $query->where('id_customer', auth('sanctum')->id() ?? session('jg_user_id')))
             ->firstOrFail();
         abort_if(Review::where('id_tiket', $ticket->id_tiket)->exists(), 422, 'Tiket ini sudah memiliki ulasan.');
 

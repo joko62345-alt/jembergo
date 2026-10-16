@@ -1,4 +1,6 @@
 {
-    "agents": ["copilot"],
+    "agents": [
+        "copilot"
+    ],
     "guidelines": true
 }

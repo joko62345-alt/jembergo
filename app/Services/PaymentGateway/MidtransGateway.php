@@ -4,6 +4,7 @@ namespace App\Services\PaymentGateway;
 
 use App\Models\Pemesanan;
 use Illuminate\Http\Client\PendingRequest;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -12,12 +13,14 @@ class MidtransGateway implements PaymentGateway
 {
     public function createPayment(Pemesanan $booking, string $method, ?float $amount = null): array
     {
-        return $this->createSnapPayment($booking, $amount ?? (float) $booking->total_harga);
+        $orderId = 'JGO-'.$booking->kode_booking.'-'.strtoupper(Str::random(8));
+
+        return $this->charge($booking, $amount ?? (float) $booking->total_harga, $orderId);
     }
 
     public function createPaymentForAmount(Pemesanan $booking, string $method, float $amount): array
     {
-        return $this->createSnapPayment($booking, $amount, 'JGO-'.$booking->kode_booking.'-CHG-'.strtoupper(Str::random(8)));
+        return $this->charge($booking, $amount, 'JGO-'.$booking->kode_booking.'-CHG-'.strtoupper(Str::random(8)));
     }
 
     public function verify(string $orderId): array
@@ -30,66 +33,38 @@ class MidtransGateway implements PaymentGateway
         return $response->json();
     }
 
-    private function createSnapPayment(Pemesanan $booking, float $amount, ?string $customOrderId = null): array
+    public function fetchQrCodeImage(string $url): Response
     {
-        abort_if($amount <= 0, 422, 'Nominal pembayaran harus lebih besar dari nol.');
-        abort_if(! trim((string) config('services.midtrans.server_key')), 503, 'Midtrans belum dikonfigurasi. Isi credential Sandbox di .env.');
+        $parsedUrl = parse_url($url);
+        $expectedHost = config('services.midtrans.is_production')
+            ? 'api.midtrans.com'
+            : 'api.sandbox.midtrans.com';
+        $path = $parsedUrl['path'] ?? '';
 
-        $booking->loadMissing(['customer', 'detailPemesanan.jenisTiket']);
-        $orderId = $customOrderId ?? 'JGO-'.$booking->kode_booking;
-        $itemDetails = $this->buildItemDetails($booking, $amount, $customOrderId !== null);
-        $response = $this->client()->post('/snap/v1/transactions', [
-            'transaction_details' => [
-                'order_id' => $orderId,
-                'gross_amount' => (int) round($amount),
-            ],
-            'customer_details' => [
-                'first_name' => $booking->ketua_nama,
-                'email' => $booking->ketua_email,
-                'phone' => $booking->ketua_no_hp,
-            ],
-            'item_details' => $itemDetails,
-        ]);
-
-        if ($response->failed() || ! $response->json('token')) {
-            throw new RuntimeException((string) ($response->json('error_messages.0') ?: 'Snap token gagal dibuat di Midtrans.'));
+        if (
+            ($parsedUrl['scheme'] ?? null) !== 'https'
+            || ($parsedUrl['host'] ?? null) !== $expectedHost
+            || ! str_starts_with($path, '/v2/qris/')
+        ) {
+            throw new RuntimeException('URL kode pembayaran dari Midtrans tidak valid.');
         }
 
-        return [
-            'status' => 'PENDING',
-            'order_id' => $orderId,
-            'snap_token' => $response->json('token'),
-            'transaction_id' => null,
-            'transaction_status' => 'pending',
-            'payment_type' => null,
-            'gross_amount' => $amount,
-            'reference' => null,
-            'method' => 'SNAP',
-            'qris_url' => null,
-            'qris_expires_at' => null,
-        ];
+        $requestPath = $path.(isset($parsedUrl['query']) ? '?'.$parsedUrl['query'] : '');
+        $response = $this->client()->get($requestPath);
+        if ($response->failed() || ! str_starts_with((string) $response->header('Content-Type'), 'image/')) {
+            throw new RuntimeException('Gambar kode pembayaran tidak dapat diambil dari Midtrans.');
+        }
+
+        return $response;
     }
 
-    private function buildItemDetails(Pemesanan $booking, float $amount, bool $isAdditionalCharge): array
+    public function checkoutUrl(string $snapToken): string
     {
-        if (! $isAdditionalCharge) {
-            return $booking->detailPemesanan->map(fn ($detail): array => [
-                'id' => (string) $detail->id_jenis_tiket,
-                'price' => (int) round($detail->subtotal / max(1, $detail->jumlah)),
-                'quantity' => (int) $detail->jumlah,
-                'name' => $detail->jenisTiket->nama_jenis,
-            ])->values()->all();
-        }
+        $host = config('services.midtrans.is_production')
+            ? 'https://app.midtrans.com'
+            : 'https://app.sandbox.midtrans.com';
 
-        $newMemberCount = (int) max(1, round($amount / max(1, $booking->detailPemesanan->first()?->jenisTiket?->harga ?? 0)));
-        $unitPrice = (int) round($amount / max(1, $newMemberCount));
-
-        return [[
-            'id' => 'additional-charge',
-            'price' => $unitPrice,
-            'quantity' => $newMemberCount,
-            'name' => 'Biaya tambahan perubahan tiket',
-        ]];
+        return $host.'/snap/v2/vtweb/'.rawurlencode($snapToken);
     }
 
     private function charge(Pemesanan $booking, float $amount, string $orderId): array
@@ -109,7 +84,7 @@ class MidtransGateway implements PaymentGateway
 
         $payload = $response->json();
         if ($response->failed() || (string) ($payload['status_code'] ?? '200') !== '201') {
-            throw new RuntimeException((string) ($payload['status_message'] ?: 'Transaksi QRIS gagal dibuat di Midtrans.'));
+            throw new RuntimeException((string) ($payload['status_message'] ?? 'Transaksi QRIS gagal dibuat di Midtrans.'));
         }
 
         $qrAction = collect($payload['actions'] ?? [])->firstWhere('name', 'generate-qr-code');

@@ -33,12 +33,20 @@
                     <div class="qris-status"><span class="status-dot"></span><span>Status
                             pembayaran</span><strong id="paymentStatus">{{ $paymentLabel }}</strong>
                     </div>
-                    <div class="qris-brand">QRIS</div>
-                    <div class="qris-frame"><img src="{{ $payment->qris_url }}"
+                    <img class="qris-logo" src="{{ asset('images/logo-qris-transparent.png') }}" alt="QRIS">
+                    <div class="qris-frame"><img
+                            src="{{ $isChange ? route('customer.change.qris.image', [$booking->id_pemesanan, $change->id_perubahan]) : route('customer.qris.image', $booking->id_pemesanan) }}"
                             alt="QRIS pembayaran {{ $payment->order_id }}"></div>
                     <h2>Scan QRIS untuk melakukan pembayaran</h2>
                     <p class="qris-instruction">Buka aplikasi pembayaran yang mendukung QRIS, lalu scan
                         QR Code di atas.</p>
+                    @if (filled($payment->qris_url))
+                        <button type="button" class="qris-copy-link" id="copyMidtransLink"
+                            data-midtrans-url="{{ $payment->qris_url }}">
+                            <i class="bi bi-copy"></i> Salin tautan Midtrans
+                        </button>
+                        <p class="qris-copy-status" id="copyMidtransStatus" aria-live="polite"></p>
+                    @endif
                     <div class="qris-countdown"><i class="bi bi-clock"></i><span>Berlaku
                             selama</span><strong id="countdown">--:--:--</strong></div>
                     @if (in_array($payment->status_pembayaran ?? $payment->status, ['FAILED', 'EXPIRED'], true))
@@ -49,8 +57,10 @@
                     @endif
                     <button type="button" class="qris-check-status" id="checkPaymentStatus">Cek status
                         pembayaran</button>
-                    <div class="qris-refresh" id="refreshMessage">Status pembayaran diperbarui otomatis
-                        dari Midtrans Sandbox.</div>
+                    <div class="qris-refresh {{ ($statusCheckFailed ?? false) ? 'qris-refresh-error' : '' }}"
+                        id="refreshMessage">
+                        {{ ($statusCheckFailed ?? false) ? 'Status belum dapat diperiksa dari Midtrans. Coba lagi sebentar.' : 'Status pembayaran diperbarui otomatis dari Midtrans.' }}
+                    </div>
                 </section>
                 <aside class="qris-card qris-summary"><span class="summary-label">Ringkasan
                         pesanan</span>
@@ -200,12 +210,12 @@
             background: #f58b05
         }
 
-        .qris-brand {
-            margin-top: 1.25rem;
-            color: #173b60;
-            font-size: 1.1rem;
-            font-weight: 800;
-            letter-spacing: .08em
+        .qris-logo {
+            display: block;
+            width: min(100%, 140px);
+            height: auto;
+            margin: 1.25rem auto .75rem;
+            object-fit: contain
         }
 
         .qris-frame {
@@ -237,6 +247,34 @@
             font-size: .86rem
         }
 
+        .qris-copy-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
+            padding: .7rem 1rem;
+            border: 1px solid #dce6ed;
+            border-radius: .65rem;
+            background: #fff;
+            color: #315d78;
+            font: inherit;
+            font-size: .84rem;
+            font-weight: 600;
+            cursor: pointer
+        }
+
+        .qris-copy-link:hover {
+            border-color: #f58b05;
+            color: #d97706
+        }
+
+        .qris-copy-status {
+            min-height: 1.2rem;
+            margin: .4rem 0 .6rem;
+            color: #567087;
+            font-size: .75rem
+        }
+
         .qris-countdown {
             display: inline-flex;
             align-items: center;
@@ -261,6 +299,10 @@
             margin-top: 1rem;
             color: #8a9aa6;
             font-size: .72rem
+        }
+
+        .qris-refresh-error {
+            color: #b42318
         }
 
         .qris-summary {
@@ -436,6 +478,9 @@
             const status = document.getElementById('paymentStatus');
             const checkButton = document.getElementById('checkPaymentStatus');
             const refreshMessage = document.getElementById('refreshMessage');
+            const copyMidtransButton = document.getElementById('copyMidtransLink');
+            const copyMidtransStatus = document.getElementById('copyMidtransStatus');
+            const midtransUrl = copyMidtransButton ? copyMidtransButton.dataset.midtransUrl : null;
             const expiresAt = {{ $expiresAt }} * 1000;
             const tick = () => {
                 const remaining = Math.max(0, expiresAt - Date.now());
@@ -474,21 +519,66 @@
                             Accept: 'application/json'
                         }
                     });
-                    const data = response.ok ? await response.json() : {};
-                    if (data.status === 'PAID') {
+                    if (!response.ok) {
+                        throw new Error('Midtrans status verification failed.');
+                    }
+                    const data = await response.json();
+                    const paymentStatus = data.status ?? data.data?.status;
+                    if (paymentStatus === 'PAID') {
                         showPaymentSuccessModal();
                         return;
                     }
-                    refreshMessage.textContent =
-                        'Pembayaran masih menunggu konfirmasi Midtrans.';
+                    if (paymentStatus === 'FAILED' || paymentStatus === 'EXPIRED') {
+                        status.textContent = paymentStatus === 'EXPIRED' ? 'QRIS kedaluwarsa' :
+                            'Pembayaran gagal';
+                        refreshMessage.textContent = 'Status pembayaran: ' + status.textContent + '.';
+                        return;
+                    }
+                    status.textContent = 'Menunggu pembayaran';
+                    refreshMessage.textContent = 'Pembayaran masih menunggu konfirmasi Midtrans.';
                 } catch (error) {
-                    refreshMessage.textContent = 'Status belum dapat diperiksa. Coba lagi.';
+                    refreshMessage.textContent =
+                        'Status belum dapat diperiksa dari Midtrans. Periksa koneksi server atau credential Midtrans.';
+                    refreshMessage.classList.add('qris-refresh-error');
                 } finally {
                     checkButton.disabled = false;
                 }
             };
             checkButton.addEventListener('click', checkStatus);
             setInterval(checkStatus, 10000);
+
+            if (copyMidtransButton && copyMidtransStatus && midtransUrl) {
+                copyMidtransButton.addEventListener('click', async () => {
+                    try {
+                        if (navigator.clipboard && window.isSecureContext) {
+                            await navigator.clipboard.writeText(midtransUrl);
+                        } else {
+                            const input = document.createElement('textarea');
+                            input.value = midtransUrl;
+                            input.setAttribute('readonly', '');
+                            input.style.position = 'fixed';
+                            input.style.opacity = '0';
+                            document.body.appendChild(input);
+                            let copied;
+                            try {
+                                input.select();
+                                copied = document.execCommand('copy');
+                            } finally {
+                                input.remove();
+                            }
+
+                            if (!copied) {
+                                throw new Error('Clipboard copy command was rejected.');
+                            }
+                        }
+
+                        copyMidtransStatus.textContent = 'Tautan Midtrans berhasil disalin.';
+                    } catch (error) {
+                        copyMidtransStatus.textContent =
+                            'Tautan Midtrans gagal disalin. Periksa izin clipboard browser Anda.';
+                    }
+                });
+            }
         })();
     </script>
 @endsection

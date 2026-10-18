@@ -51,7 +51,7 @@ class CustomerController extends Controller
         Pemesanan::expireTicketsPastVisitDate();
 
         $orders = Pemesanan::query()
-            ->with(['destinasi', 'detailPemesanan.jenisTiket', 'pembayaran', 'tiket'])
+            ->with(['destinasi', 'detailPemesanan.jenisTiket', 'pembayaran', 'tiket.review'])
             ->where('id_customer', $request->user('sanctum')->getKey())
             ->when($status === 'active', fn ($query) => $query->whereHas('tiket', fn ($tickets) => $tickets->where('status_tiket', 'ACTIVE')))
             ->when($status === 'history', fn ($query) => $query->whereHas('tiket', fn ($tickets) => $tickets->whereIn('status_tiket', ['USED', 'EXPIRED'])))
@@ -64,7 +64,7 @@ class CustomerController extends Controller
     public function booking(Request $request, int $id): BookingResource
     {
         $booking = Pemesanan::query()
-            ->with(['destinasi', 'detailPemesanan.jenisTiket', 'pembayaran', 'tiket'])
+            ->with(['destinasi', 'detailPemesanan.jenisTiket', 'pembayaran', 'tiket.review'])
             ->where('id_customer', $request->user('sanctum')->getKey())
             ->findOrFail($id);
 

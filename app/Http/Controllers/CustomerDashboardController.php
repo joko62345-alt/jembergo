@@ -50,7 +50,7 @@ class CustomerDashboardController extends Controller
         $customer = Customer::where('id_customer', session('jg_user_id'))->firstOrFail();
         $data = $request->validate([
             'nama' => ['required', 'string', 'max:100', 'regex:/^[\p{L}\s]+$/u'],
-            'email' => ['required', 'email', 'regex:/@gmail\.com$/i', 'unique:customer,email,'.$customer->id_customer.',id_customer'],
+            'email' => ['required', 'email', 'max:150', 'regex:/@gmail\.com$/i', 'unique:customer,email,'.$customer->id_customer.',id_customer'],
             'no_hp' => ['nullable', 'regex:/^(?:[0-9]{10,12}|\+[0-9]{10,15})$/'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ], [

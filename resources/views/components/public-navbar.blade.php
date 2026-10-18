@@ -1,6 +1,12 @@
 @php
     $hasLoggedInUser = session()->has('jg_role') || session()->has('jg_user_name');
     $userRole = session('jg_role');
+    $displayName = session('jg_user_name', 'User');
+    if ($userRole === 'CUSTOMER' && session()->has('jg_user_id')) {
+        $displayName = \App\Models\Customer::query()
+            ->whereKey(session('jg_user_id'))
+            ->value('nama') ?? $displayName;
+    }
 @endphp
 
 <nav class="navbar navbar-expand-lg jg-navbar">
@@ -97,7 +103,7 @@
                 @if ($hasLoggedInUser)
                     <span class="d-none d-md-inline text-muted small me-2">
                         Halo, <strong
-                            class="text-dark">{{ session('jg_user_name', 'User') }}</strong>
+                            class="text-dark">{{ $displayName }}</strong>
                     </span>
                 @else
                     <a href="{{ route('login') }}" class="btn jg-login-button">

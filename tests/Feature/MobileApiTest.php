@@ -10,6 +10,7 @@ use App\Models\Fasilitas;
 use App\Models\GaleriDestinasi;
 use App\Models\JenisTiket;
 use App\Models\Pemesanan;
+use App\Models\Review;
 use App\Models\SuperAdmin;
 use App\Services\PaymentGateway\PaymentGateway;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -347,6 +348,65 @@ class MobileApiTest extends TestCase
 
         $this->app['auth']->forgetGuards();
         $this->withToken($otherToken)->get($path)->assertNotFound();
+    }
+
+    public function test_order_api_reports_if_a_used_group_ticket_has_a_review(): void
+    {
+        $customer = Customer::query()->create([
+            'nama' => 'Citra Wijaya',
+            'email' => 'citra.review@example.com',
+            'no_hp' => '081234567892',
+            'password' => bcrypt('secret123'),
+            'auth_provider' => 'manual',
+        ]);
+        $destination = DestinasiWisata::query()->create([
+            'nama_wisata' => 'Pantai Papuma',
+            'deskripsi' => 'Wisata pantai',
+            'kategori' => 'Bahari',
+            'latitude' => -8.431,
+            'longitude' => 113.548,
+            'alamat' => 'Jember',
+            'jam_operasional' => '08:00-17:00',
+            'status_aktif' => true,
+            'kuota_harian_aktif' => false,
+        ]);
+        $ticketType = JenisTiket::query()->create([
+            'id_destinasi' => $destination->id_destinasi,
+            'nama_jenis' => 'Dewasa',
+            'harga' => 25000,
+        ]);
+        $booking = Pemesanan::query()->create([
+            'id_customer' => $customer->id_customer,
+            'id_destinasi' => $destination->id_destinasi,
+            'kode_booking' => 'JGO-20261016-REVIEW',
+            'tanggal_pemesanan' => now(),
+            'tanggal_kunjungan' => now()->addDays(2),
+            'total_harga' => 25000,
+            'status_pemesanan' => 'PAID',
+            'ketua_nama' => 'Citra Wijaya',
+            'ketua_email' => 'citra.review@example.com',
+            'ketua_no_hp' => '081234567892',
+            'ketua_jenis_tiket' => $ticketType->id_jenis_tiket,
+            'anggota_names' => [],
+        ]);
+        $ticket = $booking->tiket()->create([
+            'kode_qr' => 'reviewed-ticket',
+            'status_tiket' => 'USED',
+        ]);
+        Review::query()->create([
+            'id_customer' => $customer->id_customer,
+            'id_destinasi' => $destination->id_destinasi,
+            'id_tiket' => $ticket->id_tiket,
+            'rating' => 5,
+            'ulasan' => 'Sangat bagus.',
+            'tanggal_review' => now(),
+        ]);
+        $token = $customer->createToken('mobile', ['CUSTOMER'])->plainTextToken;
+
+        $this->withToken($token)
+            ->getJson('/api/v1/customer/pesanan')
+            ->assertOk()
+            ->assertJsonPath('data.0.tiket.0.reviewed', true);
     }
 
     public function test_customer_can_create_a_booking_through_the_api(): void

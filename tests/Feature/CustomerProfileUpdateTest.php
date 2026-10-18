@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Customer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class CustomerProfileUpdateTest extends TestCase
@@ -84,5 +85,64 @@ class CustomerProfileUpdateTest extends TestCase
                 'no_hp' => $phoneNumber,
             ]);
         }
+    }
+
+    public function test_profile_changes_are_shared_between_website_and_mobile_api(): void
+    {
+        $customer = Customer::create([
+            'nama' => 'Nama Awal',
+            'email' => 'customer@gmail.com',
+            'no_hp' => '081234567890',
+            'alamat' => 'Jember',
+            'password' => bcrypt('secret123'),
+            'auth_provider' => 'manual',
+        ]);
+        $session = [
+            'jg_user_id' => $customer->id_customer,
+            'jg_user_name' => $customer->nama,
+            'jg_role' => 'CUSTOMER',
+        ];
+
+        $this->withSession($session)
+            ->put(route('customer.profile.update'), [
+                'nama' => 'Website Name',
+                'email' => 'website@gmail.com',
+                'no_hp' => '081234567891',
+            ])
+            ->assertRedirect();
+
+        $token = $customer->createToken('profile-sync-test')->plainTextToken;
+        $this->withToken($token)
+            ->getJson('/api/v1/customer/profil')
+            ->assertOk()
+            ->assertJsonPath('data.nama', 'Website Name')
+            ->assertJsonPath('data.email', 'website@gmail.com')
+            ->assertJsonPath('data.no_hp', '081234567891');
+
+        $this->withToken($token)
+            ->putJson('/api/v1/customer/profil', [
+                'nama' => 'Mobile Name',
+                'email' => 'mobile@gmail.com',
+                'no_hp' => '+6281234567891',
+                'password' => 'mobileSecret123',
+                'password_confirmation' => 'mobileSecret123',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.nama', 'Mobile Name')
+            ->assertJsonPath('data.email', 'mobile@gmail.com')
+            ->assertJsonPath('data.no_hp', '+6281234567891')
+            ->assertJsonMissingPath('data.password');
+
+        $this->withSession($session)
+            ->get(route('customer.profile'))
+            ->assertOk()
+            ->assertSee('value="Mobile Name"', false)
+            ->assertSee('value="mobile@gmail.com"', false)
+            ->assertSee('Halo, <strong', false)
+            ->assertSee('Mobile Name</strong>', false);
+
+        $updatedCustomer = $customer->fresh();
+        $this->assertSame('Mobile Name', $updatedCustomer->nama);
+        $this->assertTrue(Hash::check('mobileSecret123', $updatedCustomer->password));
     }
 }

@@ -60,6 +60,7 @@ class BookingResource extends JsonResource
                 'kode_qr' => $ticket->kode_qr,
                 'status' => $ticket->status_tiket,
                 'waktu_verifikasi' => $ticket->waktu_verifikasi?->toIso8601String(),
+                'reviewed' => $ticket->relationLoaded('review') && $ticket->review !== null,
             ])->values()),
         ];
     }

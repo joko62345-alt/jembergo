@@ -6,10 +6,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 class DestinasiWisata extends Model
 {
     use HasFactory;
+    use SoftDeletes;
 
     protected $table = 'destinasi_wisata';
 
@@ -88,5 +91,21 @@ class DestinasiWisata extends Model
         }
 
         return null;
+    }
+
+    public function closingDateTime(Carbon $date): ?Carbon
+    {
+        $closingTime = $this->closingTime();
+
+        return $closingTime === null
+            ? null
+            : $date->copy()->setTimeFromTimeString($closingTime);
+    }
+
+    public function isClosedAt(Carbon $dateTime): bool
+    {
+        $closingDateTime = $this->closingDateTime($dateTime);
+
+        return $closingDateTime !== null && $dateTime->greaterThanOrEqualTo($closingDateTime);
     }
 }

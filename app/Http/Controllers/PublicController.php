@@ -38,7 +38,7 @@ class PublicController extends Controller
                     ->values()
                 : collect(),
             'articles' => $hasArticleTable
-                ? Artikel::query()->where('status', 'PUBLISHED')->latest('tanggal_publikasi')->take(3)->get()
+                ? Artikel::query()->where('status', 'PUBLISHED')->latest('tanggal_publikasi')->latest('id_artikel')->take(3)->get()
                 : collect(),
         ]);
     }

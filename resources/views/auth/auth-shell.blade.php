@@ -138,6 +138,7 @@
             color: #31516b;
             font-size: .75rem;
             font-weight: 600;
+            text-align: left;
         }
 
         .auth-field .form-control {

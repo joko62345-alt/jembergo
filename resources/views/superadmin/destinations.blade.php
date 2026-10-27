@@ -8,8 +8,13 @@
             <h1>Destinasi wisata</h1>
             <p>Kelola informasi destinasi pariwisata Jember dalam satu tempat.</p>
         </div>
-        <button type="button" class="btn btn-warning" data-open-dialog="create-destination-dialog"><i
-                class="bi bi-plus-lg me-1" aria-hidden="true"></i>Tambah destinasi</button>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('superadmin.destinations.archived') }}" class="btn btn-outline-dark">
+                <i class="bi bi-archive me-1" aria-hidden="true"></i>Arsip destinasi
+            </a>
+            <button type="button" class="btn btn-warning" data-open-dialog="create-destination-dialog"><i
+                    class="bi bi-plus-lg me-1" aria-hidden="true"></i>Tambah destinasi</button>
+        </div>
     </div>
 
     @if (session('success'))
@@ -70,7 +75,7 @@
                         <button type="button" class="btn btn-outline-danger"
                             data-delete-destination="{{ $destination->nama_wisata }}"
                             data-delete-action="{{ route('superadmin.destinations.destroy', $destination->id_destinasi) }}"><i
-                                class="bi bi-trash3 me-1" aria-hidden="true"></i>Hapus</button>
+                                class="bi bi-archive me-1" aria-hidden="true"></i>Arsipkan</button>
                     </div>
                 </div>
             </article>
@@ -151,19 +156,19 @@
         aria-labelledby="delete-destination-title">
         <div class="dialog-panel">
             <div class="dialog-header">
-                <div><span class="page-kicker text-danger">Tindakan permanen</span>
-                    <h2 id="delete-destination-title">Hapus destinasi?</h2>
-                    <p>Destinasi <strong id="delete-destination-name"></strong>, akun Admin
-                        Pariwisata, pesanan, tiket, pembayaran, dan ulasan terkait akan dihapus
-                        permanen. Tindakan ini tidak dapat dibatalkan.</p>
+                <div><span class="page-kicker text-warning">Arsip destinasi</span>
+                    <h2 id="delete-destination-title">Arsipkan destinasi?</h2>
+                    <p>Destinasi <strong id="delete-destination-name"></strong> akan disembunyikan dari
+                        daftar dan tidak menerima pemesanan baru. Transaksi, tiket, pembayaran,
+                        ulasan, dan akun admin tetap tersimpan; akun admin dinonaktifkan.</p>
                 </div><button type="button" class="dialog-close" data-close-dialog
                     aria-label="Tutup dialog"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
             </div>
             <div class="dialog-actions"><button type="button" class="btn btn-outline-dark"
                     data-close-dialog>Batal</button>
                 <form method="POST" id="delete-destination-form">@csrf @method('DELETE')<button
-                        class="btn btn-danger" type="submit"><i class="bi bi-trash3 me-1"
-                            aria-hidden="true"></i>Hapus destinasi</button></form>
+                        class="btn btn-warning" type="submit"><i class="bi bi-archive me-1"
+                            aria-hidden="true"></i>Arsipkan destinasi</button></form>
             </div>
         </div>
     </dialog>

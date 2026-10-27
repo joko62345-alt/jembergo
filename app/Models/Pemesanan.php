@@ -108,7 +108,7 @@ class Pemesanan extends Model
 
     public function destinasi(): BelongsTo
     {
-        return $this->belongsTo(DestinasiWisata::class, 'id_destinasi');
+        return $this->belongsTo(DestinasiWisata::class, 'id_destinasi')->withTrashed();
     }
 
     public function detailPemesanan(): HasMany
@@ -159,6 +159,17 @@ class Pemesanan extends Model
                     ->when($destinationId, fn ($destinationQuery) => $destinationQuery->where('id_destinasi', $destinationId));
             })
             ->update(['status_tiket' => 'EXPIRED']);
+
+        $bookings = static::query()
+            ->with(['destinasi', 'pembayaran'])
+            ->whereDate('tanggal_kunjungan', today())
+            ->when($destinationId, fn ($query) => $query->where('id_destinasi', $destinationId))
+            ->whereHas('tiket', fn ($query) => $query->whereIn('status_tiket', ['ACTIVE', 'EXPIRED']))
+            ->get();
+
+        foreach ($bookings as $booking) {
+            $booking->expireTicketsIfPastVisitDate();
+        }
     }
 
     public function expireTicketsIfPastVisitDate(): void
@@ -176,12 +187,20 @@ class Pemesanan extends Model
             return;
         }
 
-        if ($visitDate->isSameDay($today)) {
-            $closingTime = $this->destinasi?->closingTime();
+        $closingDateTime = $this->destinasi?->closingDateTime($visitDate);
 
-            if ($closingTime !== null && Carbon::now()->gte($visitDate->copy()->setTimeFromTimeString($closingTime))) {
-                $this->tiket()->where('status_tiket', 'ACTIVE')->update(['status_tiket' => 'EXPIRED']);
-            }
+        if (
+            $visitDate->isSameDay($today)
+            && $closingDateTime !== null
+            && Carbon::now()->greaterThanOrEqualTo($closingDateTime)
+        ) {
+            $this->tiket()->where('status_tiket', 'ACTIVE')->update(['status_tiket' => 'EXPIRED']);
+
+            return;
+        }
+
+        if ($this->pembayaran?->status_pembayaran === 'PAID') {
+            $this->tiket()->where('status_tiket', 'EXPIRED')->update(['status_tiket' => 'ACTIVE']);
         }
     }
 }

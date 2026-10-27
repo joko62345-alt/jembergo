@@ -98,9 +98,11 @@ Route::middleware('role:ADMIN_PARIWISATA')->prefix('admin')->name('admin.')->gro
 
 Route::middleware('role:SUPER_ADMIN')->prefix('superadmin')->name('superadmin.')->group(function () {
     Route::get('/destinasi', [SuperAdminController::class, 'destinations'])->name('destinations');
+    Route::get('/destinasi/arsip', [SuperAdminController::class, 'archivedDestinations'])->name('destinations.archived');
     Route::post('/destinasi', [SuperAdminController::class, 'storeDestination'])->name('destinations.store');
     Route::put('/destinasi/{id}', [SuperAdminController::class, 'updateDestination'])->whereNumber('id')->name('destinations.update');
     Route::delete('/destinasi/{id}', [SuperAdminController::class, 'destroyDestination'])->whereNumber('id')->name('destinations.destroy');
+    Route::post('/destinasi/{id}/restore', [SuperAdminController::class, 'restoreDestination'])->whereNumber('id')->name('destinations.restore');
     Route::delete(
         '/destinasi/{destination}/jenis-tiket/{ticket}',
         [SuperAdminController::class, 'destroyTicketType']

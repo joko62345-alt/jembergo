@@ -270,7 +270,7 @@ class SuperAdminManagementController extends Controller
     private function reportDestination(Request $request): ?DestinasiWisata
     {
         return $request->integer('id_destinasi')
-            ? DestinasiWisata::find($request->integer('id_destinasi'))
+            ? DestinasiWisata::withTrashed()->find($request->integer('id_destinasi'))
             : null;
     }
 }

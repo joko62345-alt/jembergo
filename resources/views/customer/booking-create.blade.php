@@ -72,6 +72,7 @@
                                                 value="{{ old('tanggal_kunjungan') }}"
                                                 class="form-control" min="{{ date('Y-m-d') }}"
                                                 max="{{ now()->addMonths(2)->format('Y-m-d') }}"
+                                                data-closing-time="{{ $destination->closingTime() }}"
                                                 required><small id="quotaAvailability"
                                                 class="form-text text-secondary">Pilih tanggal untuk
                                                 melihat sisa tiket.</small></div>
@@ -128,7 +129,7 @@
                                         wajib memilih satu jenis tiket.</p>
                                 </section>
 
-                                <div class="d-flex justify-content-end gap-2 mt-5"><a
+                                <div class="booking-form-actions d-flex justify-content-end gap-2 mt-5"><a
                                         href="{{ route('destinations.show', $destination->id_destinasi) }}"
                                         class="btn btn-outline-secondary rounded-pill">Batal</a><button
                                         type="submit" class="btn btn-jg-primary btn-lg px-5">Lanjut
@@ -371,16 +372,50 @@
                         'Gunakan angka dan tanda + hanya di awal nomor.');
                 }
             });
-            bookingForm.addEventListener('submit', () => {
+            bookingForm.addEventListener('submit', (event) => {
                 validateBookingName(leaderNameInput, leaderNameWarning);
                 validateBookingEmail();
                 validateBookingPhone();
+                const currentDate = new Date();
+                const today = [
+                    currentDate.getFullYear(),
+                    String(currentDate.getMonth() + 1).padStart(2, '0'),
+                    String(currentDate.getDate()).padStart(2, '0')
+                ].join('-');
+                const closingTime = visitDate.dataset.closingTime;
+                if (visitDate.value === today && closingTime &&
+                    currentDate.toTimeString().slice(0, 5) >= closingTime) {
+                    event.preventDefault();
+                    const message =
+                        'Pemesanan untuk hari ini sudah ditutup. Silakan pilih tanggal berikutnya.';
+                    quotaAvailability.textContent = message;
+                    visitDate.setCustomValidity(message);
+                    visitDate.reportValidity();
+                }
             });
 
             const updateQuotaAvailability = async () => {
                 if (!visitDate.value) {
                     quotaAvailability.textContent =
                         'Pilih tanggal untuk melihat sisa tiket.';
+                    visitDate.setCustomValidity('');
+                    return;
+                }
+
+                visitDate.setCustomValidity('');
+                const currentDate = new Date();
+                const today = [
+                    currentDate.getFullYear(),
+                    String(currentDate.getMonth() + 1).padStart(2, '0'),
+                    String(currentDate.getDate()).padStart(2, '0')
+                ].join('-');
+                const closingTime = visitDate.dataset.closingTime;
+                const currentTime = currentDate.toTimeString().slice(0, 5);
+                if (visitDate.value === today && closingTime && currentTime >= closingTime) {
+                    const message =
+                        'Pemesanan untuk hari ini sudah ditutup. Silakan pilih tanggal berikutnya.';
+                    quotaAvailability.textContent = message;
+                    visitDate.setCustomValidity(message);
                     return;
                 }
 
@@ -394,7 +429,6 @@
                     return;
                 }
 
-                visitDate.setCustomValidity('');
                 quotaAvailability.textContent = 'Memeriksa sisa tiket...';
                 try {
                     const response = await fetch(

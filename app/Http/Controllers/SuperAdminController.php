@@ -25,6 +25,13 @@ class SuperAdminController extends Controller
         ]);
     }
 
+    public function archivedDestinations(): View
+    {
+        return view('superadmin.destinations-archived', [
+            'archivedDestinations' => DestinasiWisata::onlyTrashed()->latest('id_destinasi')->paginate(10),
+        ]);
+    }
+
     public function storeDestination(Request $request): RedirectResponse
     {
         $data = $this->validatedDestination($request);
@@ -44,6 +51,7 @@ class SuperAdminController extends Controller
         $data = $this->validatedDestination($request, $destination->id_destinasi);
         $data['status_aktif'] = $request->boolean('status_aktif') ? 'aktif' : 'nonaktif';
         $destination->update($data);
+        Pemesanan::expireTicketsPastVisitDate($destination->id_destinasi);
         AdminPariwisata::query()->where('id_destinasi', $destination->id_destinasi)->update([
             'status_akun' => $data['status_aktif'] === 'aktif' ? 'AKTIF' : 'NONAKTIF',
         ]);
@@ -58,13 +66,25 @@ class SuperAdminController extends Controller
     {
         DB::transaction(function () use ($id): void {
             $destination = DestinasiWisata::query()->lockForUpdate()->findOrFail($id);
-            $destination->review()->delete();
-            $destination->pemesanan()->delete();
-            $destination->adminPariwisata()->delete();
+            $destination->update(['status_aktif' => 'nonaktif']);
+            $destination->adminPariwisata()->update(['status_akun' => 'NONAKTIF']);
             $destination->delete();
         });
 
-        return back()->with('success', 'Destinasi dan seluruh data terkait berhasil dihapus permanen.');
+        return back()->with('success', 'Destinasi berhasil diarsipkan. Semua transaksi dan data terkait tetap tersimpan.');
+    }
+
+    public function restoreDestination(int $id): RedirectResponse
+    {
+        DB::transaction(function () use ($id): void {
+            $destination = DestinasiWisata::onlyTrashed()->lockForUpdate()->findOrFail($id);
+            $destination->restore();
+            $destination->update(['status_aktif' => 'aktif']);
+            $destination->adminPariwisata()->update(['status_akun' => 'AKTIF']);
+            Pemesanan::expireTicketsPastVisitDate($destination->id_destinasi);
+        });
+
+        return back()->with('success', 'Destinasi berhasil dipulihkan dan diaktifkan kembali.');
     }
 
     public function destroyTicketType(int $destination, int $ticket): RedirectResponse

@@ -21,7 +21,7 @@ class DestinationPermanentDeletionTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_deleting_destination_permanently_removes_related_records(): void
+    public function test_archiving_destination_preserves_transactions_and_related_records(): void
     {
         $customer = Customer::create([
             'nama' => 'Pelanggan Test',
@@ -110,18 +110,49 @@ class DestinationPermanentDeletionTest extends TestCase
             ->from(route('superadmin.destinations'))
             ->delete(route('superadmin.destinations.destroy', $destination->id_destinasi))
             ->assertRedirect(route('superadmin.destinations'))
-            ->assertSessionHas('success', 'Destinasi dan seluruh data terkait berhasil dihapus permanen.');
+            ->assertSessionHas('success', 'Destinasi berhasil diarsipkan. Semua transaksi dan data terkait tetap tersimpan.');
 
-        $this->assertDatabaseMissing('destinasi_wisata', ['id_destinasi' => $destination->id_destinasi]);
-        $this->assertDatabaseMissing('admin_pariwisata', ['id_admin' => $admin->id_admin]);
-        $this->assertDatabaseMissing('fasilitas', ['id_fasilitas' => $facility->id_fasilitas]);
-        $this->assertDatabaseMissing('galeri_destinasi', ['id_galeri' => $gallery->id_galeri]);
-        $this->assertDatabaseMissing('jenis_tiket', ['id_jenis_tiket' => $ticketType->id_jenis_tiket]);
-        $this->assertDatabaseMissing('pemesanan', ['id_pemesanan' => $booking->id_pemesanan]);
-        $this->assertDatabaseMissing('detail_pemesanan', ['id_detail' => $detail->id_detail]);
-        $this->assertDatabaseMissing('tiket', ['id_tiket' => $ticket->id_tiket]);
-        $this->assertDatabaseMissing('pembayaran', ['id_pembayaran' => $payment->id_pembayaran]);
-        $this->assertDatabaseMissing('perubahan_pemesanan', ['id_perubahan' => $change->id_perubahan]);
-        $this->assertDatabaseMissing('review', ['id_review' => $review->id_review]);
+        $this->assertSoftDeleted('destinasi_wisata', ['id_destinasi' => $destination->id_destinasi]);
+        $this->assertDatabaseHas('admin_pariwisata', [
+            'id_admin' => $admin->id_admin,
+            'status_akun' => 'NONAKTIF',
+        ]);
+        $this->assertDatabaseHas('fasilitas', ['id_fasilitas' => $facility->id_fasilitas]);
+        $this->assertDatabaseHas('galeri_destinasi', ['id_galeri' => $gallery->id_galeri]);
+        $this->assertDatabaseHas('jenis_tiket', ['id_jenis_tiket' => $ticketType->id_jenis_tiket]);
+        $this->assertDatabaseHas('pemesanan', ['id_pemesanan' => $booking->id_pemesanan]);
+        $this->assertDatabaseHas('detail_pemesanan', ['id_detail' => $detail->id_detail]);
+        $this->assertDatabaseHas('tiket', ['id_tiket' => $ticket->id_tiket]);
+        $this->assertDatabaseHas('pembayaran', ['id_pembayaran' => $payment->id_pembayaran]);
+        $this->assertDatabaseHas('perubahan_pemesanan', ['id_perubahan' => $change->id_perubahan]);
+        $this->assertDatabaseHas('review', ['id_review' => $review->id_review]);
+
+        $this->assertNull(DestinasiWisata::query()->find($destination->id_destinasi));
+        $this->assertNotNull(DestinasiWisata::withTrashed()->find($destination->id_destinasi));
+        $this->assertSame('Pantai Test', $booking->fresh()->destinasi->nama_wisata);
+        $this->assertSame('Pantai Test', $review->fresh()->destinasi->nama_wisata);
+
+        $this->withSession(['jg_role' => 'SUPER_ADMIN'])
+            ->get(route('superadmin.destinations.archived'))
+            ->assertOk()
+            ->assertSee('Destinasi diarsipkan')
+            ->assertSee('Pulihkan');
+
+        $this->withSession(['jg_role' => 'SUPER_ADMIN'])
+            ->from(route('superadmin.destinations'))
+            ->post(route('superadmin.destinations.restore', $destination->id_destinasi))
+            ->assertRedirect(route('superadmin.destinations'))
+            ->assertSessionHas('success', 'Destinasi berhasil dipulihkan dan diaktifkan kembali.');
+
+        $this->assertDatabaseHas('destinasi_wisata', [
+            'id_destinasi' => $destination->id_destinasi,
+            'deleted_at' => null,
+            'status_aktif' => 'aktif',
+        ]);
+        $this->assertDatabaseHas('admin_pariwisata', [
+            'id_admin' => $admin->id_admin,
+            'status_akun' => 'AKTIF',
+        ]);
+        $this->assertDatabaseHas('pembayaran', ['id_pembayaran' => $payment->id_pembayaran]);
     }
 }

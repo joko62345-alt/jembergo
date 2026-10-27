@@ -48,6 +48,9 @@ class BookingTicketService
             foreach ($tickets->skip(1) as $duplicateTicket) {
                 $duplicateTicket->delete();
             }
+
+            $booking->loadMissing('pembayaran');
+            $booking->expireTicketsIfPastVisitDate();
         });
     }
 }

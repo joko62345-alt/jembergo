@@ -280,9 +280,6 @@
                         <span class="eyebrow text-orange">Catatan perjalanan</span>
                         <h2 class="mt-2">Cerita dari <em>tanah Jember.</em></h2>
                     </div>
-                    <a href="{{ route('articles.index') }}"
-                        class="text-dark text-decoration-none fw-semibold d-none d-md-block">Lihat
-                        semua <i class="bi bi-arrow-right ms-1"></i></a>
                 </div>
 
                 <div class="row g-4">
@@ -316,6 +313,13 @@
                         </div>
                     @endforelse
                 </div>
+                @if ($articles->isNotEmpty())
+                    <div class="text-center mt-4">
+                        <a href="{{ route('articles.index') }}" class="btn btn-outline-dark">
+                            Lihat semua artikel <i class="bi bi-arrow-right ms-1"></i>
+                        </a>
+                    </div>
+                @endif
             </div>
         </section>
 

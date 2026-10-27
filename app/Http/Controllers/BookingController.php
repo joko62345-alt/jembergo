@@ -91,6 +91,12 @@ class BookingController extends Controller
             'ketua_no_hp.regex' => 'Gunakan 10-12 digit lokal atau awali + untuk nomor internasional (maksimal 15 digit).',
             'peserta.*.nama.regex' => 'Nama peserta hanya boleh berisi huruf dan spasi.',
         ]);
+        if ($data['tanggal_kunjungan'] === today()->toDateString() && $destination->isClosedAt(now())) {
+            throw ValidationException::withMessages([
+                'tanggal_kunjungan' => 'Pemesanan untuk hari ini sudah ditutup. Silakan pilih tanggal berikutnya.',
+            ]);
+        }
+
         $participants = collect($data['peserta']);
         $availableTypes = $destination->jenisTiket->keyBy('id_jenis_tiket');
         abort_if($participants->contains(fn (array $participant) => ! $availableTypes->has((int) $participant['id_jenis_tiket'])), 422, 'Jenis tiket tidak tersedia untuk destinasi ini.');

@@ -21,7 +21,7 @@ class JenisTiket extends Model
 
     public function destinasi(): BelongsTo
     {
-        return $this->belongsTo(DestinasiWisata::class, 'id_destinasi');
+        return $this->belongsTo(DestinasiWisata::class, 'id_destinasi')->withTrashed();
     }
 
     public function detailPemesanan(): HasMany

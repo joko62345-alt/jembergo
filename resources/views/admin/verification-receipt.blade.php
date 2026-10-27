@@ -69,14 +69,12 @@
             text-align: center;
         }
 
-        .receipt-brand {
-            margin: 0;
-            font-size: 21px;
-            letter-spacing: -.5px;
-        }
-
-        .receipt-brand span {
-            color: #f28a00;
+        .receipt-logo {
+            display: block;
+            width: 36mm;
+            max-height: 17mm;
+            margin: 0 auto 2mm;
+            object-fit: contain;
         }
 
         .receipt-header p {
@@ -183,7 +181,7 @@
     </nav>
     <main class="receipt">
         <header class="receipt-header">
-            <h1 class="receipt-brand">Jember<span>Go</span></h1>
+            <img class="receipt-logo" src="{{ route('assets.logo') }}" alt="JemberGo">
             <p>{{ $booking->destinasi->nama_wisata }}</p>
             <p class="muted">{{ $booking->destinasi->alamat }}</p>
         </header>

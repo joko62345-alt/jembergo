@@ -12,7 +12,7 @@
         $paymentLabel = match ($payment->status_pembayaran ?? ($payment->status ?? 'PENDING')) {
             'PAID' => 'Pembayaran berhasil',
             'FAILED' => 'Pembayaran gagal',
-            'EXPIRED' => 'QRIS kedaluwarsa',
+            'EXPIRED' => 'Pembayaran gagal',
             default => 'Menunggu pembayaran',
         };
     @endphp
@@ -529,8 +529,7 @@
                         return;
                     }
                     if (paymentStatus === 'FAILED' || paymentStatus === 'EXPIRED') {
-                        status.textContent = paymentStatus === 'EXPIRED' ? 'QRIS kedaluwarsa' :
-                            'Pembayaran gagal';
+                        status.textContent = 'Pembayaran gagal';
                         refreshMessage.textContent = 'Status pembayaran: ' + status.textContent + '.';
                         return;
                     }

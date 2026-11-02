@@ -9,7 +9,7 @@ final class StatusLabel
         return match ($status) {
             'PAID' => 'Lunas',
             'PENDING' => 'Menunggu pembayaran',
-            'EXPIRED' => 'Kedaluwarsa',
+            'EXPIRED' => 'Gagal',
             'FAILED' => 'Gagal',
             default => 'Belum diproses',
         };
@@ -21,7 +21,7 @@ final class StatusLabel
             'PAID' => 'Lunas',
             'PENDING' => 'Menunggu pembayaran',
             'FAILED' => 'Gagal',
-            'EXPIRED' => 'Kedaluwarsa',
+            'EXPIRED' => 'Gagal',
             default => 'Belum dibayar',
         };
     }

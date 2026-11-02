@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminReportController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CustomerDashboardController;
@@ -93,6 +94,10 @@ Route::middleware('role:ADMIN_PARIWISATA')->prefix('admin')->name('admin.')->gro
     Route::post('/verifikasi-tiket/konfirmasi', [VerificationController::class, 'verify'])->name('verification.verify');
     Route::get('/verifikasi-tiket/{id}/struk', [VerificationController::class, 'receipt'])->whereNumber('id')->name('verification.receipt');
     Route::get('/pemesanan-destinasi', [VerificationController::class, 'bookings'])->name('bookings');
+    Route::get('/laporan', [AdminReportController::class, 'index'])->name('report');
+    Route::get('/laporan/export', [AdminReportController::class, 'export'])->name('report.export');
+    Route::get('/laporan/preview', [AdminReportController::class, 'preview'])->name('report.preview');
+    Route::get('/laporan/pdf', [AdminReportController::class, 'pdf'])->name('report.pdf');
     Route::put('/pengaturan-kuota', [DashboardController::class, 'updateQuota'])->name('quota.update');
 });
 

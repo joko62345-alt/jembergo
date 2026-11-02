@@ -78,6 +78,16 @@
             color: #f58b05;
         }
 
+        #route-source-link a,
+        #route-source-link a:visited {
+            color: #f58b05;
+        }
+
+        #route-source-link a:hover,
+        #route-source-link a:focus-visible {
+            color: #d97706;
+        }
+
         .destination-locate-button {
             display: inline-flex;
             align-items: center;
@@ -262,6 +272,16 @@
                                 class="text-secondary d-block">Estimasi waktu</small><strong
                                 id="route-duration">-</strong></div>
                     </div>
+                    <div class="col-12">
+                        <p class="small text-secondary mb-0">
+                            <span id="route-source">Sumber data rute: </span>
+                            <span id="route-source-link">
+                                <a id="route-map-link" href="https://map.project-osrm.org/" target="_blank"
+                                    rel="noopener noreferrer">Lihat rute di peta OSRM</a> ·
+                                © OpenStreetMap contributors
+                            </span>
+                        </p>
+                    </div>
                 </div>
             </div>
             <div class="col-lg-5">
@@ -334,6 +354,9 @@
             const estimate = document.getElementById('route-estimate');
             const distanceOutput = document.getElementById('route-distance');
             const durationOutput = document.getElementById('route-duration');
+            const routeSource = document.getElementById('route-source');
+            const routeSourceLink = document.getElementById('route-source-link');
+            const routeMapLink = document.getElementById('route-map-link');
             if (!navigator.geolocation) {
                 status.textContent = 'Browser tidak mendukung lokasi.';
                 return;
@@ -366,6 +389,20 @@
                     /* Gunakan estimasi lokal jika routing tidak tersedia. */
                 }
                 if (usesRoadRoute) duration *= 1.35;
+                if (!usesRoadRoute) {
+                    routeSource.textContent = 'Rute jalan tidak tersedia; estimasi berdasarkan jarak garis lurus dan kecepatan rata-rata.';
+                    routeSourceLink.hidden = true;
+                } else {
+                    routeSource.textContent = 'Sumber data rute: ';
+                    routeSourceLink.hidden = false;
+                    const routeMapUrl = new URL('https://map.project-osrm.org/');
+                    const mapCenter = map.getCenter();
+                    routeMapUrl.searchParams.set('z', String(map.getZoom()));
+                    routeMapUrl.searchParams.set('center', `${mapCenter.lat},${mapCenter.lng}`);
+                    routeMapUrl.searchParams.append('loc', `${user[0]},${user[1]}`);
+                    routeMapUrl.searchParams.append('loc', `${coordinate[0]},${coordinate[1]}`);
+                    routeMapLink.href = routeMapUrl.toString();
+                }
                 distanceOutput.textContent =
                     `${(distance / 1000).toFixed(1).replace('.', ',')} km`;
                 const minutes = Math.max(5, Math.ceil(duration / 60 / 5) * 5);

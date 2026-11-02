@@ -127,7 +127,7 @@ class SuperAdminController extends Controller
                 ->when($destinationId, fn ($query) => $query->where('id_destinasi', $destinationId))
                 ->when($from, fn ($query) => $query->where('tanggal_pemesanan', '>=', $from))
                 ->when($to, fn ($query) => $query->where('tanggal_pemesanan', '<=', $to));
-            $totalPendapatan = (clone $ordersQuery)->sum('total_harga');
+            $totalPendapatan = (clone $ordersQuery)->where('status_pemesanan', 'PAID')->sum('total_harga');
             $orders = $ordersQuery->with(['destinasi', 'tiket'])->latest('tanggal_pemesanan')->paginate(20)->withQueryString();
         } else {
             $orders = collect();

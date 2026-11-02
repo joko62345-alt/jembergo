@@ -2323,6 +2323,23 @@ input[type="file"]::file-selector-button {
     background: #dce9f5 !important;
     color: #0f2747 !important;
 }
+[data-theme="dark"] .pagination {
+    --bs-pagination-color: #c1d3e5;
+    --bs-pagination-bg: #142238;
+    --bs-pagination-border-color: #405873;
+    --bs-pagination-hover-color: #e7eef7;
+    --bs-pagination-hover-bg: #1a2c43;
+    --bs-pagination-hover-border-color: #58718d;
+    --bs-pagination-focus-color: #e7eef7;
+    --bs-pagination-focus-bg: #1a2c43;
+    --bs-pagination-focus-box-shadow: 0 0 0 0.25rem rgba(159, 201, 238, 0.2);
+    --bs-pagination-active-color: #0d1726;
+    --bs-pagination-active-bg: #ffc85c;
+    --bs-pagination-active-border-color: #ffc85c;
+    --bs-pagination-disabled-color: #71839a;
+    --bs-pagination-disabled-bg: #101d30;
+    --bs-pagination-disabled-border-color: #30445c;
+}
 [data-theme="dark"] .article-no-results {
     border-color: #405873;
 }

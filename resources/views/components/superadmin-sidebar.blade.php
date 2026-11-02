@@ -55,6 +55,10 @@
                 class="nav-link {{ request()->routeIs('admin.bookings') ? 'active' : '' }}"
                 title="Pemesanan destinasi"><i class="bi bi-calendar-check"
                     aria-hidden="true"></i><span>Pemesanan destinasi</span></a>
+            <a href="{{ route('admin.report') }}"
+                class="nav-link {{ request()->routeIs('admin.report*') ? 'active' : '' }}"
+                title="Laporan"><i class="bi bi-bar-chart"
+                    aria-hidden="true"></i><span>Laporan</span></a>
         @else
             <a href="{{ route('destinations.index') }}" class="nav-link" title="Destinasi"><i
                     class="bi bi-compass" aria-hidden="true"></i><span>Destinasi</span></a>

@@ -236,7 +236,7 @@ class SuperAdminManagementController extends Controller
 
         return view('superadmin.report-print', [
             'orders' => $orders,
-            'totalPendapatan' => $orders->sum('total_harga'),
+            'totalPendapatan' => $orders->where('status_pemesanan', 'PAID')->sum('total_harga'),
             'destination' => $this->reportDestination($request),
             'from' => $request->date('from'),
             'to' => $request->date('to'),
@@ -248,7 +248,7 @@ class SuperAdminManagementController extends Controller
         $orders = $this->reportOrders($request);
         $pdf = Pdf::loadView('superadmin.report-pdf', [
             'orders' => $orders,
-            'totalPendapatan' => $orders->sum('total_harga'),
+            'totalPendapatan' => $orders->where('status_pemesanan', 'PAID')->sum('total_harga'),
             'destination' => $this->reportDestination($request),
             'from' => $request->date('from'),
             'to' => $request->date('to'),

@@ -55,7 +55,7 @@
         'PAID' => 'Lunas',
         'PENDING' => 'Menunggu pembayaran',
         'FAILED' => 'Gagal',
-        'EXPIRED' => 'Kedaluwarsa',
+        'EXPIRED' => 'Gagal',
         default => 'Belum dibayar'
     }
 )

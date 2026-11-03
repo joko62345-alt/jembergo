@@ -39,12 +39,14 @@ Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AuthController::class, 'login'])->name('login.store');
     Route::get('/auth/google', [AuthController::class, 'redirectToGoogle'])->name('google.redirect');
-    Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback'])->name('google.callback');
+    Route::get('/auth/google/callback', [AuthController::class, 'handleGoogleCallback'])->middleware('throttle:5,10')->name('google.callback');
     Route::get('/register', [AuthController::class, 'showRegistration'])->name('register');
-    Route::post('/register', [AuthController::class, 'register'])->name('register.store');
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:5,10')->name('register.store');
+    Route::post('/register/verify', [AuthController::class, 'verifyRegistrationOtp'])->middleware('throttle:5,10')->name('register.otp.verify');
+    Route::post('/register/resend', [AuthController::class, 'resendRegistrationOtp'])->middleware('throttle:5,10')->name('register.otp.resend');
     Route::get('/forgot-password', [PasswordController::class, 'forgot'])->name('password.request');
     Route::post('/forgot-password', [PasswordController::class, 'sendResetLink'])->middleware('throttle:5,10')->name('password.email');
-    Route::get('/reset-password/{token}', [PasswordController::class, 'resetForm'])->name('password.reset');
+    Route::post('/forgot-password/verify', [PasswordController::class, 'verifyResetCode'])->middleware('throttle:5,10')->name('password.otp.verify');
     Route::post('/reset-password', [PasswordController::class, 'reset'])->name('password.update');
 });
 

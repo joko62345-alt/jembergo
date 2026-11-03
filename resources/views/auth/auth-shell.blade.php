@@ -1,11 +1,12 @@
 @php($authMode = $authMode ?? 'login')
+@php($showRegistrationOtpForm = $showRegistrationOtpForm ?? false)
 <!doctype html>
 <html lang="id">
 
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ $authMode === 'register' ? 'Daftar' : 'Masuk' }} | JemberGo</title>
+    <title>{{ $authMode === 'register' ? 'Daftar' : ($authMode === 'forgot' ? 'Lupa Password' : 'Masuk') }} | JemberGo</title>
     <link rel="icon" type="image/svg+xml" href="{{ route('assets.logo') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet">
@@ -76,6 +77,32 @@
 
         .auth-premium-shell.is-register .auth-photo-panel {
             transform: translateX(-100%);
+        }
+
+        .auth-premium-shell.is-forgot .auth-form-inner {
+            width: min(100%, 390px);
+        }
+
+        .auth-otp-input {
+            text-align: center;
+            font-size: 1.1rem !important;
+            font-weight: 700;
+            letter-spacing: .45em;
+        }
+
+        .auth-forgot-back {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .4rem;
+            margin-top: 1rem;
+            color: #7890a1;
+            font-size: .78rem;
+            text-decoration: none;
+        }
+
+        .auth-forgot-back:hover {
+            color: #e77d00;
         }
 
         .auth-form-inner {
@@ -380,6 +407,11 @@
                 padding: .75rem;
             }
 
+            .auth-premium-page.is-forgot-page {
+                display: block;
+                height: auto;
+            }
+
             .auth-premium-shell {
                 width: 100%;
                 height: calc(100vh - 1.5rem);
@@ -436,6 +468,27 @@
                 transform: translateY(100%) !important;
             }
 
+            .auth-premium-shell.is-forgot {
+                height: auto;
+                min-height: calc(100vh - 1.5rem);
+                overflow: hidden;
+            }
+
+            .auth-premium-shell.is-forgot .auth-form-panel {
+                position: relative;
+                min-height: calc(100vh - 1.5rem - 170px);
+                bottom: auto;
+            }
+
+            .auth-premium-shell.is-forgot .auth-photo-panel {
+                position: relative;
+                top: auto;
+                right: auto;
+                bottom: auto;
+                height: 170px;
+                transform: none !important;
+            }
+
             .auth-premium-shell.is-register .auth-form-panel {
                 transform: none;
             }
@@ -464,8 +517,8 @@
 </head>
 
 <body>
-    <main class="auth-premium-page">
-        <section class="auth-premium-shell {{ $authMode === 'register' ? 'is-register' : '' }}"
+    <main class="auth-premium-page {{ $authMode === 'forgot' ? 'is-forgot-page' : '' }}">
+        <section class="auth-premium-shell {{ $authMode === 'register' ? 'is-register' : '' }} {{ $authMode === 'forgot' ? 'is-forgot' : '' }}"
             id="authShell">
             <div class="auth-panel auth-form-panel">
                 <div class="auth-form-inner">
@@ -473,6 +526,144 @@
                             src="{{ route('assets.logo') }}" alt="JemberGo"></a>
                     <span class="auth-kicker d-block mt-4">Sistem Informasi dan Layanan Pariwisata
                         Kabupaten Jember</span>
+                    @if ($authMode === 'forgot')
+                        <h1>Lupa Password</h1>
+                        <p class="auth-subtitle">
+                            @if ($isOtpVerified)
+                                OTP terverifikasi. Buat password baru untuk akun Anda.
+                            @elseif ($showOtpForm)
+                                Masukkan kode OTP yang dikirim ke Gmail Anda.
+                            @else
+                                Masukkan email yang terdaftar untuk menerima kode OTP.
+                            @endif
+                        </p>
+                        @if (session('success'))
+                            <div class="alert auth-success" role="status"><i class="bi bi-check-circle"></i>
+                                <span>{{ session('success') }}</span>
+                            </div>
+                        @endif
+                        @if (session('error'))
+                            <div class="alert auth-error" role="alert">{{ session('error') }}</div>
+                        @endif
+                        @if ($errors->any())
+                            <div class="alert auth-error" role="alert">
+                                <ul class="mb-0">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+
+                        @if ($isOtpVerified)
+                            <form method="POST" action="{{ route('password.update') }}">
+                                @csrf
+                                <div class="auth-field">
+                                    <label for="password">Password baru</label>
+                                    <div class="input-group">
+                                        <input id="password" type="password" name="password" class="form-control"
+                                            placeholder="Minimal 8 karakter" minlength="8" required
+                                            autocomplete="new-password">
+                                        <button type="button" class="btn password-toggle" data-target="password"
+                                            aria-label="Tampilkan password baru"><i class="bi bi-eye"></i></button>
+                                    </div>
+                                </div>
+                                <div class="auth-field">
+                                    <label for="password_confirmation">Konfirmasi password baru</label>
+                                    <div class="input-group">
+                                        <input id="password_confirmation" type="password" name="password_confirmation"
+                                            class="form-control" placeholder="Ulangi password baru" minlength="8"
+                                            required autocomplete="new-password">
+                                        <button type="button" class="btn password-toggle"
+                                            data-target="password_confirmation"
+                                            aria-label="Tampilkan konfirmasi password"><i class="bi bi-eye"></i></button>
+                                    </div>
+                                </div>
+                                <button class="auth-submit" type="submit"><span>Reset Password</span><i
+                                        class="bi bi-arrow-right"></i></button>
+                            </form>
+                        @elseif ($showOtpForm)
+                            <form method="POST" action="{{ route('password.otp.verify') }}">
+                                @csrf
+                                <div class="auth-field">
+                                    <label for="otp">Kode OTP</label>
+                                    <input id="otp" type="text" name="otp"
+                                        class="form-control auth-otp-input" placeholder="••••••"
+                                        inputmode="numeric" pattern="[0-9]{6}" maxlength="6" minlength="6"
+                                        autocomplete="one-time-code" required autofocus>
+                                </div>
+                                <button class="auth-submit" type="submit"><span>Verifikasi OTP</span><i
+                                        class="bi bi-arrow-right"></i></button>
+                            </form>
+                            <form method="POST" action="{{ route('password.email') }}" class="mt-2">
+                                @csrf
+                                <input type="hidden" name="email" value="{{ $email }}">
+                                <button class="auth-switch" type="submit">Kirim ulang kode OTP</button>
+                            </form>
+                        @else
+                            <form method="POST" action="{{ route('password.email') }}">
+                                @csrf
+                                <div class="auth-field">
+                                    <label for="email">Email</label>
+                                    <input id="email" type="email" name="email" class="form-control"
+                                        placeholder="nama@email.com" value="{{ old('email') }}" required
+                                        autocomplete="email" autofocus>
+                                </div>
+                                <button class="auth-submit" type="submit"><span>Kirim Kode OTP</span><i
+                                        class="bi bi-arrow-right"></i></button>
+                            </form>
+                        @endif
+
+                        <a href="{{ route('login') }}" class="auth-forgot-back">
+                            <i class="bi bi-arrow-left"></i><span>Kembali ke login</span>
+                        </a>
+                    @else
+                    @if ($showRegistrationOtpForm)
+                        <h1>Verifikasi email</h1>
+                        <p class="auth-subtitle">
+                            @if ($verificationIntent === 'google')
+                                Masukkan kode OTP yang dikirim ke {{ $verificationEmail }} untuk melanjutkan login Google.
+                            @else
+                                Masukkan kode OTP yang dikirim ke {{ $verificationEmail }} untuk menyelesaikan pendaftaran.
+                            @endif
+                        </p>
+                        @if (session('success'))
+                            <div class="alert auth-success" role="status"><i class="bi bi-check-circle"></i>
+                                <span>{{ session('success') }}</span>
+                            </div>
+                        @endif
+                        @if (session('error'))
+                            <div class="alert auth-error" role="alert">{{ session('error') }}</div>
+                        @endif
+                        @if ($errors->any())
+                            <div class="alert auth-error" role="alert">
+                                <ul class="mb-0">
+                                    @foreach ($errors->all() as $error)
+                                        <li>{{ $error }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
+                        <form method="POST" action="{{ route('register.otp.verify') }}">
+                            @csrf
+                            <div class="auth-field">
+                                <label for="registration-otp">Kode OTP</label>
+                                <input id="registration-otp" type="text" name="otp"
+                                    class="form-control auth-otp-input" placeholder="••••••"
+                                    inputmode="numeric" pattern="[0-9]{6}" maxlength="6" minlength="6"
+                                    autocomplete="one-time-code" required autofocus>
+                            </div>
+                            <button class="auth-submit" type="submit"><span>Verifikasi OTP</span><i
+                                    class="bi bi-arrow-right"></i></button>
+                        </form>
+                        <form method="POST" action="{{ route('register.otp.resend') }}" class="mt-2">
+                            @csrf
+                            <button class="auth-switch" type="submit">Kirim ulang kode OTP</button>
+                        </form>
+                        <a href="{{ route('login') }}" class="auth-forgot-back">
+                            <i class="bi bi-arrow-left"></i><span>Kembali ke login</span>
+                        </a>
+                    @else
                     <h1 data-login-title></h1>
                     <p class="auth-subtitle" data-login-subtitle>Masuk untuk menikmati informasi dan
                         layanan pariwisata Kabupaten Jember</p>
@@ -481,9 +672,11 @@
                     @endif
                     @if (session('success'))
                         <div class="alert auth-success" role="status"><i
-                                class="bi bi-check-circle"></i><span>{{ session('success') }} <a
-                                    href="{{ route('login') }}">Halaman login</a></span><button
-                                type="button" class="auth-alert-close" data-dismiss-auth-alert
+                                class="bi bi-check-circle"></i><span>{{ session('success') }}
+                                @if ($authMode === 'register' && ! $showRegistrationOtpForm)
+                                    <a href="{{ route('login') }}">Halaman login</a>
+                                @endif
+                            </span><button type="button" class="auth-alert-close" data-dismiss-auth-alert
                                 aria-label="Tutup pesan"><i class="bi bi-x-lg"></i></button></div>
                     @endif
                     @if ($errors->any())
@@ -568,6 +761,8 @@
                     <p class="auth-switch-row" data-register-switch>Sudah memiliki akun? <button
                             class="auth-switch" type="button" data-switch="login">Masuk</button>
                     </p>
+                    @endif
+                    @endif
                 </div>
             </div>
             <div class="auth-panel auth-photo-panel"
@@ -575,14 +770,33 @@
                 <span class="auth-photo-badge"><i class="bi bi-stars"></i> Wonderful Jember</span>
                 <div class="auth-photo-content"><span class="auth-location"><i
                             class="bi bi-geo-alt-fill"></i> Kabupaten Jember, Jawa Timur</span>
-                    <h2>Jelajahi pesona Jember.</h2>
-                    <p>Pantai, perbukitan hijau, dan pengalaman wisata yang menunggu untuk
-                        ditemukan.</p>
+                    @if ($authMode === 'forgot')
+                        <h2>Jember selalu menanti.</h2>
+                        <p>Pulihkan akun Anda dan lanjutkan menjelajahi pesona wisata Kabupaten Jember.</p>
+                    @else
+                        <h2>Jelajahi pesona Jember.</h2>
+                        <p>Pantai, perbukitan hijau, dan pengalaman wisata yang menunggu untuk
+                            ditemukan.</p>
+                    @endif
                 </div>
             </div>
         </section>
     </main>
     <script>
+        document.querySelectorAll('.password-toggle').forEach(button => button.addEventListener('click',
+            () => {
+                const input = document.getElementById(button.dataset.target);
+                if (!input) {
+                    return;
+                }
+
+                const isVisible = input.type === 'text';
+                input.type = isVisible ? 'password' : 'text';
+                button.innerHTML = `<i class="bi bi-eye${isVisible ? '' : '-slash'}"></i>`;
+                button.setAttribute('aria-label', `${isVisible ? 'Tampilkan' : 'Sembunyikan'} ${input.name === 'password_confirmation' ? 'konfirmasi password' : 'password baru'}`);
+            }));
+
+        if ('{{ $authMode }}' !== 'forgot' && !@json($showRegistrationOtpForm)) {
         const authShell = document.getElementById('authShell');
         const loginForm = document.querySelector('[data-login-form]');
         const registerForm = document.querySelector('[data-register-form]');
@@ -604,13 +818,6 @@
         };
         document.querySelectorAll('[data-switch]').forEach(button => button.addEventListener('click',
             () => setMode(button.dataset.switch)));
-        document.querySelectorAll('.password-toggle').forEach(button => button.addEventListener('click',
-            () => {
-                const input = document.getElementById(button.dataset.target);
-                const visible = input.type === 'text';
-                input.type = visible ? 'password' : 'text';
-                button.innerHTML = `<i class="bi bi-eye${visible ? '' : '-slash'}"></i>`;
-            }));
         document.querySelector('[data-dismiss-auth-alert]')?.addEventListener('click', event => event
             .currentTarget.closest('.auth-success').remove());
         const registerNameInput = document.querySelector('[data-register-name]');
@@ -652,6 +859,7 @@
         registerNameInput && validateRegisterName();
         registerPhoneInput && validateRegisterPhone();
         setMode('{{ $authMode }}');
+        }
     </script>
 </body>
 

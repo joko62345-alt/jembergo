@@ -16,7 +16,7 @@ class Customer extends Authenticatable
 
     protected $primaryKey = 'id_customer';
 
-    protected $fillable = ['nama', 'email', 'no_hp', 'password', 'auth_provider'];
+    protected $fillable = ['nama', 'email', 'no_hp', 'password', 'auth_provider', 'google_verified_at'];
 
     protected $hidden = ['password'];
 

@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\CustomerOtp;
 use App\Models\AdminPariwisata;
 use App\Models\Customer;
 use App\Models\SuperAdmin;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -24,9 +28,19 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    public function showRegistration(): View
+    public function showRegistration(Request $request): View
     {
-        return view('auth.register');
+        $intent = $request->session()->get('customer_verification_intent');
+        $email = $request->session()->get('customer_verification_email');
+        $showRegistrationOtpForm = $request->query('stage') === 'otp'
+            && in_array($intent, ['registration', 'google'], true)
+            && is_string($email);
+
+        return view('auth.register', [
+            'showRegistrationOtpForm' => $showRegistrationOtpForm,
+            'verificationEmail' => $showRegistrationOtpForm ? $email : null,
+            'verificationIntent' => $showRegistrationOtpForm ? $intent : null,
+        ]);
     }
 
     public function login(Request $request): RedirectResponse
@@ -130,11 +144,147 @@ class AuthController extends Controller
             return redirect()->route('login')->with('error', 'Email Google belum terverifikasi.');
         }
 
-        $customer = Customer::query()->firstOrCreate(
-            ['email' => $profile['email']],
-            ['nama' => $profile['name'] ?? $profile['email'], 'password' => null, 'auth_provider' => 'google']
+        $customer = Customer::query()->where('email', $profile['email'])->first();
+
+        if ($customer?->google_verified_at) {
+            $customer->update(['auth_provider' => 'google']);
+
+            return $this->signInCustomer($request, $customer);
+        }
+
+        return $this->beginCustomerEmailVerification(
+            $request,
+            $profile['email'],
+            $profile['name'] ?? $profile['email'],
+            'google',
+            ['nama' => $profile['name'] ?? $profile['email']],
         );
-        $customer->update(['auth_provider' => 'google']);
+    }
+
+    public function verifyRegistrationOtp(Request $request): RedirectResponse
+    {
+        $data = $request->validate(['otp' => ['required', 'digits:6']]);
+        $email = $request->session()->get('customer_verification_email');
+        $intent = $request->session()->get('customer_verification_intent');
+        $pendingData = $request->session()->get('customer_verification_data');
+        $record = is_string($email)
+            ? DB::table('customer_email_verification_tokens')->where('email', $email)->first()
+            : null;
+        $createdAt = $record ? Carbon::parse($record->created_at) : null;
+        $isValid = $record
+            && is_array($pendingData)
+            && in_array($intent, ['registration', 'google'], true)
+            && Hash::check($data['otp'], $record->token)
+            && $createdAt->greaterThanOrEqualTo(now()->subMinutes(10))
+            && $createdAt->lessThanOrEqualTo(now());
+
+        if (! $isValid) {
+            return redirect()->route('register', ['stage' => 'otp'])->with('error', 'Kode OTP tidak valid atau sudah kedaluwarsa.');
+        }
+
+        if ($intent === 'registration') {
+            Customer::query()->create([
+                'nama' => $pendingData['nama'],
+                'email' => $email,
+                'no_hp' => $pendingData['no_hp'],
+                'password' => $pendingData['password'],
+                'auth_provider' => 'manual',
+            ]);
+
+            DB::table('customer_email_verification_tokens')->where('email', $email)->delete();
+            $request->session()->forget([
+                'customer_verification_email',
+                'customer_verification_intent',
+                'customer_verification_data',
+            ]);
+
+            return redirect()->route('login')->with('success', 'Email berhasil diverifikasi. Silakan masuk.');
+        }
+
+        $customer = Customer::query()->firstOrCreate(
+            ['email' => $email],
+            ['nama' => $pendingData['nama'], 'password' => null, 'auth_provider' => 'google']
+        );
+        $customer->update([
+            'auth_provider' => 'google',
+            'google_verified_at' => now(),
+        ]);
+        DB::table('customer_email_verification_tokens')->where('email', $email)->delete();
+        $request->session()->forget([
+            'customer_verification_email',
+            'customer_verification_intent',
+            'customer_verification_data',
+        ]);
+        $request->session()->regenerate();
+        $request->session()->put([
+            'jg_user_id' => $customer->id_customer,
+            'jg_user_name' => $customer->nama,
+            'jg_role' => 'CUSTOMER',
+        ]);
+
+        return redirect()->to($request->session()->pull('customer_redirect', route('home')));
+    }
+
+    public function resendRegistrationOtp(Request $request): RedirectResponse
+    {
+        $email = $request->session()->get('customer_verification_email');
+        $intent = $request->session()->get('customer_verification_intent');
+        $pendingData = $request->session()->get('customer_verification_data');
+
+        if (! is_string($email) || ! is_array($pendingData) || ! in_array($intent, ['registration', 'google'], true)) {
+            return redirect()->route('register')->with('error', 'Tidak ada proses verifikasi yang perlu dikirim ulang.');
+        }
+
+        return $this->beginCustomerEmailVerification(
+            $request,
+            $email,
+            $pendingData['nama'],
+            $intent,
+            $pendingData,
+        );
+    }
+
+    private function beginCustomerEmailVerification(
+        Request $request,
+        string $email,
+        string $customerName,
+        string $intent,
+        array $pendingData,
+    ): RedirectResponse {
+        $otp = (string) random_int(100000, 999999);
+
+        DB::table('customer_email_verification_tokens')->updateOrInsert(
+            ['email' => $email],
+            ['token' => Hash::make($otp), 'created_at' => now()],
+        );
+
+        try {
+            Mail::to($email)->send(new CustomerOtp($otp, $customerName, true));
+        } catch (\Throwable $exception) {
+            DB::table('customer_email_verification_tokens')->where('email', $email)->delete();
+            $request->session()->forget([
+                'customer_verification_email',
+                'customer_verification_intent',
+                'customer_verification_data',
+            ]);
+            report($exception);
+
+            return redirect()->route($intent === 'google' ? 'login' : 'register')
+                ->with('error', 'Kode OTP gagal dikirim. Silakan coba lagi.');
+        }
+
+        $request->session()->put([
+            'customer_verification_email' => $email,
+            'customer_verification_intent' => $intent,
+            'customer_verification_data' => $pendingData,
+        ]);
+
+        return redirect()->route('register', ['stage' => 'otp'])
+            ->with('success', 'Kode OTP telah dikirim ke Gmail Anda.');
+    }
+
+    private function signInCustomer(Request $request, Customer $customer): RedirectResponse
+    {
         $request->session()->regenerate();
         $request->session()->put(['jg_user_id' => $customer->id_customer, 'jg_user_name' => $customer->nama, 'jg_role' => 'CUSTOMER']);
 
@@ -161,13 +311,15 @@ class AuthController extends Controller
             'password.min' => 'Password minimal 8 karakter.',
         ]);
 
-        $customer = Customer::create([
-            ...$data,
-            'password' => Hash::make($data['password']),
-            'auth_provider' => 'manual',
-        ]);
+        $data['password'] = Hash::make($data['password']);
 
-        return redirect()->route('register')->with('success', 'Registrasi berhasil. Silakan ke halaman login.');
+        return $this->beginCustomerEmailVerification(
+            $request,
+            $data['email'],
+            $data['nama'],
+            'registration',
+            $data,
+        );
     }
 
     public function logout(Request $request): RedirectResponse

@@ -1296,6 +1296,72 @@ em {
     box-shadow: 0 0 0 0.2rem rgba(127, 187, 221, 0.2);
 }
 
+.destination-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.3rem;
+    background: var(--jg-white);
+    border: 1px solid var(--jg-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.destination-search:focus-within {
+    border-color: var(--jg-orange);
+    box-shadow: 0 0 0 3px rgba(245, 139, 5, 0.12);
+}
+
+.destination-search .destination-search-input {
+    flex: 1;
+    min-width: 0;
+    min-height: 48px;
+    padding: 0 1rem 0 3rem;
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    box-shadow: none;
+}
+
+.destination-search .destination-search-input:focus {
+    border: 0;
+    box-shadow: none;
+}
+
+.destination-search-icon {
+    position: absolute;
+    left: 1.2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.destination-search .destination-search-button {
+    flex-shrink: 0;
+    min-height: 48px;
+    padding: 0.55rem 1.4rem;
+    border-radius: var(--radius-md);
+    box-shadow: 0 3px 10px rgba(245, 139, 5, 0.2);
+}
+
+.destination-search .destination-search-button:hover {
+    transform: none;
+}
+
+.destination-search .destination-search-button:focus-visible {
+    outline: 2px solid var(--jg-dark);
+    outline-offset: 2px;
+}
+
+@media (max-width: 575.98px) {
+    .destination-search .destination-search-button {
+        padding-right: 1rem;
+        padding-left: 1rem;
+    }
+}
+
 .public-page .btn-warning,
 .customer-page .btn-warning {
     background: var(--jg-orange);
@@ -1558,6 +1624,7 @@ em {
     text-decoration: none;
     font-size: 0.78rem;
     font-weight: 600;
+    white-space: nowrap;
 }
 .order-action.outline {
     border: 1px solid #d2e0e8;
@@ -1651,6 +1718,13 @@ em {
     }
     .orders-table {
         min-width: 720px;
+    }
+    .orders-table th:last-child,
+    .orders-table td:last-child {
+        min-width: 8rem;
+    }
+    .orders-table .order-action {
+        min-height: 44px;
     }
 }
 

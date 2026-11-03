@@ -422,7 +422,7 @@ class BookingController extends Controller
         return redirect()->route('customer.change.checkout', [$id, $change->id_perubahan]);
     }
 
-    public function additionalCheckout(int $id, int $change): View|JsonResponse
+    public function additionalCheckout(int $id, int $change): View|JsonResponse|RedirectResponse
     {
         $booking = $this->ownedBooking($id);
         $this->ensureActivePaidBooking($booking);

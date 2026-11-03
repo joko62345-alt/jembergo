@@ -26,13 +26,15 @@
             <div class="row justify-content-center mb-5">
                 <div class="col-md-8 col-lg-6">
                     <form action="{{ route('destinations.search') }}" method="GET"
-                        class="position-relative">
-                        <input type="text" name="q" class="form-control form-control-lg ps-5"
+                        class="destination-search">
+                        <input type="text" name="q"
+                            class="destination-search-input form-control form-control-lg"
                             placeholder="Cari destinasi wisata..." value="{{ request('q') }}">
-                        <i
-                            class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-                        <button type="submit"
-                            class="btn btn-jg-primary position-absolute top-50 end-0 translate-middle-y me-2">Cari</button>
+                        <i class="destination-search-icon bi bi-search text-muted"
+                            aria-hidden="true"></i>
+                        <button type="submit" class="destination-search-button btn btn-jg-primary">
+                            Cari
+                        </button>
                     </form>
                 </div>
             </div>

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Mail\CustomerOtp;
 use App\Models\AdminPariwisata;
 use App\Models\Artikel;
 use App\Models\Customer;
@@ -14,7 +15,10 @@ use App\Models\Review;
 use App\Models\SuperAdmin;
 use App\Services\PaymentGateway\PaymentGateway;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -24,6 +28,8 @@ class MobileApiTest extends TestCase
 
     public function test_customer_can_register_and_use_a_bearer_token(): void
     {
+        Mail::fake();
+
         $response = $this->postJson('/api/v1/auth/register', [
             'nama' => 'Siti Aminah',
             'email' => 'siti@example.com',
@@ -32,7 +38,19 @@ class MobileApiTest extends TestCase
             'device_name' => 'android',
         ]);
 
-        $response->assertCreated()
+        $response->assertAccepted()
+            ->assertJsonPath('data.email', 'siti@example.com')
+            ->assertJsonPath('data.purpose', 'registration');
+        $otp = Mail::sent(CustomerOtp::class)->first()->otp;
+        $this->postJson('/api/v1/auth/register/verify', [
+            'email' => 'siti@example.com',
+            'otp' => $otp,
+        ])->assertOk();
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => 'siti@example.com',
+            'password' => 'password123',
+        ])->assertOk()
             ->assertJsonPath('data.user.role', 'CUSTOMER')
             ->assertJsonPath('data.user.email', 'siti@example.com')
             ->assertJsonPath('data.user.no_hp', '081234567890')
@@ -77,6 +95,7 @@ class MobileApiTest extends TestCase
     public function test_customer_can_sign_in_with_a_verified_google_id_token(): void
     {
         config(['services.google.client_id' => 'jembergo-web-client-id']);
+        Mail::fake();
         Http::fake([
             'https://oauth2.googleapis.com/tokeninfo*' => Http::response([
                 'aud' => 'jembergo-web-client-id',
@@ -91,6 +110,29 @@ class MobileApiTest extends TestCase
         $response = $this->postJson('/api/v1/auth/google', [
             'id_token' => 'valid-google-id-token',
             'device_name' => 'android',
+        ])->assertAccepted()
+            ->assertJsonPath('data.email', 'siti@example.com')
+            ->assertJsonPath('data.purpose', 'google');
+
+        $this->assertDatabaseMissing('customer', ['email' => 'siti@example.com']);
+        Mail::assertSent(CustomerOtp::class, function (CustomerOtp $mail): bool {
+            $this->assertTrue($mail->isEmailVerification);
+            $this->assertSame('Siti Aminah', $mail->customerName);
+
+            return true;
+        });
+
+        $challenge = DB::table('mobile_auth_challenges')
+            ->where('email', 'siti@example.com')
+            ->where('purpose', 'google')
+            ->first();
+
+        $this->assertNotNull($challenge);
+        $otp = Mail::sent(CustomerOtp::class)->first()->otp;
+        $response = $this->postJson('/api/v1/auth/google/verify', [
+            'email' => 'siti@example.com',
+            'otp' => $otp,
+            'device_name' => 'android',
         ]);
 
         $response->assertOk()
@@ -102,6 +144,174 @@ class MobileApiTest extends TestCase
             'email' => 'siti@example.com',
             'auth_provider' => 'google',
         ]);
+        $this->assertNotNull(Customer::query()
+            ->where('email', 'siti@example.com')
+            ->value('google_verified_at'));
+        $this->assertDatabaseMissing('mobile_auth_challenges', [
+            'email' => 'siti@example.com',
+            'purpose' => 'google',
+        ]);
+
+        $this->postJson('/api/v1/auth/google', [
+            'id_token' => 'valid-google-id-token',
+            'device_name' => 'android',
+        ])->assertOk()
+            ->assertJsonPath('data.user.email', 'siti@example.com');
+    }
+
+    public function test_mobile_registration_sends_otp_and_creates_customer_only_after_verification(): void
+    {
+        Mail::fake();
+
+        $this->postJson('/api/v1/auth/register', [
+            'nama' => 'Siti Aminah',
+            'email' => 'Siti@example.com',
+            'no_hp' => '081234567890',
+            'password' => 'password123',
+            'device_name' => 'android',
+        ])->assertAccepted()
+            ->assertJsonPath('data.email', 'siti@example.com')
+            ->assertJsonPath('data.purpose', 'registration');
+
+        $this->assertDatabaseMissing('customer', ['email' => 'siti@example.com']);
+        $challenge = DB::table('mobile_auth_challenges')
+            ->where('email', 'siti@example.com')
+            ->where('purpose', 'registration')
+            ->first();
+        $this->assertNotNull($challenge);
+        $pendingData = json_decode($challenge->payload, true);
+        $this->assertTrue(Hash::check('password123', $pendingData['password']));
+        Mail::assertSent(CustomerOtp::class);
+
+        $otp = Mail::sent(CustomerOtp::class)->first()->otp;
+        $this->postJson('/api/v1/auth/register/verify', [
+            'email' => 'Siti@example.com',
+            'otp' => $otp,
+        ])->assertOk()
+            ->assertJsonPath('data.email', 'siti@example.com');
+
+        $this->assertDatabaseHas('customer', [
+            'nama' => 'Siti Aminah',
+            'email' => 'siti@example.com',
+            'no_hp' => '081234567890',
+            'auth_provider' => 'manual',
+        ]);
+        $this->assertDatabaseMissing('mobile_auth_challenges', [
+            'email' => 'siti@example.com',
+            'purpose' => 'registration',
+        ]);
+    }
+
+    public function test_mobile_registration_otp_can_be_resent_and_expired_codes_are_rejected(): void
+    {
+        Mail::fake();
+
+        $this->postJson('/api/v1/auth/register', [
+            'nama' => 'Siti Aminah',
+            'email' => 'siti@example.com',
+            'no_hp' => '081234567890',
+            'password' => 'password123',
+        ])->assertAccepted();
+
+        $originalOtp = Mail::sent(CustomerOtp::class)->first()->otp;
+        $this->postJson('/api/v1/auth/register/verify', [
+            'email' => 'siti@example.com',
+            'otp' => '000000',
+        ])->assertUnprocessable();
+        $this->postJson('/api/v1/auth/otp/resend', [
+            'email' => 'siti@example.com',
+            'purpose' => 'registration',
+        ])->assertAccepted();
+
+        $resentOtp = Mail::sent(CustomerOtp::class)->last()->otp;
+        $this->assertNotSame($originalOtp, $resentOtp);
+
+        $this->travel(11)->minutes();
+        $this->postJson('/api/v1/auth/register/verify', [
+            'email' => 'siti@example.com',
+            'otp' => $resentOtp,
+        ])->assertUnprocessable()
+            ->assertJsonPath('message', 'Kode OTP tidak valid atau sudah kadaluarsa.');
+        $this->assertDatabaseMissing('customer', ['email' => 'siti@example.com']);
+        $this->travelBack();
+    }
+
+    public function test_mobile_registration_reports_email_delivery_failure(): void
+    {
+        Mail::shouldReceive('to')
+            ->once()
+            ->with('siti@example.com')
+            ->andThrow(new \RuntimeException('SMTP unavailable'));
+
+        $this->postJson('/api/v1/auth/register', [
+            'nama' => 'Siti Aminah',
+            'email' => 'siti@example.com',
+            'no_hp' => '081234567890',
+            'password' => 'password123',
+        ])->assertServiceUnavailable()
+            ->assertJsonPath(
+                'message',
+                'Kode OTP gagal dikirim. Silakan periksa konfigurasi email lalu coba lagi.',
+            );
+
+        $this->assertDatabaseMissing('customer', ['email' => 'siti@example.com']);
+        $this->assertDatabaseMissing('mobile_auth_challenges', [
+            'email' => 'siti@example.com',
+            'purpose' => 'registration',
+        ]);
+    }
+
+    public function test_mobile_password_reset_uses_email_otp_and_a_single_use_reset_token(): void
+    {
+        Mail::fake();
+        Customer::query()->create([
+            'nama' => 'Siti Aminah',
+            'email' => 'siti@example.com',
+            'no_hp' => '081234567890',
+            'password' => Hash::make('old-password'),
+            'auth_provider' => 'manual',
+        ]);
+
+        $this->postJson('/api/v1/auth/password/otp', [
+            'email' => 'Siti@example.com',
+        ])->assertAccepted();
+        Mail::assertSent(CustomerOtp::class, function (CustomerOtp $mail): bool {
+            $this->assertFalse($mail->isEmailVerification);
+
+            return true;
+        });
+
+        $otp = Mail::sent(CustomerOtp::class)->first()->otp;
+        $resetToken = $this->postJson('/api/v1/auth/password/otp/verify', [
+            'email' => 'siti@example.com',
+            'otp' => $otp,
+        ])->assertOk()->json('data.reset_token');
+        $this->assertIsString($resetToken);
+
+        $this->postJson('/api/v1/auth/password/reset', [
+            'email' => 'siti@example.com',
+            'reset_token' => $resetToken,
+            'password' => 'new-password',
+            'password_confirmation' => 'new-password',
+        ])->assertOk();
+
+        $this->postJson('/api/v1/auth/login', [
+            'email' => 'siti@example.com',
+            'password' => 'old-password',
+        ])->assertUnauthorized();
+        $this->postJson('/api/v1/auth/login', [
+            'email' => 'siti@example.com',
+            'password' => 'new-password',
+        ])->assertOk();
+
+        $this->travel(61)->seconds();
+        $this->postJson('/api/v1/auth/password/reset', [
+            'email' => 'siti@example.com',
+            'reset_token' => $resetToken,
+            'password' => 'another-password',
+            'password_confirmation' => 'another-password',
+        ])->assertUnprocessable();
+        $this->travelBack();
     }
 
     public function test_google_sign_in_rejects_tokens_for_another_client(): void
@@ -242,6 +452,50 @@ class MobileApiTest extends TestCase
         $this->get('/api/v1/media/../.env')->assertNotFound();
     }
 
+    public function test_mobile_api_serves_images_from_the_website_public_storage(): void
+    {
+        Storage::fake('public');
+        $relativePath = 'destinations/main/mobile-'.bin2hex(random_bytes(6)).'.jpg';
+        $websiteImagePath = public_path('storage/'.$relativePath);
+        $directory = dirname($websiteImagePath);
+        $createdDirectories = [];
+
+        while (! is_dir($directory)) {
+            array_unshift($createdDirectories, $directory);
+            $directory = dirname($directory);
+        }
+
+        foreach ($createdDirectories as $createdDirectory) {
+            if (! mkdir($createdDirectory)) {
+                throw new \RuntimeException('Tidak dapat menyiapkan direktori gambar uji.');
+            }
+        }
+
+        if (file_put_contents($websiteImagePath, 'website-image-content') === false) {
+            throw new \RuntimeException('Tidak dapat menyiapkan gambar uji.');
+        }
+
+        try {
+            $response = $this->get('/api/v1/media/'.$relativePath)
+                ->assertOk()
+                ->assertHeader('Content-Type', 'image/jpeg');
+
+            $this->assertSame(
+                $websiteImagePath,
+                $response->baseResponse->getFile()->getPathname(),
+            );
+            $this->assertSame('website-image-content', file_get_contents($websiteImagePath));
+        } finally {
+            if (is_file($websiteImagePath)) {
+                unlink($websiteImagePath);
+            }
+
+            foreach (array_reverse($createdDirectories) as $createdDirectory) {
+                rmdir($createdDirectory);
+            }
+        }
+    }
+
     public function test_published_articles_are_available_to_mobile_with_public_image_urls(): void
     {
         $superAdmin = SuperAdmin::query()->create([
@@ -274,13 +528,22 @@ class MobileApiTest extends TestCase
 
     public function test_access_tokens_expire_after_the_configured_period(): void
     {
-        $response = $this->postJson('/api/v1/auth/register', [
+        Mail::fake();
+        $this->postJson('/api/v1/auth/register', [
             'nama' => 'Siti Aminah',
             'email' => 'siti@example.com',
             'no_hp' => '081234567890',
             'password' => 'password123',
-        ])->assertCreated();
-        $token = $response->json('data.token');
+        ])->assertAccepted();
+        $otp = Mail::sent(CustomerOtp::class)->first()->otp;
+        $this->postJson('/api/v1/auth/register/verify', [
+            'email' => 'siti@example.com',
+            'otp' => $otp,
+        ])->assertOk();
+        $token = $this->postJson('/api/v1/auth/login', [
+            'email' => 'siti@example.com',
+            'password' => 'password123',
+        ])->assertOk()->json('data.token');
 
         $this->travel(31)->days();
         $this->app['auth']->forgetGuards();

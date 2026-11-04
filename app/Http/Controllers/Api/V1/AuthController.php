@@ -3,13 +3,18 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Mail\CustomerOtp;
 use App\Models\AdminPariwisata;
 use App\Models\Customer;
+use Carbon\Carbon;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -78,26 +83,248 @@ class AuthController extends Controller
             ], 403);
         }
 
-        $customer = Customer::query()->firstOrCreate(
-            ['email' => $email],
-            [
-                'nama' => is_string($claims['name'] ?? null) && $claims['name'] !== ''
-                    ? $claims['name']
-                    : $email,
-                'password' => null,
-                'auth_provider' => 'google',
-            ],
-        );
+        $customer = Customer::query()->where('email', $email)->first();
+        if ($customer?->google_verified_at !== null) {
+            if ($customer->auth_provider !== 'google') {
+                $customer->update(['auth_provider' => 'google']);
+            }
 
-        if ($customer->auth_provider !== 'google') {
-            $customer->update(['auth_provider' => 'google']);
+            return $this->tokenResponse(
+                $customer,
+                'CUSTOMER',
+                $data['device_name'] ?? 'flutter',
+            );
         }
 
-        return $this->tokenResponse(
-            $customer,
-            'CUSTOMER',
-            $data['device_name'] ?? 'flutter',
+        $name = is_string($claims['name'] ?? null) && $claims['name'] !== ''
+            ? $claims['name']
+            : $email;
+
+        return $this->beginEmailVerification($email, $name, 'google', ['nama' => $name]);
+    }
+
+    public function verifyRegistration(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email', 'max:150'],
+            'otp' => ['required', 'digits:6'],
+        ]);
+        $email = strtolower($data['email']);
+
+        return DB::transaction(function () use ($email, $data): JsonResponse {
+            $challenge = DB::table('mobile_auth_challenges')
+                ->where('email', $email)
+                ->where('purpose', 'registration')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $this->isValidChallenge($challenge, $data['otp'])) {
+                return $this->invalidOtpResponse();
+            }
+
+            $pendingData = $this->challengePayload($challenge);
+            if (
+                ! is_string($pendingData['nama'] ?? null)
+                || ! is_string($pendingData['no_hp'] ?? null)
+                || ! is_string($pendingData['password'] ?? null)
+            ) {
+                return $this->invalidOtpResponse();
+            }
+
+            if (
+                Customer::query()->where('email', $email)->orWhere('no_hp', $pendingData['no_hp'])->exists()
+                || AdminPariwisata::query()->where('email', $email)->exists()
+            ) {
+                DB::table('mobile_auth_challenges')->where('id', $challenge->id)->delete();
+
+                return response()->json([
+                    'message' => 'Email atau nomor telepon sudah terdaftar. Silakan daftar kembali dengan data lain.',
+                ], 409);
+            }
+
+            $customer = Customer::query()->create([
+                'nama' => $pendingData['nama'],
+                'email' => $email,
+                'no_hp' => $pendingData['no_hp'],
+                'password' => $pendingData['password'],
+                'auth_provider' => 'manual',
+            ]);
+
+            DB::table('mobile_auth_challenges')->where('id', $challenge->id)->delete();
+
+            return response()->json([
+                'message' => 'Email berhasil diverifikasi. Silakan masuk.',
+                'data' => ['id' => $customer->id_customer, 'email' => $email],
+            ]);
+        });
+    }
+
+    public function verifyGoogle(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email', 'max:150'],
+            'otp' => ['required', 'digits:6'],
+            'device_name' => ['nullable', 'string', 'max:100'],
+        ]);
+        $email = strtolower($data['email']);
+
+        return DB::transaction(function () use ($email, $data): JsonResponse {
+            $challenge = DB::table('mobile_auth_challenges')
+                ->where('email', $email)
+                ->where('purpose', 'google')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $this->isValidChallenge($challenge, $data['otp'])) {
+                return $this->invalidOtpResponse();
+            }
+
+            $pendingData = $this->challengePayload($challenge);
+            if (! is_string($pendingData['nama'] ?? null)) {
+                return $this->invalidOtpResponse();
+            }
+
+            $customer = Customer::query()->firstOrCreate(
+                ['email' => $email],
+                [
+                    'nama' => $pendingData['nama'],
+                    'password' => null,
+                    'auth_provider' => 'google',
+                ],
+            );
+            $customer->update([
+                'auth_provider' => 'google',
+                'google_verified_at' => now(),
+            ]);
+            DB::table('mobile_auth_challenges')->where('id', $challenge->id)->delete();
+
+            return $this->tokenResponse(
+                $customer,
+                'CUSTOMER',
+                $data['device_name'] ?? 'flutter',
+            );
+        });
+    }
+
+    public function resendOtp(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email', 'max:150'],
+            'purpose' => ['required', 'in:registration,google'],
+        ]);
+        $challenge = DB::table('mobile_auth_challenges')
+            ->where('email', strtolower($data['email']))
+            ->where('purpose', $data['purpose'])
+            ->first();
+
+        if (! $challenge) {
+            return response()->json([
+                'message' => 'Tidak ada proses verifikasi yang perlu dikirim ulang.',
+            ], 404);
+        }
+
+        $pendingData = $this->challengePayload($challenge);
+        if (! is_string($pendingData['nama'] ?? null)) {
+            return $this->invalidOtpResponse();
+        }
+
+        return $this->beginEmailVerification(
+            $challenge->email,
+            $pendingData['nama'],
+            $challenge->purpose,
+            $pendingData,
         );
+    }
+
+    public function requestPasswordResetOtp(Request $request): JsonResponse
+    {
+        $data = $request->validate(['email' => ['required', 'email', 'max:150']]);
+        $email = strtolower($data['email']);
+        $customer = Customer::query()->where('email', $email)->first();
+
+        if (! $customer) {
+            return response()->json([
+                'message' => 'Jika email terdaftar, kode OTP telah dikirim ke Gmail Anda.',
+            ], 202);
+        }
+
+        return $this->beginEmailVerification(
+            $email,
+            $customer->nama,
+            'password_reset',
+            [],
+            false,
+        );
+    }
+
+    public function verifyPasswordResetOtp(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email', 'max:150'],
+            'otp' => ['required', 'digits:6'],
+        ]);
+        $email = strtolower($data['email']);
+
+        return DB::transaction(function () use ($email, $data): JsonResponse {
+            $challenge = DB::table('mobile_auth_challenges')
+                ->where('email', $email)
+                ->where('purpose', 'password_reset')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $this->isValidChallenge($challenge, $data['otp'])) {
+                return $this->invalidOtpResponse();
+            }
+
+            $resetToken = Str::random(64);
+            DB::table('mobile_auth_challenges')->where('id', $challenge->id)->delete();
+            DB::table('mobile_auth_challenges')->updateOrInsert(
+                ['email' => $email, 'purpose' => 'password_reset_verified'],
+                [
+                    'token' => Hash::make($resetToken),
+                    'payload' => '{}',
+                    'created_at' => now(),
+                ],
+            );
+
+            return response()->json([
+                'data' => ['reset_token' => $resetToken],
+            ]);
+        });
+    }
+
+    public function resetPassword(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'email' => ['required', 'email', 'max:150'],
+            'reset_token' => ['required', 'string', 'max:100'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+        ]);
+        $email = strtolower($data['email']);
+
+        return DB::transaction(function () use ($email, $data): JsonResponse {
+            $challenge = DB::table('mobile_auth_challenges')
+                ->where('email', $email)
+                ->where('purpose', 'password_reset_verified')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $this->isValidChallenge($challenge, $data['reset_token'])) {
+                return $this->invalidOtpResponse();
+            }
+
+            $customer = Customer::query()->where('email', $email)->first();
+            if (! $customer) {
+                DB::table('mobile_auth_challenges')->where('id', $challenge->id)->delete();
+
+                return response()->json(['message' => 'Akun tidak ditemukan.'], 404);
+            }
+
+            $customer->update(['password' => Hash::make($data['password'])]);
+            DB::table('mobile_auth_challenges')->where('id', $challenge->id)->delete();
+
+            return response()->json(['message' => 'Password berhasil diubah.']);
+        });
     }
 
     public function register(Request $request): JsonResponse
@@ -109,16 +336,87 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'min:8'],
             'device_name' => ['nullable', 'string', 'max:100'],
         ]);
+        $email = strtolower($data['email']);
 
-        $customer = Customer::query()->create([
-            'nama' => $data['nama'],
-            'email' => $data['email'],
-            'no_hp' => $data['no_hp'],
-            'password' => Hash::make($data['password']),
-            'auth_provider' => 'manual',
-        ]);
+        return $this->beginEmailVerification(
+            $email,
+            $data['nama'],
+            'registration',
+            [
+                'nama' => $data['nama'],
+                'no_hp' => $data['no_hp'],
+                'password' => Hash::make($data['password']),
+            ],
+        );
+    }
 
-        return $this->tokenResponse($customer, 'CUSTOMER', $data['device_name'] ?? 'flutter', 201);
+    private function beginEmailVerification(
+        string $email,
+        string $customerName,
+        string $purpose,
+        array $pendingData,
+        bool $isEmailVerification = true,
+    ): JsonResponse {
+        $otp = (string) random_int(100000, 999999);
+        DB::table('mobile_auth_challenges')->updateOrInsert(
+            ['email' => $email, 'purpose' => $purpose],
+            [
+                'token' => Hash::make($otp),
+                'payload' => json_encode($pendingData, JSON_THROW_ON_ERROR),
+                'created_at' => now(),
+            ],
+        );
+
+        try {
+            Mail::to($email)->send(new CustomerOtp($otp, $customerName, $isEmailVerification));
+        } catch (\Throwable $exception) {
+            DB::table('mobile_auth_challenges')
+                ->where('email', $email)
+                ->where('purpose', $purpose)
+                ->delete();
+            report($exception);
+
+            return response()->json([
+                'message' => 'Kode OTP gagal dikirim. Silakan periksa konfigurasi email lalu coba lagi.',
+            ], 503);
+        }
+
+        return response()->json([
+            'message' => 'Kode OTP telah dikirim ke Gmail Anda.',
+            'data' => [
+                'email' => $email,
+                'purpose' => $purpose,
+            ],
+        ], 202);
+    }
+
+    private function isValidChallenge(?object $challenge, string $otp): bool
+    {
+        if (! $challenge || ! Hash::check($otp, $challenge->token)) {
+            return false;
+        }
+
+        $createdAt = Carbon::parse($challenge->created_at);
+
+        return $createdAt->greaterThanOrEqualTo(now()->subMinutes(10))
+            && $createdAt->lessThanOrEqualTo(now());
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function challengePayload(object $challenge): array
+    {
+        $payload = json_decode($challenge->payload, true);
+
+        return is_array($payload) ? $payload : [];
+    }
+
+    private function invalidOtpResponse(): JsonResponse
+    {
+        return response()->json([
+            'message' => 'Kode OTP tidak valid atau sudah kadaluarsa.',
+        ], 422);
     }
 
     public function login(Request $request): JsonResponse

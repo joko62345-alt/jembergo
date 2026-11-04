@@ -10,6 +10,7 @@ use App\Models\DestinasiWisata;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ContentController extends Controller
@@ -53,7 +54,7 @@ class ContentController extends Controller
         return new DestinationResource($destination);
     }
 
-    public function publicImage(string $path): StreamedResponse
+    public function publicImage(string $path): BinaryFileResponse|StreamedResponse
     {
         abort_unless(
             preg_match('#\A(?:destinations|articles)/[A-Za-z0-9_./-]+\.(?:jpe?g|png|webp|gif)\z#i', $path) === 1
@@ -62,9 +63,21 @@ class ContentController extends Controller
         );
 
         $disk = Storage::disk('public');
-        abort_unless($disk->exists($path), 404);
+        if ($disk->exists($path)) {
+            return $disk->response($path);
+        }
 
-        return $disk->response($path);
+        $websiteImagePath = public_path('storage/'.$path);
+        abort_unless(is_file($websiteImagePath), 404);
+
+        $contentType = match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'webp' => 'image/webp',
+            'gif' => 'image/gif',
+        };
+
+        return response()->file($websiteImagePath, ['Content-Type' => $contentType]);
     }
 
     public function articles(Request $request): AnonymousResourceCollection

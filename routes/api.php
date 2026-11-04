@@ -20,6 +20,12 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
     Route::get('/auth/google/config', [AuthController::class, 'googleConfig'])->name('auth.google.config');
     Route::post('/auth/google', [AuthController::class, 'googleLogin'])->middleware('throttle:10,1')->name('auth.google');
     Route::post('/auth/register', [AuthController::class, 'register'])->middleware('throttle:5,1')->name('auth.register');
+    Route::post('/auth/register/verify', [AuthController::class, 'verifyRegistration'])->middleware('throttle:5,1')->name('auth.register.verify');
+    Route::post('/auth/google/verify', [AuthController::class, 'verifyGoogle'])->middleware('throttle:5,1')->name('auth.google.verify');
+    Route::post('/auth/otp/resend', [AuthController::class, 'resendOtp'])->middleware('throttle:3,1')->name('auth.otp.resend');
+    Route::post('/auth/password/otp', [AuthController::class, 'requestPasswordResetOtp'])->middleware('throttle:5,1')->name('auth.password.otp');
+    Route::post('/auth/password/otp/verify', [AuthController::class, 'verifyPasswordResetOtp'])->middleware('throttle:5,1')->name('auth.password.otp.verify');
+    Route::post('/auth/password/reset', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1')->name('auth.password.reset');
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1')->name('auth.login');
 
     Route::middleware(['auth:sanctum', 'api.role:CUSTOMER'])->prefix('customer')->name('customer.')->group(function (): void {

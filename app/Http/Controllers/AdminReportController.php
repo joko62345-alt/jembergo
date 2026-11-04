@@ -24,7 +24,6 @@ class AdminReportController extends Controller
         $ordersQuery = $this->ordersQuery($admin, $dateFilters);
         $paidOrdersQuery = (clone $ordersQuery)->where('status_pemesanan', 'PAID');
         $totalTransaksi = (clone $ordersQuery)->count();
-        $totalNilaiTransaksi = (float) (clone $ordersQuery)->sum('total_harga');
         $totalTransaksiLunas = (clone $paidOrdersQuery)->count();
         $totalPendapatan = (float) $paidOrdersQuery->sum('total_harga');
         $orders = $ordersQuery
@@ -38,7 +37,6 @@ class AdminReportController extends Controller
             'destination',
             'dateFilters',
             'totalTransaksi',
-            'totalNilaiTransaksi',
             'totalTransaksiLunas',
             'totalPendapatan',
         ));

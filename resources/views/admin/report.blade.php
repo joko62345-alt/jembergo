@@ -64,13 +64,6 @@
             <small>Sesuai periode yang dipilih</small>
         </article>
         <article class="admin-stat-card">
-            <div class="admin-stat-icon admin-stat-icon-orange"><i class="bi bi-wallet2"
-                    aria-hidden="true"></i></div>
-            <span>Nilai seluruh transaksi</span>
-            <strong>Rp {{ number_format($totalNilaiTransaksi, 0, ',', '.') }}</strong>
-            <small>Termasuk semua status pembayaran</small>
-        </article>
-        <article class="admin-stat-card">
             <div class="admin-stat-icon admin-stat-icon-green"><i class="bi bi-patch-check"
                     aria-hidden="true"></i></div>
             <span>Transaksi lunas</span>

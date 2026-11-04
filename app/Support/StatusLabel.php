@@ -33,7 +33,7 @@ final class StatusLabel
             'ACTIVE' => 'Terkonfirmasi',
             'USED' => 'Sudah digunakan',
             'PARTIAL' => 'Sebagian digunakan',
-            'EXPIRED' => 'Kedaluwarsa',
+            'EXPIRED' => 'Kadaluarsa',
             default => 'Tidak diketahui',
         };
     }

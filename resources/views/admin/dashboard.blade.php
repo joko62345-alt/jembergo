@@ -48,8 +48,8 @@
             <article class="admin-stat-card">
                 <div class="admin-stat-icon"><i class="bi bi-calendar-check" aria-hidden="true"></i>
                 </div><span>Total
-                    pemesanan</span><strong>{{ number_format($adminStats['orders']) }}</strong><small>Semua
-                    booking destinasi</small>
+                    pemesanan</span><strong>{{ number_format($adminStats['orders']) }}</strong><small>Transaksi
+                    lunas</small>
             </article>
             <article class="admin-stat-card">
                 <div class="admin-stat-icon admin-stat-icon-orange"><i class="bi bi-hourglass-split"

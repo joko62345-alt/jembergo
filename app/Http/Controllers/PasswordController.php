@@ -82,7 +82,7 @@ class PasswordController extends Controller
             && $createdAt->lessThanOrEqualTo(now());
 
         if (! $isValid) {
-            return redirect()->route('password.request', ['stage' => 'otp'])->with('error', 'Kode OTP tidak valid atau sudah kedaluwarsa.');
+            return redirect()->route('password.request', ['stage' => 'otp'])->with('error', 'Kode OTP tidak valid atau sudah kadaluarsa.');
         }
 
         DB::table('password_reset_tokens')->where('email', $email)->delete();

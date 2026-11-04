@@ -120,7 +120,7 @@ class AuthController extends Controller
     {
         $state = $request->session()->pull('google_oauth_state');
         if (! $state || ! hash_equals($state, (string) $request->query('state'))) {
-            return redirect()->route('login')->with('error', 'Sesi login Google sudah kedaluwarsa. Silakan coba lagi.');
+            return redirect()->route('login')->with('error', 'Sesi login Google sudah kadaluarsa. Silakan coba lagi.');
         }
 
         if ($request->filled('error') || ! $request->filled('code')) {
@@ -179,7 +179,7 @@ class AuthController extends Controller
             && $createdAt->lessThanOrEqualTo(now());
 
         if (! $isValid) {
-            return redirect()->route('register', ['stage' => 'otp'])->with('error', 'Kode OTP tidak valid atau sudah kedaluwarsa.');
+            return redirect()->route('register', ['stage' => 'otp'])->with('error', 'Kode OTP tidak valid atau sudah kadaluarsa.');
         }
 
         if ($intent === 'registration') {

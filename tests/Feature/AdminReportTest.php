@@ -46,7 +46,7 @@ class AdminReportTest extends TestCase
             ->assertSee('BOOKING-ADMIN-REPORT')
             ->assertSee('BOOKING-EXPIRED-REPORT')
             ->assertSee('Gagal')
-            ->assertSeeInOrder(['Nilai seluruh transaksi', 'Rp 50.000'])
+            ->assertDontSee('Nilai seluruh transaksi')
             ->assertSeeInOrder(['Pendapatan', 'Rp 25.000'])
             ->assertDontSee('BOOKING-OTHER-REPORT')
             ->assertDontSee('BOOKING-OLD-REPORT')

@@ -64,7 +64,7 @@ class DashboardController extends Controller
                 'orders' => (clone $destinationOrders)->count(),
                 'pending' => (clone $destinationOrders)->whereHas('tiket', fn ($query) => $query->where('status_tiket', 'ACTIVE'))->count(),
                 'verified' => (clone $destinationOrders)->whereHas('tiket', fn ($query) => $query->where('status_tiket', 'USED'))->count(),
-                'revenue' => (float) (clone $destinationOrders)->where('status_pemesanan', 'PAID')->sum('total_harga'),
+                'revenue' => (float) (clone $destinationOrders)->sum('total_harga'),
             ];
 
             return view('admin.dashboard', compact('role', 'counts', 'admin', 'destination', 'adminStats', 'recentBookings', 'pendingVerification'));

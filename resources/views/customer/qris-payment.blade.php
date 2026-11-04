@@ -489,7 +489,7 @@
                     60), seconds % 60].map(value => String(value).padStart(2, '0')).join(
                     ':');
                 if (!remaining) {
-                    status.textContent = 'QRIS kedaluwarsa';
+                    status.textContent = 'QRIS kadaluarsa';
                     clearInterval(timer);
                 }
             };

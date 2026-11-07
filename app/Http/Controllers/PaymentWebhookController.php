@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pembayaran;
+use App\Models\Pemesanan;
 use App\Models\PerubahanPemesanan;
 use App\Services\BookingTicketService;
 use App\Services\PaymentGateway\MidtransGateway;
@@ -74,11 +75,15 @@ class PaymentWebhookController extends Controller
         if (abs($verifiedAmount - (float) $payment->nominal) > 0.01) {
             return response()->json(['message' => 'Transaction amount mismatch.'], 422);
         }
-        if ($payment->status_pembayaran === 'PAID') {
-            return response()->json(['message' => 'Already processed.']);
-        }
-        DB::transaction(function () use ($booking, $payment, $status, $transactionStatus, $paymentType, $transactionId, $verified): void {
-            $payment->update([
+        $processed = DB::transaction(function () use ($booking, $payment, $status, $transactionStatus, $paymentType, $transactionId, $verified): bool {
+            $lockedBooking = Pemesanan::query()->whereKey($booking->id_pemesanan)->lockForUpdate()->firstOrFail();
+            $lockedPayment = Pembayaran::query()->whereKey($payment->id_pembayaran)->lockForUpdate()->firstOrFail();
+
+            if ($lockedBooking->status_pemesanan === 'CANCELLED' || $lockedPayment->status_pembayaran === 'CANCELLED' || $lockedPayment->status_pembayaran === 'PAID') {
+                return false;
+            }
+
+            $lockedPayment->update([
                 'status_pembayaran' => $status,
                 'transaction_status' => $transactionStatus,
                 'payment_type' => $paymentType ?: null,
@@ -88,13 +93,15 @@ class PaymentWebhookController extends Controller
                 'paid_at' => $status === 'PAID' ? now() : null,
                 'waktu_pembayaran' => $status === 'PAID' ? now() : null,
             ]);
-            $booking->update(['status_pemesanan' => $status]);
+            $lockedBooking->update(['status_pemesanan' => $status]);
             if ($status === 'PAID') {
-                app(BookingTicketService::class)->issue($booking->fresh());
+                app(BookingTicketService::class)->issue($lockedBooking->fresh());
             }
+
+            return true;
         });
 
-        return response()->json(['message' => 'Notification processed.']);
+        return response()->json(['message' => $processed ? 'Notification processed.' : 'Already processed.']);
     }
 
     private function mapStatus(string $transactionStatus, ?string $fraudStatus): string
@@ -103,7 +110,8 @@ class PaymentWebhookController extends Controller
             'settlement' => 'PAID',
             'capture' => strtolower((string) $fraudStatus) === 'challenge' ? 'PENDING' : 'PAID',
             'expire' => 'EXPIRED',
-            'deny', 'cancel', 'failure' => 'FAILED',
+            'cancel' => 'CANCELLED',
+            'deny', 'failure' => 'FAILED',
             default => 'PENDING',
         };
     }

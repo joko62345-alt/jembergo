@@ -786,6 +786,8 @@ class MobileApiTest extends TestCase
             {
                 return $this->createPayment($booking, $method, $amount);
             }
+
+            public function cancelPayment(string $orderId): void {}
         });
 
         $this->withToken($token)

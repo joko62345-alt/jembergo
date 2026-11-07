@@ -18,7 +18,7 @@ class PublicController extends Controller
 
         return view('welcome', [
             'destinations' => $hasDestinationTable
-                ? DestinasiWisata::query()->where('status_aktif', 'aktif')->with(['galeri', 'jenisTiket'])->withAvg('review', 'rating')->latest('id_destinasi')->take(5)->get()
+                ? DestinasiWisata::query()->where('status_aktif', 'aktif')->with(['galeri', 'jenisTiket'])->withAvg('review', 'rating')->latest('id_destinasi')->take(6)->get()
                 : collect(),
             'mapDestinations' => $hasDestinationTable
                 ? DestinasiWisata::query()
@@ -41,6 +41,11 @@ class PublicController extends Controller
                 ? Artikel::query()->where('status', 'PUBLISHED')->latest('tanggal_publikasi')->latest('id_artikel')->take(3)->get()
                 : collect(),
         ]);
+    }
+
+    public function about(): View
+    {
+        return view('public.about');
     }
 
     public function destinations(Request $request): View

@@ -9,28 +9,34 @@
         $currentMembers = collect($booking->anggota_names ?? []);
         $currentCount = 1 + $currentMembers->count();
         $remaining = max(0, 10 - $currentCount);
+        $pendingMembers = collect($pendingData['anggota'] ?? []);
+        $memberRows = $pendingMembers->isNotEmpty()
+            ? $pendingMembers
+            : collect([['nama' => '', 'id_jenis_tiket' => '']]);
     @endphp
 
     <main class="manage-page">
         <div class="container manage-container">
-            <a href="{{ route('customer.ticket', $booking->id_pemesanan) }}" class="manage-back"><i
+            <a href="{{ route('customer.ticket', $booking->id_pemesanan) }}" class="manage-back customer-back-link"><i
                     class="bi bi-arrow-left"></i> Kembali ke E-Ticket</a>
             <div class="manage-header">
-                <div><span class="manage-kicker">Kelola perjalanan</span></div><span
-                    class="manage-code"><i class="bi bi-receipt"></i>{{ $booking->kode_booking }}</span>
+                <div>
+                    <span class="manage-kicker">Perjalanan Anda</span>
+                    <h1>Kelola perjalanan</h1>
+                    <p>Ubah jadwal atau tambahkan peserta perjalanan.</p>
+                </div>
             </div>
-
 
             @if ($pending)
                 <div class="manage-pending">
-                    <div><i class="bi bi-hourglass-split"></i>
-                        <div><strong>Ada perubahan yang belum selesai</strong>
-                            <p>Lanjutkan ke review dan pembayaran agar E-Ticket diperbarui.</p>
-                        </div>
+                    <div>
+                        <strong>Perubahan Anda sudah tersimpan</strong>
+                        <p>{{ $pendingPaymentStarted
+                            ? 'Lanjutkan pembayaran untuk memperbarui E-Ticket.'
+                            : 'Draf yang sama akan diperbarui jika Anda mengubah jadwal atau peserta.' }}</p>
                     </div><a
                         href="{{ route('customer.change.checkout', [$booking->id_pemesanan, $pending->id_perubahan]) }}"
-                        class="btn btn-warning">Lanjutkan pembayaran <i
-                            class="bi bi-arrow-right"></i></a>
+                        class="btn btn-warning">{{ $pendingPaymentStarted ? 'Lanjutkan pembayaran' : 'Lihat perubahan tersimpan' }}</a>
                 </div>
             @endif
             @if (session('change_error'))
@@ -44,63 +50,77 @@
                     <section class="manage-main">
                         <article class="manage-card">
                             <div class="card-heading">
-                                <div class="heading-icon"><i class="bi bi-calendar2-week"></i></div>
-                                <div><span>Perjalanan</span>
+                                <div>
+                                    <span>Jadwal perjalanan</span>
                                     <h2>Ubah jadwal</h2>
-                                    <p>Pilih tanggal baru untuk kunjungan Anda.</p>
+                                    <p>Pilih tanggal baru untuk kunjungan.</p>
                                 </div>
                             </div>
                             <label for="tanggal_kunjungan">Tanggal kunjungan baru</label>
                             <input id="tanggal_kunjungan" name="tanggal_kunjungan" type="date"
                                 min="{{ today()->toDateString() }}"
                                 max="{{ now()->addMonths(2)->format('Y-m-d') }}"
-                                value="{{ old('tanggal_kunjungan', $booking->tanggal_kunjungan->toDateString()) }}"
+                                value="{{ old('tanggal_kunjungan', $pendingData['tanggal_kunjungan'] ?? $booking->tanggal_kunjungan->toDateString()) }}"
+                                @disabled($pendingPaymentStarted)
                                 required>
                             @error('tanggal_kunjungan')
                                 <small class="field-error">{{ $message }}</small>
                             @enderror
-                            <div class="date-note"><i class="bi bi-info-circle"></i> Jadwal lama:
+                            <div class="date-note">Jadwal saat ini:
                                 <strong>{{ $booking->tanggal_kunjungan->translatedFormat('d F Y') }}</strong>
                             </div>
                         </article>
 
                         <article class="manage-card">
                             <div class="card-heading">
-                                <div class="heading-icon"><i class="bi bi-people"></i></div>
-                                <div><span> Data tiket</span>
+                                <div>
+                                    <span>Peserta perjalanan</span>
                                     <h2>Tambah tiket</h2>
-                                    <p>Tambahkan anggota atau tiket tambahan untuk perjalanan Anda.</p>
+                                    <p>Tambahkan peserta dan pilih jenis tiketnya.</p>
                                 </div>
                             </div>
                             @if ($remaining > 0)
                                 <div class="member-list" id="memberList">
-                                    <div class="member-row" data-member-row>
-                                        <div class="member-number">01</div>
-                                        <div class="member-fields"><label>Nama anggota<input
-                                                    name="anggota[0][nama]"
-                                                    placeholder="Masukkan nama"></label><label>Jenis
-                                                tiket<select name="anggota[0][id_jenis_tiket]">
-                                                    <option value="">Pilih jenis tiket</option>
-                                                    @foreach ($booking->destinasi->jenisTiket as $ticket)
-                                                        <option value="{{ $ticket->id_jenis_tiket }}"
-                                                            data-price="{{ $ticket->harga }}">
-                                                            {{ $ticket->nama_jenis }} · Rp
-                                                            {{ number_format($ticket->harga, 0, ',', '.') }}
-                                                        </option>
-                                                    @endforeach
-                                                </select></label></div><button type="button"
-                                            class="remove-member" aria-label="Hapus anggota"><i
-                                                class="bi bi-trash3"></i></button>
-                                    </div>
+                                    @if ($pendingPaymentStarted && $pendingMembers->isEmpty())
+                                        <p class="member-limit">Tidak ada tiket tambahan pada perubahan tersimpan.</p>
+                                    @else
+                                        @foreach ($memberRows as $memberIndex => $member)
+                                            <div class="member-row" data-member-row>
+                                                <div class="member-number">{{ str_pad((string) ($memberIndex + 1), 2, '0', STR_PAD_LEFT) }}</div>
+                                                <div class="member-fields">
+                                                    <label>Nama anggota
+                                                        <input name="anggota[{{ $memberIndex }}][nama]"
+                                                            value="{{ old("anggota.{$memberIndex}.nama", $member['nama'] ?? '') }}"
+                                                            placeholder="Masukkan nama lengkap"
+                                                            @disabled($pendingPaymentStarted)>
+                                                    </label>
+                                                    <label>Jenis tiket
+                                                        <select name="anggota[{{ $memberIndex }}][id_jenis_tiket]"
+                                                            @disabled($pendingPaymentStarted)>
+                                                            <option value="">Pilih jenis tiket</option>
+                                                            @foreach ($booking->destinasi->jenisTiket as $ticket)
+                                                                <option value="{{ $ticket->id_jenis_tiket }}"
+                                                                    data-price="{{ $ticket->harga }}"
+                                                                    @selected((string) old("anggota.{$memberIndex}.id_jenis_tiket", $member['id_jenis_tiket'] ?? '') === (string) $ticket->id_jenis_tiket)>
+                                                                    {{ $ticket->nama_jenis }} · Rp
+                                                                    {{ number_format($ticket->harga, 0, ',', '.') }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </label>
+                                                </div>
+                                                <button type="button" class="remove-member" aria-label="Hapus anggota"
+                                                    @disabled($pendingPaymentStarted)>Hapus</button>
+                                            </div>
+                                        @endforeach
+                                    @endif
                                 </div>
-                                <button type="button" class="add-member" id="addMember"><i
-                                        class="bi bi-plus-lg"></i> Tambah anggota</button>
-                                <p class="member-limit"><i class="bi bi-shield-check"></i>
-                                    {{ $remaining }} slot tiket tersedia · maksimal 10 orang per
+                                <button type="button" class="add-member" id="addMember"
+                                    @disabled($pendingPaymentStarted || max(1, $pendingMembers->count()) >= $remaining)>Tambah anggota</button>
+                                <p class="member-limit">{{ $remaining }} slot tiket tersedia · maksimal 10 orang per
                                     booking.</p>
                             @else
-                                <div class="empty-members"><i
-                                        class="bi bi-check2-circle"></i><strong>Booking sudah
+                                <div class="empty-members"><strong>Booking sudah
                                         penuh</strong><span>Jumlah peserta saat ini sudah mencapai 10
                                         orang.</span></div>
                             @endif
@@ -111,8 +131,7 @@
                         <div class="summary-card">
                             <span class="summary-kicker">Ringkasan pesanan</span>
                             <h2>{{ $booking->destinasi->nama_wisata }}</h2>
-                            <p><i
-                                    class="bi bi-geo-alt"></i>{{ Str::limit($booking->destinasi->alamat, 42) }}
+                            <p>{{ Str::limit($booking->destinasi->alamat, 42) }}
                             </p>
                             <div class="summary-line"><span>Jadwal saat
                                     ini</span><strong>{{ $booking->tanggal_kunjungan->translatedFormat('d M Y') }}</strong>
@@ -127,7 +146,7 @@
                             <div class="summary-total"><span>Total biaya tambahan</span><strong
                                     id="summaryTotal">Rp 0</strong></div>
                             <button class="primary-action" id="reviewChanges" type="submit"
-                                disabled>lihat perubahan <i class="bi bi-arrow-right"></i></button>
+                                    disabled>{{ $pending ? 'Lihat perubahan tersimpan' : 'Lihat perubahan' }}</button>
                             <small class="summary-help">Anda akan melihat detail perubahan sebelum
                                 melanjutkan ke pembayaran.</small>
                         </div>
@@ -139,7 +158,7 @@
 
     <style>
         .manage-page {
-            font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+            font-family: "DM Sans", sans-serif;
             font-size: .9rem;
             line-height: 1.5;
         }
@@ -168,23 +187,13 @@
 
         .manage-page {
             min-height: 100vh;
-            padding: 7.5rem 0 5rem;
-            background: #f7f9fb;
+            padding: 7.5rem 0 4rem;
+            background: var(--jg-bg);
             color: #173b60;
         }
 
         .manage-container {
-            max-width: 1160px;
-        }
-
-        .manage-back {
-            color: #61788b;
-            text-decoration: none;
-            font-size: .86rem;
-        }
-
-        .manage-back:hover {
-            color: #f58b05;
+            max-width: 1080px;
         }
 
         .manage-header {
@@ -192,21 +201,21 @@
             justify-content: space-between;
             align-items: end;
             gap: 1rem;
-            margin: 2rem 0 1.5rem;
+            margin: 1.25rem 0 1.5rem;
         }
 
         .manage-kicker,
         .summary-kicker {
-            color: #f58b05;
-            font-size: .72rem;
-            font-weight: 700;
-            letter-spacing: .1em;
+            color: #567087;
+            font-size: .75rem;
+            font-weight: 600;
+            letter-spacing: .04em;
             text-transform: uppercase;
         }
 
         .manage-header h1 {
-            margin: .45rem 0;
-            font-size: clamp(2rem, 4vw, 3rem);
+            margin: .3rem 0 .25rem;
+            font-size: clamp(1.6rem, 2.8vw, 2rem);
             font-weight: 600;
             letter-spacing: 0;
         }
@@ -216,65 +225,6 @@
             color: #708496;
         }
 
-        .manage-code {
-            padding: .75rem 1rem;
-            border: 1px solid #dce6ed;
-            border-radius: .7rem;
-            background: #fff;
-            color: #567087;
-            font-family: monospace;
-            font-size: .8rem;
-        }
-
-        .manage-code i {
-            margin-right: .45rem;
-        }
-
-        .manage-steps {
-            display: flex;
-            align-items: center;
-            gap: .7rem;
-            padding: 1rem 1.1rem;
-            margin-bottom: 1.25rem;
-            border: 1px solid #dce6ed;
-            border-radius: .8rem;
-            background: #fff;
-            color: #9aabb7;
-        }
-
-        .manage-steps div {
-            display: flex;
-            align-items: center;
-            gap: .4rem;
-            font-size: .75rem;
-            white-space: nowrap;
-        }
-
-        .manage-steps span {
-            display: grid;
-            place-items: center;
-            width: 24px;
-            height: 24px;
-            border: 1px solid #cdd9e2;
-            border-radius: 50%;
-            font-size: .7rem;
-        }
-
-        .manage-steps .is-active {
-            color: #173b60;
-        }
-
-        .manage-steps .is-active span {
-            border-color: #f58b05;
-            background: #f58b05;
-            color: #fff;
-        }
-
-        .manage-steps i {
-            color: #c5d0d8;
-            font-size: .7rem;
-        }
-
         .manage-pending {
             display: flex;
             justify-content: space-between;
@@ -282,20 +232,9 @@
             gap: 1rem;
             padding: 1rem 1.2rem;
             margin-bottom: 1.25rem;
-            border: 1px solid #f0c36b;
+            border: 1px solid #dce6ed;
             border-radius: .8rem;
-            background: #fffaf0;
-        }
-
-        .manage-pending>div {
-            display: flex;
-            align-items: center;
-            gap: .8rem;
-        }
-
-        .manage-pending>div>i {
-            color: #f58b05;
-            font-size: 1.25rem;
+            background: #fff;
         }
 
         .manage-pending p {
@@ -312,27 +251,6 @@
         }
 
         .manage-main {
-            max-height: calc(100vh - 220px);
-            overflow-y: auto;
-            padding-right: .35rem;
-        }
-
-        .manage-main::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .manage-main::-webkit-scrollbar-thumb {
-            background: #d2dbe3;
-            border-radius: 999px;
-        }
-
-        .manage-summary,
-        .summary-card {
-            position: sticky;
-            top: 110px;
-        }
-
-        .manage-main {
             display: grid;
             gap: 1.25rem;
         }
@@ -340,9 +258,9 @@
         .manage-card,
         .summary-card {
             border: 1px solid #dce6ed;
-            border-radius: 1rem;
+            border-radius: .9rem;
             background: #fff;
-            box-shadow: 0 8px 24px rgba(23, 59, 96, .04);
+            box-shadow: 0 4px 16px rgba(23, 59, 96, .04);
         }
 
         .manage-card {
@@ -358,27 +276,18 @@
             border-bottom: 1px solid #edf1f4;
         }
 
-        .heading-icon {
-            display: grid;
-            place-items: center;
-            width: 38px;
-            height: 38px;
-            border-radius: .65rem;
-            background: #edf5f8;
-            color: #315d78;
-        }
-
         .card-heading span {
-            color: #f58b05;
+            color: #567087;
             font-size: .7rem;
-            font-weight: 700;
-            letter-spacing: .08em;
+            font-weight: 600;
+            letter-spacing: .04em;
             text-transform: uppercase;
         }
 
         .card-heading h2 {
-            margin: .3rem 0 .2rem;
-            font-size: 1.25rem;
+            margin: .2rem 0 .2rem;
+            font-size: 1.15rem;
+            font-weight: 600;
         }
 
         .card-heading p {
@@ -411,8 +320,8 @@
 
         .manage-card input:focus,
         .manage-card select:focus {
-            border-color: #f58b05;
-            box-shadow: 0 0 0 3px rgba(245, 139, 5, .12);
+            border-color: #567087;
+            box-shadow: 0 0 0 3px rgba(86, 112, 135, .12);
         }
 
         .date-note,
@@ -420,12 +329,6 @@
             margin: .8rem 0 0;
             color: #778d9d;
             font-size: .78rem;
-        }
-
-        .date-note i,
-        .member-limit i {
-            color: #f58b05;
-            margin-right: .3rem;
         }
 
         .field-error {
@@ -463,12 +366,12 @@
         }
 
         .remove-member {
-            width: 32px;
-            height: 32px;
-            border: 0;
+            padding: .45rem .55rem;
+            border: 1px solid #dce6ed;
             border-radius: .5rem;
-            background: #fff1f2;
-            color: #b23b47;
+            background: #fff;
+            color: #567087;
+            font-size: .75rem;
         }
 
         .add-member {
@@ -477,7 +380,7 @@
             gap: .4rem;
             margin-top: 1rem;
             padding: .55rem .75rem;
-            border: 1px dashed #9eb6c5;
+            border: 1px solid #cdd9e2;
             border-radius: .55rem;
             background: #fff;
             color: #315d78;
@@ -485,8 +388,13 @@
         }
 
         .add-member:hover {
-            border-color: #f58b05;
-            color: #f58b05;
+            border-color: #315d78;
+            color: #173b60;
+        }
+
+        .add-member:disabled {
+            cursor: not-allowed;
+            opacity: .55;
         }
 
         .empty-members {
@@ -496,11 +404,6 @@
             padding: 2rem;
             color: #708496;
             text-align: center;
-        }
-
-        .empty-members i {
-            color: #4c9b6b;
-            font-size: 1.6rem;
         }
 
         .empty-members strong {
@@ -562,8 +465,8 @@
         }
 
         .summary-total strong {
-            color: #f58b05;
-            font-size: 1.3rem;
+            color: #173b60;
+            font-size: 1.15rem;
         }
 
         .primary-action {
@@ -578,7 +481,8 @@
             border-radius: .65rem;
             background: #f58b05;
             color: #fff;
-            font-weight: 700;
+            font-weight: 600;
+            transition: background-color 160ms ease;
         }
 
         .primary-action:hover {
@@ -618,27 +522,8 @@
                 grid-template-columns: 1fr;
             }
 
-            .manage-main {
-                max-height: none;
-                overflow: visible;
-                padding-right: 0;
-            }
-
-            .manage-summary,
             .summary-card {
                 position: static;
-            }
-
-            .manage-steps {
-                overflow: auto;
-            }
-
-            .manage-steps i {
-                flex: 0 0 auto;
-            }
-
-            .manage-steps div {
-                flex: 0 0 auto;
             }
         }
 
@@ -669,14 +554,14 @@
                 width: 100%;
             }
 
-            .manage-code {
-                align-self: stretch;
-                text-align: center;
+            .manage-header {
+                align-items: flex-start;
+                flex-direction: column;
             }
         }
 
         .manage-page {
-            font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+            font-family: "DM Sans", sans-serif;
             font-size: .9rem;
             line-height: 1.5;
         }
@@ -723,42 +608,50 @@
             const count = document.getElementById('summaryCount');
             const subtotal = document.getElementById('summarySubtotal');
             const total = document.getElementById('summaryTotal');
-            if (!list || !add) return;
-            let index = 1;
+            const review = document.getElementById('reviewChanges');
+            const visitDate = document.getElementById('tanggal_kunjungan');
+            if (!review || !visitDate) return;
             const max = {{ $remaining }};
+            const pendingPaymentStarted = @json($pendingPaymentStarted);
             const money = value => 'Rp ' + value.toLocaleString('id-ID');
+            const rows = () => list ? [...list.querySelectorAll('[data-member-row]')] : [];
+            const updateAddState = () => {
+                if (add) {
+                    add.disabled = pendingPaymentStarted || rows().length >= max;
+                }
+            };
             const refresh = () => {
-                const rows = [...list.querySelectorAll('[data-member-row]')];
+                const memberRows = rows();
                 let amount = 0;
-                rows.forEach((row, rowIndex) => {
+                memberRows.forEach((row, rowIndex) => {
                     row.querySelector('.member-number').textContent = String(rowIndex +
                         1).padStart(2, '0');
+                    row.querySelector('input').name = `anggota[${rowIndex}][nama]`;
+                    row.querySelector('select').name = `anggota[${rowIndex}][id_jenis_tiket]`;
                     amount += Number(row.querySelector('select')?.selectedOptions[0]
                         ?.dataset.price || 0);
                 });
-                count.textContent = rows.filter(row => row.querySelector('input')?.value
+                count.textContent = memberRows.filter(row => row.querySelector('input')?.value
                     .trim() && row.querySelector('select')?.value).length + ' tiket';
                 subtotal.textContent = money(amount);
                 total.textContent = money(amount);
+                updateAddState();
             };
             const ticketOptions = @json($ticketOptions);
             const options = ticketOptions.map(ticket =>
                 `<option value="${ticket.id}" data-price="${ticket.price}">${ticket.label}</option>`
             ).join('');
-            add.addEventListener('click', () => {
-                if (index >= max) return;
+            add?.addEventListener('click', () => {
+                if (rows().length >= max) return;
+                const index = rows().length;
                 const row = document.createElement('div');
                 row.className = 'member-row';
                 row.dataset.memberRow = '';
                 row.innerHTML =
-                    `<div class="member-number">${String(index + 1).padStart(2, '0')}</div><div class="member-fields"><label>Nama anggota<input name="anggota[${index}][nama]" placeholder="Nama lengkap" required></label><label>Jenis tiket<select name="anggota[${index}][id_jenis_tiket]" required><option value="">Pilih jenis tiket</option>${options}</select></label></div><button type="button" class="remove-member" aria-label="Hapus anggota"><i class="bi bi-trash3"></i></button>`;
+                    `<div class="member-number">${String(index + 1).padStart(2, '0')}</div><div class="member-fields"><label>Nama anggota<input name="anggota[${index}][nama]" placeholder="Nama lengkap" required></label><label>Jenis tiket<select name="anggota[${index}][id_jenis_tiket]" required><option value="">Pilih jenis tiket</option>${options}</select></label></div><button type="button" class="remove-member" aria-label="Hapus anggota">Hapus</button>`;
                 list.appendChild(row);
-                index++;
-                if (index >= max) add.disabled = true;
                 refresh();
             });
-            const review = document.getElementById('reviewChanges');
-            const visitDate = document.getElementById('tanggal_kunjungan');
             const originalDate = @json($booking->tanggal_kunjungan->format('Y-m-d'));
             const maxDate = new Date('{{ now()->addMonths(2)->format('Y-m-d') }}T00:00:00');
             const validateVisitDate = () => {
@@ -773,26 +666,23 @@
             };
             const updateReviewState = () => {
                 validateVisitDate();
-                const dateChanged = document.getElementById('tanggal_kunjungan')?.value !==
-                    originalDate;
-                const memberAdded = [...list.querySelectorAll('[data-member-row]')].some(row =>
-                    row.querySelector('input')?.value.trim() && row.querySelector('select')
-                    ?.value);
-                review.disabled = !dateChanged && !memberAdded;
+                const dateChanged = visitDate.value !== originalDate;
+                const memberAdded = rows().some(row =>
+                    row.querySelector('input')?.value.trim() && row.querySelector('select')?.value);
+                review.disabled = !pendingPaymentStarted && !dateChanged && !memberAdded;
             };
-            list.addEventListener('input', () => {
+            list?.addEventListener('input', () => {
                 refresh();
                 updateReviewState();
             });
-            list.addEventListener('change', () => {
+            list?.addEventListener('change', () => {
                 refresh();
                 updateReviewState();
             });
-            list.addEventListener('click', event => {
+            list?.addEventListener('click', event => {
                 const button = event.target.closest('.remove-member');
                 if (button) {
                     button.closest('[data-member-row]').remove();
-                    add.disabled = false;
                     refresh();
                     updateReviewState();
                 }

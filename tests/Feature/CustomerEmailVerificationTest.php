@@ -163,6 +163,26 @@ class CustomerEmailVerificationTest extends TestCase
         Mail::assertNothingSent();
     }
 
+    public function test_existing_google_account_without_verification_timestamp_does_not_receive_another_code(): void
+    {
+        Mail::fake();
+        $customer = Customer::query()->create([
+            'nama' => 'Legacy Google Customer',
+            'email' => 'legacy-google@example.com',
+            'password' => null,
+            'auth_provider' => 'google',
+        ]);
+        $this->fakeGoogleAccount('legacy-google@example.com', 'Legacy Google Customer');
+
+        $this->withSession(['google_oauth_state' => 'google-state'])
+            ->get(route('google.callback', ['state' => 'google-state', 'code' => 'google-code']))
+            ->assertRedirect(route('home'))
+            ->assertSessionHas('jg_user_id', $customer->id_customer);
+
+        Mail::assertNothingSent();
+        $this->assertNotNull($customer->fresh()->google_verified_at);
+    }
+
     private function fakeGoogleAccount(string $email, string $name): void
     {
         config([

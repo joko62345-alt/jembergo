@@ -9,6 +9,7 @@ final class StatusLabel
         return match ($status) {
             'PAID' => 'Lunas',
             'PENDING' => 'Menunggu pembayaran',
+            'CANCELLED' => 'Dibatalkan',
             'EXPIRED' => 'Gagal',
             'FAILED' => 'Gagal',
             default => 'Belum diproses',

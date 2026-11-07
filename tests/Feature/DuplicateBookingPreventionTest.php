@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Customer;
 use App\Models\DestinasiWisata;
 use App\Models\JenisTiket;
+use App\Models\Pemesanan;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,7 +17,7 @@ class DuplicateBookingPreventionTest extends TestCase
     {
         $customer = Customer::create([
             'nama' => 'Andi Wijaya',
-            'email' => 'andi@example.com',
+            'email' => 'andi@gmail.com',
             'no_hp' => '081234567890',
             'password' => bcrypt('secret123'),
             'auth_provider' => 'manual',
@@ -45,7 +46,7 @@ class DuplicateBookingPreventionTest extends TestCase
         $payload = [
             'tanggal_kunjungan' => now()->addDay()->toDateString(),
             'ketua_nama' => 'Andi Wijaya',
-            'ketua_email' => 'andi@example.com',
+            'ketua_email' => 'andi@gmail.com',
             'ketua_no_hp' => '081234567890',
             'peserta' => [
                 ['nama' => 'Andi Wijaya', 'id_jenis_tiket' => $ticketType->id_jenis_tiket],
@@ -63,8 +64,38 @@ class DuplicateBookingPreventionTest extends TestCase
         $firstResponse->assertRedirect();
         $this->assertDatabaseCount('pemesanan', 1);
 
-        $secondResponse = $this->post(route('customer.booking.store', $destination->id_destinasi), $payload);
-        $secondResponse->assertSessionHasErrors(['booking']);
+        $booking = Pemesanan::query()->firstOrFail();
+        $this->get(route('customer.checkout', $booking->id_pemesanan))
+            ->assertOk()
+            ->assertSee(route('customer.booking.create', [
+                'id' => $destination->id_destinasi,
+                'booking_id' => $booking->id_pemesanan,
+            ]), false);
+
+        $this->get(route('customer.booking.create', [
+            'id' => $destination->id_destinasi,
+            'booking_id' => $booking->id_pemesanan,
+        ]))
+            ->assertOk()
+            ->assertSee('value="081234567890"', false)
+            ->assertSee('name="peserta[1][nama]"', false)
+            ->assertSee('value="Sari"', false);
+
+        $secondResponse = $this->post(route('customer.booking.store', $destination->id_destinasi), [
+            ...$payload,
+            'booking_id' => $booking->id_pemesanan,
+        ]);
+        $secondResponse->assertRedirect(route('customer.checkout', $booking->id_pemesanan));
+        $this->assertDatabaseCount('pemesanan', 1);
+        $this->assertDatabaseCount('detail_pemesanan', 1);
+        $this->assertDatabaseHas('detail_pemesanan', [
+            'id_pemesanan' => $booking->id_pemesanan,
+            'jumlah' => 2,
+            'subtotal' => 200000,
+        ]);
+
+        $duplicateResponse = $this->post(route('customer.booking.store', $destination->id_destinasi), $payload);
+        $duplicateResponse->assertSessionHasErrors(['booking']);
         $this->assertDatabaseCount('pemesanan', 1);
     }
 
@@ -72,7 +103,7 @@ class DuplicateBookingPreventionTest extends TestCase
     {
         $customer = Customer::create([
             'nama' => 'Andi Wijaya',
-            'email' => 'andi@example.com',
+            'email' => 'andi@gmail.com',
             'no_hp' => '081234567890',
             'password' => bcrypt('secret123'),
             'auth_provider' => 'manual',
@@ -101,7 +132,7 @@ class DuplicateBookingPreventionTest extends TestCase
         $firstPayload = [
             'tanggal_kunjungan' => now()->addDay()->toDateString(),
             'ketua_nama' => 'Andi Wijaya',
-            'ketua_email' => 'andi@example.com',
+            'ketua_email' => 'andi@gmail.com',
             'ketua_no_hp' => '081234567890',
             'peserta' => [
                 ['nama' => 'Andi Wijaya', 'id_jenis_tiket' => $ticketType->id_jenis_tiket],
@@ -127,7 +158,7 @@ class DuplicateBookingPreventionTest extends TestCase
     {
         $customer = Customer::create([
             'nama' => 'Andi Wijaya',
-            'email' => 'andi@example.com',
+            'email' => 'andi@gmail.com',
             'no_hp' => '081234567890',
             'password' => bcrypt('secret123'),
             'auth_provider' => 'manual',
@@ -178,7 +209,7 @@ class DuplicateBookingPreventionTest extends TestCase
         $firstPayload = [
             'tanggal_kunjungan' => $sameDate,
             'ketua_nama' => 'Andi Wijaya',
-            'ketua_email' => 'andi@example.com',
+            'ketua_email' => 'andi@gmail.com',
             'ketua_no_hp' => '081234567890',
             'peserta' => [
                 ['nama' => 'Andi Wijaya', 'id_jenis_tiket' => $firstTicket->id_jenis_tiket],
@@ -189,7 +220,7 @@ class DuplicateBookingPreventionTest extends TestCase
         $secondPayload = [
             'tanggal_kunjungan' => $sameDate,
             'ketua_nama' => 'Andi Wijaya',
-            'ketua_email' => 'andi@example.com',
+            'ketua_email' => 'andi@gmail.com',
             'ketua_no_hp' => '081234567890',
             'peserta' => [
                 ['nama' => 'Andi Wijaya', 'id_jenis_tiket' => $secondTicket->id_jenis_tiket],

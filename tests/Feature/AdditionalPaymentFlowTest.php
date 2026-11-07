@@ -128,13 +128,43 @@ class AdditionalPaymentFlowTest extends TestCase
             ->assertJsonPath('data.status', 'PENDING')
             ->assertJsonPath('data.amount', 25000);
         $change = $booking->perubahan()->latest('id_perubahan')->firstOrFail();
-        $change->update(['snap_token' => 'legacy-snap-token']);
 
         $this->withSession([
             'jg_user_id' => $customer->id_customer,
             'jg_user_name' => $customer->nama,
             'jg_role' => 'CUSTOMER',
         ]);
+
+        $manageRoute = route('customer.manage', $booking->id_pemesanan);
+        $reviewRoute = route('customer.manage.review', $booking->id_pemesanan);
+        $checkoutRoute = route('customer.change.checkout', [
+            $booking->id_pemesanan,
+            $change->id_perubahan,
+        ]);
+        $updatedDate = now()->addDays(2)->toDateString();
+
+        $this->get($manageRoute)
+            ->assertOk()
+            ->assertSee('value="'.now()->addDay()->toDateString().'"', false)
+            ->assertSee('value="Sari Wijaya"', false);
+
+        $this->post($reviewRoute, [
+            'tanggal_kunjungan' => $updatedDate,
+            'anggota' => [
+                [
+                    'nama' => 'Sari Wijaya',
+                    'id_jenis_tiket' => $ticketType->id_jenis_tiket,
+                ],
+            ],
+        ])->assertRedirect($checkoutRoute);
+        $this->assertDatabaseCount('perubahan_pemesanan', 1);
+        $updatedChangeData = $change->fresh()->anggota_baru;
+        $this->assertSame($updatedDate, $updatedChangeData['tanggal_kunjungan']);
+        $this->assertSame('Sari Wijaya', $updatedChangeData['anggota'][0]['nama']);
+
+        $change->update(['snap_token' => 'legacy-snap-token']);
+        $this->post($reviewRoute)->assertRedirect($checkoutRoute);
+        $this->assertDatabaseCount('perubahan_pemesanan', 1);
 
         $this->get(route('customer.change.checkout', [
             $booking->id_pemesanan,

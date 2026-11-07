@@ -25,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withSchedule(function (Schedule $schedule): void {
         $schedule->call(function (): void {
+            Pemesanan::expirePendingPayments();
             Pemesanan::expireTicketsPastVisitDate();
         })->everyMinute();
     })

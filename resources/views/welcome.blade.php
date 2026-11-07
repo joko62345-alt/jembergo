@@ -85,7 +85,7 @@
                                             <a href="{{ route('destinations.index') }}"
                                                 class="btn btn-jg-primary btn-lg">Mulai Eksplorasi <i
                                                     class="bi bi-arrow-right"></i></a>
-                                            <a href="#tentang"
+                                            <a href="{{ route('about') }}"
                                                 class="btn btn-outline-light btn-lg">Tentang
                                                 JemberGo</a>
                                         </div>
@@ -121,8 +121,8 @@
                             alam, bahari, hingga buatan. Dengan sistem pemesanan yang terintegrasi,
                             perjalanan Anda menjadi lebih terencana dan menyenangkan.</p>
                         <div class="mt-4">
-                            <a href="{{ route('destinations.index') }}" class="btn btn-jg-primary">
-                                Jelajahi Destinasi <i class="bi bi-arrow-right ms-1"></i>
+                            <a href="{{ route('about') }}" class="btn btn-jg-primary">
+                                Lihat selengkapnya <i class="bi bi-arrow-right ms-1"></i>
                             </a>
                         </div>
                     </div>
@@ -132,21 +132,21 @@
                                 class="category-item">
                                 <span class="category-icon"><i class="bi bi-tree-fill"></i></span>
                                 <strong>Wisata Alam</strong>
-                                <small>Air Terjun Tancak, Kali Jompo, dan perbukitan hijau</small>
+                                <small>Nikmati ruang terbuka dan suasana alam yang menyegarkan.</small>
                                 <span class="category-arrow"><i class="bi bi-arrow-up-right"></i></span>
                             </a>
                             <a href="{{ route('destinations.index', ['kategori' => 'Bahari']) }}"
                                 class="category-item">
                                 <span class="category-icon"><i class="bi bi-water"></i></span>
                                 <strong>Wisata Bahari</strong>
-                                <small>Pantai Papuma, Teluk Love, dan keindahan laut selatan</small>
+                                <small>Rasakan suasana pesisir dan ragam aktivitas tepi laut.</small>
                                 <span class="category-arrow"><i class="bi bi-arrow-up-right"></i></span>
                             </a>
                             <a href="{{ route('destinations.index', ['kategori' => 'Buatan']) }}"
                                 class="category-item">
                                 <span class="category-icon"><i class="bi bi-buildings-fill"></i></span>
                                 <strong>Wisata Buatan</strong>
-                                <small>Taman Botani, kebun raya, dan wisata edukasi</small>
+                                <small>Temukan pilihan rekreasi, edukasi, dan hiburan untuk semua.</small>
                                 <span class="category-arrow"><i class="bi bi-arrow-up-right"></i></span>
                             </a>
                         </div>

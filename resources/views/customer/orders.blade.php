@@ -17,7 +17,7 @@
 <body class="customer-page"><x-public-navbar />
     <main class="container orders-page">
         <div class="orders-header">
-            <div><a href="{{ route('home') }}" class="orders-back"><i class="bi bi-arrow-left"></i>
+            <div><a href="{{ route('home') }}" class="orders-back customer-back-link"><i class="bi bi-arrow-left"></i>
                     Kembali ke JemberGo</a><span class="orders-eyebrow">Area pelanggan</span>
                 <h1>{{ $filter === 'active' ? 'Tiket saya' : ($filter === 'history' ? 'Riwayat tiket' : 'Pesanan saya') }}
                 </h1>
@@ -25,6 +25,12 @@
             </div><a href="{{ route('destinations.index') }}" class="orders-new-button"><i
                     class="bi bi-plus-lg"></i> Pesan tiket baru</a>
         </div>
+        @if (session('success'))
+            <div class="alert alert-success">{{ session('success') }}</div>
+        @endif
+        @if ($errors->has('cancel'))
+            <div class="alert alert-danger">{{ $errors->first('cancel') }}</div>
+        @endif
         <div class="orders-tabs"><a class="{{ $filter === 'active' ? 'active' : '' }}"
                 href="{{ route('customer.tickets') }}"><i class="bi bi-ticket-perforated"></i> Tiket
                 aktif</a><a class="{{ $filter === 'history' ? 'active' : '' }}"
@@ -45,12 +51,12 @@
                             <th>Destinasi</th>
                             <th>Kunjungan</th>
                             <th>Status</th>
-                            <th class="text-end">Aksi</th>
+                            <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($orders as $order)
-                            @php($isUsed = $order->tiket->contains('status_tiket', 'USED'))@php($isExpired = $order->tiket->contains('status_tiket', 'EXPIRED'))@php($isCashBooking = $order->pembayaran?->metode_pembayaran === 'CASH')@php($orderStatus = $isUsed ? \App\Support\StatusLabel::ticket('USED') : ($isExpired ? \App\Support\StatusLabel::ticket('EXPIRED') : ($filter === 'history' ? \App\Support\StatusLabel::ticket($order->tiket->first()?->status_tiket) : \App\Support\StatusLabel::order($order->status_pemesanan))))
+                            @php($isUsed = $order->tiket->contains('status_tiket', 'USED'))@php($isExpired = $order->tiket->contains('status_tiket', 'EXPIRED'))@php($isFailed = in_array($order->status_pemesanan, ['EXPIRED', 'FAILED', 'CANCELLED'], true))@php($isCashBooking = $order->pembayaran?->metode_pembayaran === 'CASH')@php($orderStatus = $isUsed ? \App\Support\StatusLabel::ticket('USED') : ($isExpired ? \App\Support\StatusLabel::ticket('EXPIRED') : ($filter === 'history' ? \App\Support\StatusLabel::ticket($order->tiket->first()?->status_tiket) : \App\Support\StatusLabel::order($order->status_pemesanan))))
                             <tr>
                                 <td><strong
                                         class="order-code">{{ $order->kode_booking }}</strong><small
@@ -61,17 +67,18 @@
                                             class="bi bi-calendar3"></i>{{ $order->tanggal_kunjungan->translatedFormat('d F Y') }}</span>
                                 </td>
                                 <td><span
-                                        class="order-status {{ $isUsed ? 'success' : ($isExpired ? 'danger' : ($order->status_pemesanan === 'PAID' ? 'success' : 'pending')) }}"><span></span>{{ $orderStatus }}</span>
+                                        class="order-status {{ $isUsed || $order->status_pemesanan === 'PAID' ? 'success' : ($isExpired || $isFailed ? 'danger' : 'pending') }}"><span></span>{{ $orderStatus }}</span>
                                 </td>
-                                <td class="text-end">
+                                <td class="text-center">
                                     @if ($order->status_pemesanan === 'PAID' || ($isCashBooking && $order->tiket->isNotEmpty()))
                                         <a href="{{ route('customer.ticket', $order->id_pemesanan) }}"
                                             class="order-action outline"><i
                                                 class="bi bi-ticket-perforated"></i> E-ticket</a>
                                     @elseif($order->status_pemesanan === 'PENDING' && !$isExpired)
-                                        <a href="{{ route('customer.checkout', $order->id_pemesanan) }}"
-                                            class="order-action primary">Bayar <i
-                                                class="bi bi-arrow-right"></i></a>
+                                        <div class="order-pending-actions">
+                                            <a href="{{ route('customer.checkout', $order->id_pemesanan) }}"
+                                                class="order-action primary">Bayar</a>
+                                        </div>
                                     @endif
                                 </td>
                         </tr>@empty<tr>
@@ -86,5 +93,31 @@
         <div class="orders-pagination">{{ $orders->links() }}</div>
     </main><x-public-footer />
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        .order-pending-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
+        }
+
+        .order-pending-actions form {
+            margin: 0;
+        }
+
+        .order-action.cancel {
+            border: 1px solid #dfe7ed;
+            background: #fff;
+            color: #64748b;
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .order-action.cancel:hover {
+            border-color: #b53b49;
+            color: #b53b49;
+        }
+    </style>
 </body>
 </html>

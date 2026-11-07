@@ -42,10 +42,11 @@
                     <p class="text-secondary mb-0">Tunjukkan kode booking kepada petugas saat tiba di
                         destinasi.</p>
                 </div>
-                <a href="{{ route('customer.tickets') }}" class="ticket-back"><i
+                <a href="{{ route('customer.tickets') }}" class="ticket-back customer-back-link"><i
                         class="bi bi-arrow-left"></i> Tiket Saya</a>
             </div>
 
+            @php($groupTicket = $booking->tiket->first())
             <div class="customer-card ticket-overview mb-4">
                 <div class="card-body p-4 p-lg-5">
                     <div class="row g-4 align-items-start">
@@ -89,46 +90,29 @@
                                 </div>
                             </div>
                         </div>
+                        @if ($groupTicket)
+                            <div class="col-lg-4 ticket-qr-panel">
+                                <span
+                                    class="badge {{ $groupTicket->status_tiket === 'ACTIVE' ? 'text-bg-success' : ($groupTicket->status_tiket === 'EXPIRED' ? 'text-bg-danger' : 'text-bg-secondary') }}">{{ \App\Support\StatusLabel::ticket($groupTicket->status_tiket) }}</span>
+                                <div class="ticket-qr-frame">
+                                    <img
+                                        src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ urlencode($booking->kode_booking) }}"
+                                        class="img-fluid" width="220" height="220"
+                                        alt="QR booking {{ $booking->kode_booking }}">
+                                </div>
+                                <h2>Kode QR booking</h2>
+                                <p>Satu kode QR untuk seluruh {{ $participants->count() }} peserta.</p>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
-
-            @php($groupTicket = $booking->tiket->first())
-            @if ($groupTicket)
-                @php($verificationUrl = route('ticket.scan', ['kode_qr' => $groupTicket->kode_qr]))
-                <article class="customer-card ticket-card ticket-group-card">
-                    <div class="row g-0">
-                        <div class="col-12 ticket-qr-panel">
-                            <div class="card-body p-4 text-center">
-                                <div class="ticket-card-top"><span class="ticket-qr-label"><span
-                                            class="badge {{ $groupTicket->status_tiket === 'ACTIVE' ? 'text-bg-success' : ($groupTicket->status_tiket === 'EXPIRED' ? 'text-bg-danger' : 'text-bg-secondary') }}">{{ \App\Support\StatusLabel::ticket($groupTicket->status_tiket) }}</span></span>
-                                </div>
-                                <div class="ticket-qr-frame"><img
-                                    src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={{ urlencode($verificationUrl) }}"
-                                        class="img-fluid" width="220" height="220"
-                                        alt="QR grup {{ $booking->kode_booking }}"></div>
-                                <h2 class="h5 fw-bold mb-1">Kode QR booking</h2>
-                                <p class="text-secondary small mb-3">Satu kode QR untuk seluruh peserta
-                                    dalam booking ini.</p>
-                                <div class="ticket-meta text-start small">
-                                    <div><span>Kode
-                                            booking</span><strong>{{ $booking->kode_booking }}</strong>
-                                    </div>
-                                    <div><span>Jumlah
-                                            peserta</span><strong>{{ $participants->count() }}
-                                            orang</strong></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </article>
-            @endif
         </div>
     </main>
     <x-public-footer />
     <style>
         .ticket-page {
-            font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+            font-family: "DM Sans", sans-serif;
             color: #173b60;
             font-size: .9rem;
             line-height: 1.5;
@@ -188,24 +172,6 @@
             font-weight: 650;
         }
 
-        .ticket-back {
-            display: inline-flex;
-            align-items: center;
-            gap: .45rem;
-            padding: .65rem .9rem;
-            border: 1px solid #dbe6ee;
-            border-radius: .75rem;
-            background: #fff;
-            color: #567087;
-            text-decoration: none;
-            font-size: .85rem;
-        }
-
-        .ticket-back:hover {
-            color: var(--jg-orange);
-            border-color: var(--jg-orange);
-        }
-
         .ticket-overview {
             border-color: #dbe6ee;
             box-shadow: 0 12px 30px rgba(31, 41, 55, .06);
@@ -247,10 +213,6 @@
             letter-spacing: .02em;
         }
 
-        .ticket-group-card {
-            overflow: hidden;
-        }
-
         .ticket-members {
             height: 100%;
             padding: 1rem;
@@ -278,36 +240,24 @@
             text-align: right;
         }
 
-        .ticket-card {
-            border-color: #dbe6ee;
-            box-shadow: 0 10px 25px rgba(31, 41, 55, .05);
-        }
-
-        .ticket-card .card-body {
-            padding: 1.25rem;
-        }
-
-        .ticket-card-top {
+        .ticket-qr-panel {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1rem;
-        }
-
-        .ticket-qr-label {
-            color: #567087;
-            font-size: .8rem;
+            padding: 1.25rem;
+            border-left: 1px solid #e5edf2;
+            text-align: center;
         }
 
         .ticket-qr-frame {
             display: grid;
             place-items: center;
-            width: min(100%, 250px);
+            width: min(100%, 220px);
             aspect-ratio: 1;
-            margin: 0 auto 1rem;
-            padding: .8rem;
+            margin: .85rem auto .75rem;
+            padding: .55rem;
             border: 1px solid #e1eaf0;
-            border-radius: 1rem;
+            border-radius: .85rem;
             background: #fff;
         }
 
@@ -316,26 +266,16 @@
             height: 100%;
         }
 
-        .ticket-meta {
-            padding: .75rem;
-            border-radius: .7rem;
-            background: #f5f9fb;
-        }
-
-        .ticket-meta div {
-            display: flex;
-            justify-content: space-between;
-            gap: 1rem;
-            padding: .25rem 0;
-        }
-
-        .ticket-meta span {
-            color: #7890a1;
-        }
-
-        .ticket-meta strong {
+        .ticket-qr-panel h2 {
+            margin: 0 0 .25rem;
             color: #173b60;
-            font-family: monospace;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .ticket-qr-panel p {
+            margin: 0;
+            color: #708496;
             font-size: .78rem;
         }
 
@@ -359,6 +299,12 @@
 
             .ticket-manage-cta .btn {
                 width: 100%;
+            }
+
+            .ticket-qr-panel {
+                padding: 1.25rem 0 0;
+                border-top: 1px solid #e5edf2;
+                border-left: 0;
             }
         }
     </style>

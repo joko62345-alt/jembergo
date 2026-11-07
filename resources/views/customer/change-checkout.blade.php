@@ -3,7 +3,8 @@
 @section('title', 'Review Perubahan - JemberGo')
 
 @section('content')
-    @include('components.public-navbar')
+    <div class="review-flow">
+        @include('components.public-navbar')
 
     @php
         $newDate = $changeData['tanggal_kunjungan'] ?: $booking->tanggal_kunjungan->toDateString();
@@ -13,19 +14,18 @@
 
     <main class="review-page">
         <div class="container review-container">
-            <a href="{{ route('customer.manage', $booking->id_pemesanan) }}" class="review-back"><i
+            <a href="{{ route('customer.manage', $booking->id_pemesanan) }}" class="review-back customer-back-link"><i
                     class="bi bi-arrow-left"></i> Kembali ke Kelola Perjalanan</a>
             <div class="review-header">
                 <div><span>Review perubahan</span>
                     <h1>Periksa sebelum melanjutkan.</h1>
                     <p>Perubahan pada tiket akan diperbarui setelah pembayaran berhasil.</p>
-                </div><span class="review-code">{{ $booking->kode_booking }}</span>
+                </div>
             </div>
             <div class="review-steps">
-                <div class="done"><span>1</span>Pilih Jadwal</div><i class="bi bi-chevron-right"></i>
-                <div class="active"><span>2</span>Review Perubahan</div><i
-                    class="bi bi-chevron-right"></i>
-                <div><span>3</span>Pembayaran</div><i class="bi bi-chevron-right"></i>
+                <div class="done"><span>1</span>Pilih Jadwal</div>
+                <div class="active"><span>2</span>Review Perubahan</div>
+                <div><span>3</span>Pembayaran</div>
                 <div><span>4</span>Selesai</div>
             </div>
             <div class="review-layout">
@@ -36,7 +36,7 @@
                         </div>
                     @endif
                     <article class="review-card">
-                        <div class="review-card-title"><i class="bi bi-calendar2-week"></i>
+                        <div class="review-card-title">
                             <div><span>Perubahan perjalanan</span>
                                 <h2>{{ $booking->destinasi->nama_wisata }}</h2>
                             </div>
@@ -51,7 +51,7 @@
                         </div>
                     </article>
                     <article class="review-card">
-                        <div class="review-card-title"><i class="bi bi-ticket-perforated"></i>
+                        <div class="review-card-title">
                             <div><span>Data tiket</span>
                                 <h2>Peserta perjalanan</h2>
                             </div>
@@ -94,14 +94,12 @@
                                 action="{{ route('customer.change.payment', [$booking->id_pemesanan, $change->id_perubahan]) }}">
                                 @csrf<input type="hidden" name="metode_pembayaran"
                                     value="QRIS"><button class="review-action"
-                                    type="submit">Lanjut ke Pembayaran <i
-                                        class="bi bi-arrow-right"></i></button></form>
+                                    type="submit">Lanjut ke Pembayaran</button></form>
                             <small class="summary-note">
                                 Pembayaran diproses melalui QRIS. Booking diperbarui setelah
                             berhasil.</small>@else<form method="POST"
                                 action="{{ route('customer.change.payment', [$booking->id_pemesanan, $change->id_perubahan]) }}">
-                                @csrf<button class="review-action" type="submit">Konfirmasi Perubahan
-                                    <i class="bi bi-check2"></i></button></form><small
+                                @csrf<button class="review-action" type="submit">Konfirmasi Perubahan</button></form><small
                                 class="summary-note">Tidak ada biaya tambahan untuk perubahan
                                 ini.</small>
                         @endif
@@ -110,49 +108,29 @@
             </div>
         </div>
     </main>
+    </div>
 
     <style>
+        .review-flow,
+        .review-flow .btn,
+        .review-flow .form-control,
+        .review-flow .form-select,
+        .review-flow .navbar .dropdown-item {
+            font-family: "DM Sans", sans-serif !important;
+        }
+
         .review-page {
-            font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+            font-family: "DM Sans", sans-serif;
+            color: #173b60;
             font-size: .9rem;
             line-height: 1.5;
-        }
-
-        .review-header h1 {
-            font-size: clamp(1.7rem, 2.8vw, 2.25rem);
-            line-height: 1.2;
-        }
-
-        .review-card-title h2,
-        .review-summary-card h2 {
-            font-size: 1.05rem;
-            line-height: 1.3;
-        }
-
-        .review-card-title span,
-        .summary-label {
-            font-size: .68rem;
-        }
-
-        .review-page {
             min-height: 100vh;
-            padding: 7.5rem 0 5rem;
+            padding: 2.5rem 0 4.5rem;
             background: #f7f9fb;
-            color: #173b60;
         }
 
         .review-container {
-            max-width: 1160px;
-        }
-
-        .review-back {
-            color: #61788b;
-            text-decoration: none;
-            font-size: .86rem;
-        }
-
-        .review-back:hover {
-            color: #f58b05;
+            max-width: 1050px;
         }
 
         .review-header {
@@ -160,72 +138,69 @@
             justify-content: space-between;
             align-items: end;
             gap: 1rem;
-            margin: 2rem 0 1.5rem;
+            margin: 1.25rem 0;
         }
 
         .review-header span:first-child,
         .summary-label {
-            color: #f58b05;
+            color: #567087;
             font-size: .72rem;
-            font-weight: 700;
-            letter-spacing: .1em;
+            font-weight: 600;
+            letter-spacing: .04em;
             text-transform: uppercase;
         }
 
         .review-header h1 {
-            margin: .45rem 0;
-            font-size: clamp(2rem, 4vw, 3rem);
+            margin: .45rem 0 .35rem;
+            font-size: clamp(1.25rem, 1.8vw, 1.55rem);
             font-weight: 600;
+            line-height: 1.2;
         }
 
         .review-header p {
             margin: 0;
-            color: #708496;
-        }
-
-        .review-code {
-            padding: .7rem .9rem;
-            border: 1px solid #dce6ed;
-            border-radius: .65rem;
-            background: #fff;
-            font-family: monospace;
-            font-size: .8rem;
+            color: #6b7f91;
         }
 
         .review-steps {
             display: flex;
             align-items: center;
-            gap: .7rem;
-            padding: 1rem;
-            margin-bottom: 1.25rem;
-            overflow: auto;
-            border: 1px solid #dce6ed;
-            border-radius: .8rem;
-            background: #fff;
-            color: #9aabb7;
-            font-size: .76rem;
+            gap: 1.75rem;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+            border-bottom: 1px solid #e2e8f0;
         }
 
         .review-steps div {
             display: flex;
             align-items: center;
-            gap: .4rem;
+            gap: .45rem;
             flex: 0 0 auto;
+            padding: .65rem 0 .75rem;
+            border-bottom: 2px solid transparent;
+            color: #64748b;
+            font-size: .78rem;
             white-space: nowrap;
         }
 
         .review-steps span {
             display: grid;
             place-items: center;
-            width: 24px;
-            height: 24px;
+            width: 1.35rem;
+            height: 1.35rem;
             border: 1px solid #cdd9e2;
             border-radius: 50%;
+            font-size: .72rem;
         }
 
         .review-steps .done,
         .review-steps .active {
             color: #173b60;
+        }
+
+        .review-steps .active {
+            border-color: #173b60;
+            font-weight: 600;
         }
 
         .review-steps .done span {
@@ -235,25 +210,21 @@
         }
 
         .review-steps .active span {
-            background: #f58b05;
-            border-color: #f58b05;
+            background: #173b60;
+            border-color: #173b60;
             color: #fff;
-        }
-
-        .review-steps i {
-            color: #c5d0d8;
         }
 
         .review-layout {
             display: grid;
-            grid-template-columns: minmax(0, 1.85fr) minmax(290px, 1fr);
-            gap: 1.25rem;
+            grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+            gap: 1.5rem;
             align-items: start;
         }
 
         .review-main {
             display: grid;
-            gap: 1.25rem;
+            gap: 1rem;
         }
 
         .review-card,
@@ -277,22 +248,19 @@
             border-bottom: 1px solid #edf1f4;
         }
 
-        .review-card-title>i {
-            color: #315d78;
-            font-size: 1.25rem;
-        }
-
         .review-card-title span {
-            color: #f58b05;
+            color: #567087;
             font-size: .7rem;
-            font-weight: 700;
-            letter-spacing: .08em;
+            font-weight: 600;
+            letter-spacing: .04em;
             text-transform: uppercase;
         }
 
         .review-card-title h2 {
             margin: .25rem 0 0;
-            font-size: 1.2rem;
+            color: #173b60;
+            font-size: 1rem;
+            font-weight: 600;
         }
 
         .date-change {
@@ -306,13 +274,14 @@
             display: grid;
             gap: .35rem;
             padding: 1rem;
+            border: 1px solid #edf1f5;
             border-radius: .7rem;
-            background: #f5f8fa;
+            background: #f8fafc;
         }
 
         .date-change .new-date {
-            border: 1px solid #f1c16e;
-            background: #fffaf0;
+            border-color: #cbdde8;
+            background: #f3f8fb;
         }
 
         .date-change small,
@@ -322,11 +291,12 @@
         }
 
         .date-change strong {
-            font-size: 1rem;
+            color: #173b60;
+            font-size: .92rem;
         }
 
         .date-change>i {
-            color: #f58b05;
+            color: #315d78;
         }
 
         .ticket-counts {
@@ -339,12 +309,13 @@
             display: grid;
             gap: .3rem;
             padding: .9rem;
-            border: 1px solid #e5edf2;
-            border-radius: .65rem;
+            border: 1px solid #dfe7ed;
+            border-radius: .7rem;
         }
 
         .ticket-counts strong {
-            font-size: 1.05rem;
+            color: #173b60;
+            font-size: .92rem;
         }
 
         .new-members {
@@ -379,7 +350,9 @@
 
         .review-summary-card h2 {
             margin: .45rem 0 1.2rem;
-            font-size: 1.2rem;
+            color: #173b60;
+            font-size: 1.05rem;
+            font-weight: 600;
         }
 
         .summary-row {
@@ -392,8 +365,10 @@
         }
 
         .summary-row strong {
+            max-width: 58%;
             color: #173b60;
             text-align: right;
+            overflow-wrap: anywhere;
         }
 
         .summary-total {
@@ -424,11 +399,19 @@
             border-radius: .65rem;
             background: #f58b05;
             color: #fff;
-            font-weight: 700;
+            font-weight: 600;
+            transition: background-color 160ms ease, transform 160ms ease;
         }
 
         .review-action:hover {
-            background: #d97706;
+            background: #df7900;
+            color: #fff;
+            transform: translateY(-1px);
+        }
+
+        .review-action:focus-visible {
+            outline: 2px solid #315d78;
+            outline-offset: 3px;
         }
 
         .summary-note {
@@ -440,65 +423,55 @@
             text-align: center;
         }
 
-        @media(max-width:800px) {
+        @media (max-width: 991.98px) {
             .review-header {
-                align-items: start;
+                align-items: flex-start;
                 flex-direction: column
             }
 
             .review-layout {
-                grid-template-columns: 1fr
+                grid-template-columns: 1fr;
             }
 
             .review-summary-card {
-                position: static
+                position: static;
             }
         }
 
-        @media(max-width:560px) {
+        @media (max-width: 575.98px) {
             .review-page {
-                padding-top: 6rem
+                padding-top: 1.5rem;
+                padding-bottom: 3rem;
+            }
+
+            .review-steps {
+                gap: .9rem;
             }
 
             .review-card,
             .review-summary-card {
-                padding: 1rem
+                padding: 1.25rem;
             }
 
             .date-change {
-                grid-template-columns: 1fr
+                grid-template-columns: 1fr;
             }
 
             .date-change>i {
                 transform: rotate(90deg);
-                justify-self: center
+                justify-self: center;
             }
 
             .ticket-counts {
-                grid-template-columns: 1fr
+                grid-template-columns: 1fr;
             }
 
-            .review-code {
-                align-self: stretch;
-                text-align: center
+            .new-members>div {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: .25rem;
             }
-        }
 
-        .review-page {
-            font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
-            font-size: .9rem;
-            line-height: 1.5;
-        }
-
-        .review-header h1 {
-            font-size: clamp(1.7rem, 2.8vw, 2.25rem);
-            line-height: 1.2;
-        }
-
-        .review-card-title h2,
-        .review-summary-card h2 {
-            font-size: 1.05rem;
-            line-height: 1.3;
         }
     </style>
     <div class="modal fade" id="paymentSuccessModal" tabindex="-1" aria-hidden="true">

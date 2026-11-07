@@ -25,10 +25,13 @@ use Illuminate\View\View;
 
 class BookingController extends Controller
 {
-    public function create(int $id): View
+    public function create(Request $request, int $id): View
     {
         $customer = Customer::findOrFail(auth('sanctum')->id() ?? session('jg_user_id'));
         $destination = DestinasiWisata::with('jenisTiket')->findOrFail($id);
+        $existingBooking = $request->filled('booking_id')
+            ? $this->resumableBooking((int) $request->input('booking_id'), $id)
+            : null;
         $quota = $destination->kuota_harian_aktif === 'aktif' ? $destination->kuota_harian : null;
         $ticketOptions = $destination->jenisTiket->map(function ($ticket): array {
             return [
@@ -37,7 +40,7 @@ class BookingController extends Controller
             ];
         })->values()->all();
 
-        return view('customer.booking-create', compact('customer', 'destination', 'ticketOptions', 'quota'));
+        return view('customer.booking-create', compact('customer', 'destination', 'ticketOptions', 'quota', 'existingBooking'));
     }
 
     public function quotaAvailability(Request $request, int $id): JsonResponse
@@ -81,6 +84,7 @@ class BookingController extends Controller
             'ketua_nama' => ['required', 'string', 'max:150', 'regex:/^[\p{L}\s]+$/u'],
             'ketua_email' => ['required', 'email', 'max:150', 'regex:/@gmail\.com$/i'],
             'ketua_no_hp' => ['required', 'regex:/^(?:[0-9]{10,12}|\+[0-9]{10,15})$/'],
+            'booking_id' => ['nullable', 'integer'],
             'peserta' => ['required', 'array', 'min:1', 'max:10'],
             'peserta.*.nama' => ['required', 'string', 'max:150', 'regex:/^[\p{L}\s]+$/u'],
             'peserta.*.id_jenis_tiket' => ['required', 'integer', 'exists:jenis_tiket,id_jenis_tiket'],
@@ -103,7 +107,11 @@ class BookingController extends Controller
         $members = $participants->skip(1)->map(fn (array $participant) => ['nama' => trim((string) $participant['nama']), 'id_jenis_tiket' => (int) $participant['id_jenis_tiket']])->filter(fn (array $participant) => filled($participant['nama']))->values()->all();
         $total = $participants->sum(fn (array $participant) => $availableTypes[(int) $participant['id_jenis_tiket']]->harga);
 
-        if ($this->hasDuplicateBookingIdentity($data)) {
+        $existingBooking = filled($data['booking_id'] ?? null)
+            ? $this->resumableBooking((int) $data['booking_id'], $destination->id_destinasi)
+            : null;
+
+        if ($this->hasDuplicateBookingIdentity($data, $existingBooking?->id_pemesanan)) {
             if ($this->isApiRequest($request)) {
                 throw ValidationException::withMessages([
                     'booking' => 'Nomor telepon tersebut sudah digunakan untuk pemesanan pada destinasi dan tanggal yang sama.',
@@ -127,24 +135,49 @@ class BookingController extends Controller
             }
         }
 
-        $booking = Pemesanan::create([
-            'id_customer' => auth('sanctum')->id() ?? session('jg_user_id'),
-            'ketua_nama' => $data['ketua_nama'],
-            'ketua_email' => $data['ketua_email'],
-            'ketua_no_hp' => $data['ketua_no_hp'],
-            'ketua_jenis_tiket' => (int) $participants->first()['id_jenis_tiket'],
-            'anggota_names' => $members,
-            'id_destinasi' => $destination->id_destinasi,
-            'kode_booking' => 'JGO-'.now()->format('Ymd').'-'.strtoupper(Str::random(5)),
-            'tanggal_pemesanan' => now(), 'tanggal_kunjungan' => $data['tanggal_kunjungan'],
-            'total_harga' => $total, 'status_pemesanan' => 'PENDING',
-            'batas_waktu_pembayaran' => now()->addHours(2),
-        ]);
-        foreach ($participants->groupBy('id_jenis_tiket') as $typeId => $group) {
-            $price = $availableTypes[(int) $typeId]->harga;
-            $booking->detailPemesanan()->create(['id_jenis_tiket' => $typeId, 'jumlah' => $group->count(), 'subtotal' => $price * $group->count()]);
-        }
-        $booking->pembayaran()->create(['nominal' => $booking->total_harga, 'status_pembayaran' => 'PENDING']);
+        $booking = app(DatabaseManager::class)->transaction(function () use ($data, $destination, $participants, $members, $total, $availableTypes, $existingBooking): Pemesanan {
+            $bookingDetails = [
+                'id_customer' => auth('sanctum')->id() ?? session('jg_user_id'),
+                'ketua_nama' => $data['ketua_nama'],
+                'ketua_email' => $data['ketua_email'],
+                'ketua_no_hp' => $data['ketua_no_hp'],
+                'ketua_jenis_tiket' => (int) $participants->first()['id_jenis_tiket'],
+                'anggota_names' => $members,
+                'id_destinasi' => $destination->id_destinasi,
+                'tanggal_kunjungan' => $data['tanggal_kunjungan'],
+                'total_harga' => $total,
+                'status_pemesanan' => 'PENDING',
+            ];
+
+            if ($existingBooking) {
+                $booking = $existingBooking;
+                $booking->update($bookingDetails);
+                $booking->detailPemesanan()->delete();
+            } else {
+                $booking = Pemesanan::create([
+                    ...$bookingDetails,
+                    'kode_booking' => 'JGO-'.now()->format('Ymd').'-'.strtoupper(Str::random(5)),
+                    'tanggal_pemesanan' => now(),
+                    'batas_waktu_pembayaran' => now()->addHours(2),
+                ]);
+            }
+
+            foreach ($participants->groupBy('id_jenis_tiket') as $typeId => $group) {
+                $price = $availableTypes[(int) $typeId]->harga;
+                $booking->detailPemesanan()->create([
+                    'id_jenis_tiket' => $typeId,
+                    'jumlah' => $group->count(),
+                    'subtotal' => $price * $group->count(),
+                ]);
+            }
+
+            $booking->pembayaran()->updateOrCreate([], [
+                'nominal' => $booking->total_harga,
+                'status_pembayaran' => 'PENDING',
+            ]);
+
+            return $booking;
+        });
 
         if ($this->isApiRequest($request)) {
             $booking->load(['destinasi', 'detailPemesanan.jenisTiket', 'pembayaran', 'tiket']);
@@ -155,24 +188,24 @@ class BookingController extends Controller
         return redirect()->route('customer.checkout', $booking->id_pemesanan)->with('open_snap', true);
     }
 
-    private function hasDuplicateBookingIdentity(array $data): bool
+    private function hasDuplicateBookingIdentity(array $data, ?int $ignoredBookingId = null): bool
     {
-        $candidateName = strtolower(trim((string) $data['ketua_nama']));
-        $candidateEmail = strtolower(trim((string) $data['ketua_email']));
         $candidatePhone = $this->normalizePhoneNumber((string) $data['ketua_no_hp']);
         $candidateVisitDate = $data['tanggal_kunjungan'] ?? null;
         $candidateDestinationId = request()->route('id') ?? null;
 
-        if ($candidateName === '' || $candidateEmail === '' || $candidatePhone === '' || ! $candidateVisitDate || ! $candidateDestinationId) {
+        if ($candidatePhone === '' || ! $candidateVisitDate || ! $candidateDestinationId) {
             return false;
         }
 
         return Pemesanan::query()
+            ->when($ignoredBookingId !== null, fn ($query) => $query->where('id_pemesanan', '!=', $ignoredBookingId))
             ->whereNotNull('ketua_nama')
             ->whereNotNull('ketua_email')
             ->whereNotNull('ketua_no_hp')
             ->whereDate('tanggal_kunjungan', $candidateVisitDate)
             ->where('id_destinasi', (int) $candidateDestinationId)
+            ->where('status_pemesanan', '!=', 'CANCELLED')
             ->get()
             ->contains(function (Pemesanan $booking) use ($candidatePhone): bool {
                 $currentName = strtolower(trim((string) $booking->ketua_nama));
@@ -182,6 +215,26 @@ class BookingController extends Controller
                 return $currentPhone !== ''
                     && $currentPhone === $candidatePhone;
             });
+    }
+
+    private function resumableBooking(int $bookingId, int $destinationId): Pemesanan
+    {
+        return Pemesanan::query()
+            ->whereKey($bookingId)
+            ->where('id_customer', auth('sanctum')->id() ?? session('jg_user_id'))
+            ->where('id_destinasi', $destinationId)
+            ->where('status_pemesanan', 'PENDING')
+            ->where('batas_waktu_pembayaran', '>', now())
+            ->whereDoesntHave('tiket')
+            ->whereHas('pembayaran', function ($query): void {
+                $query->where('status_pembayaran', 'PENDING')
+                    ->whereNull('order_id')
+                    ->whereNull('snap_token')
+                    ->whereNull('transaction_id')
+                    ->whereNull('qris_url');
+            })
+            ->with('detailPemesanan')
+            ->firstOrFail();
     }
 
     private function normalizePhoneNumber(string $phone): string
@@ -202,6 +255,7 @@ class BookingController extends Controller
     public function checkout(int $id): View|JsonResponse
     {
         $booking = $this->ownedBooking($id);
+        abort_if($booking->status_pemesanan === 'CANCELLED', 410, 'Pesanan ini sudah dibatalkan.');
         $booking->expireTicketsIfPastVisitDate();
         if ($this->isApiRequest(request())) {
             if (! $this->syncPaymentStatus($booking)) {
@@ -230,65 +284,109 @@ class BookingController extends Controller
 
     public function pay(Request $request, int $id): JsonResponse|RedirectResponse
     {
-        $booking = $this->ownedBooking($id);
-        abort_if($booking->status_pemesanan === 'PAID' || $booking->tiket()->exists(), 422, 'Pesanan ini sudah dibayar dan e-ticket sudah dibuat.');
-        abort_if(
-            $booking->status_pemesanan === 'EXPIRED'
-                || ($booking->batas_waktu_pembayaran !== null && $booking->batas_waktu_pembayaran->isPast()),
-            422,
-            'Batas waktu pembayaran telah berakhir. Buat pemesanan baru untuk melanjutkan.',
-        );
-        $existingPayment = $booking->pembayaran;
-        if ($existingPayment?->status_pembayaran === 'PENDING' && ($existingPayment->qris_url || $existingPayment->snap_token)) {
+        return app(DatabaseManager::class)->transaction(function () use ($request, $id): JsonResponse|RedirectResponse {
+            $booking = Pemesanan::query()
+                ->whereKey($id)
+                ->where('id_customer', auth('sanctum')->id() ?? session('jg_user_id'))
+                ->with(['destinasi', 'detailPemesanan.jenisTiket', 'pembayaran', 'tiket'])
+                ->lockForUpdate()
+                ->firstOrFail();
+            abort_if($booking->status_pemesanan === 'CANCELLED', 410, 'Pesanan ini sudah dibatalkan.');
+            abort_if($booking->status_pemesanan === 'PAID' || $booking->tiket()->exists(), 422, 'Pesanan ini sudah dibayar dan e-ticket sudah dibuat.');
+            abort_if(
+                $booking->status_pemesanan === 'EXPIRED'
+                    || ($booking->batas_waktu_pembayaran !== null && $booking->batas_waktu_pembayaran->isPast()),
+                422,
+                'Batas waktu pembayaran telah berakhir. Buat pemesanan baru untuk melanjutkan.',
+            );
+            $existingPayment = $booking->pembayaran;
+            if ($existingPayment?->status_pembayaran === 'PENDING' && ($existingPayment->qris_url || $existingPayment->snap_token)) {
+                if ($this->isApiRequest($request)) {
+                    return response()->json(['data' => [
+                        ...$this->paymentData($existingPayment),
+                    ]]);
+                }
+
+                return $existingPayment->qris_url
+                    ? redirect()->route('customer.qris', $id)
+                    : redirect()->route('customer.checkout', $id);
+            }
+            try {
+                $payment = app(PaymentGateway::class)->createPayment($booking, 'QRIS');
+            } catch (\Throwable $exception) {
+                report($exception);
+                if ($this->isApiRequest($request)) {
+                    return response()->json(['message' => 'Pembayaran belum dapat dibuat. Silakan coba kembali.'], 502);
+                }
+
+                return redirect()->route('customer.checkout', $id)->withErrors([
+                    'payment' => 'Pembayaran Midtrans belum dapat dibuat: '.$exception->getMessage(),
+                ]);
+            }
+            if ($this->isApiRequest($request) && empty($payment['qris_url']) && empty($payment['snap_token'])) {
+                return response()->json([
+                    'message' => 'Pembayaran Midtrans belum siap. Pastikan gateway Midtrans telah dikonfigurasi.',
+                ], 503);
+            }
+            if (empty($payment['qris_url']) && empty($payment['snap_token'])) {
+                return redirect()->route('customer.checkout', $id)->withErrors([
+                    'payment' => 'Pembayaran belum siap. Silakan coba kembali.',
+                ]);
+            }
+            $booking->pembayaran()->update([
+                'order_id' => $payment['order_id'], 'snap_token' => $payment['snap_token'] ?? null, 'transaction_id' => $payment['transaction_id'],
+                'metode_pembayaran' => 'QRIS', 'status_pembayaran' => 'PENDING',
+                'transaction_status' => $payment['transaction_status'], 'payment_type' => $payment['payment_type'],
+                'gross_amount' => $payment['gross_amount'], 'referensi_gateway' => $payment['reference'],
+                'qris_url' => $payment['qris_url'] ?? null, 'qris_expires_at' => $payment['qris_expires_at'] ?? null,
+            ]);
+
             if ($this->isApiRequest($request)) {
-                return response()->json(['data' => [
-                    ...$this->paymentData($existingPayment),
-                ]]);
+                $payment = $booking->pembayaran()->firstOrFail();
+
+                return response()->json(['data' => $this->paymentData($payment)], 201);
             }
 
-            return $existingPayment->qris_url
-                ? redirect()->route('customer.qris', $id)
-                : redirect()->route('customer.checkout', $id);
-        }
-        try {
-            $payment = app(PaymentGateway::class)->createPayment($booking, 'QRIS');
-        } catch (\Throwable $exception) {
-            report($exception);
-            if ($this->isApiRequest($request)) {
-                return response()->json(['message' => 'Pembayaran belum dapat dibuat. Silakan coba kembali.'], 502);
-            }
+            return ! empty($payment['qris_url'])
+                ? redirect()->route('customer.qris', $booking->id_pemesanan)
+                : redirect()->route('customer.checkout', $booking->id_pemesanan);
+        });
+    }
 
-            return redirect()->route('customer.checkout', $id)->withErrors([
-                'payment' => 'Pembayaran Midtrans belum dapat dibuat: '.$exception->getMessage(),
+    public function cancel(int $id): RedirectResponse
+    {
+        app(DatabaseManager::class)->transaction(function () use ($id): void {
+            $booking = Pemesanan::query()
+                ->whereKey($id)
+                ->where('id_customer', auth('sanctum')->id() ?? session('jg_user_id'))
+                ->lockForUpdate()
+                ->firstOrFail();
+            $payment = Pembayaran::query()
+                ->where('id_pemesanan', $booking->id_pemesanan)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            abort_if(
+                $booking->status_pemesanan !== 'PENDING'
+                    || $payment->status_pembayaran !== 'PENDING'
+                    || filled($payment->order_id)
+                    || filled($payment->snap_token)
+                    || filled($payment->qris_url)
+                    || filled($payment->transaction_id)
+                    || filled($payment->referensi_gateway)
+                    || $booking->tiket()->exists(),
+                422,
+                'Pesanan hanya dapat dibatalkan sebelum pembayaran dimulai.',
+            );
+
+            $booking->update(['status_pemesanan' => 'CANCELLED']);
+            $payment->update([
+                'status_pembayaran' => 'CANCELLED',
+                'transaction_status' => 'cancel',
             ]);
-        }
-        if ($this->isApiRequest($request) && empty($payment['qris_url']) && empty($payment['snap_token'])) {
-            return response()->json([
-                'message' => 'Pembayaran Midtrans belum siap. Pastikan gateway Midtrans telah dikonfigurasi.',
-            ], 503);
-        }
-        if (empty($payment['qris_url']) && empty($payment['snap_token'])) {
-            return redirect()->route('customer.checkout', $id)->withErrors([
-                'payment' => 'Pembayaran belum siap. Silakan coba kembali.',
-            ]);
-        }
-        $booking->pembayaran()->update([
-            'order_id' => $payment['order_id'], 'snap_token' => $payment['snap_token'] ?? null, 'transaction_id' => $payment['transaction_id'],
-            'metode_pembayaran' => 'QRIS', 'status_pembayaran' => 'PENDING',
-            'transaction_status' => $payment['transaction_status'], 'payment_type' => $payment['payment_type'],
-            'gross_amount' => $payment['gross_amount'], 'referensi_gateway' => $payment['reference'],
-            'qris_url' => $payment['qris_url'] ?? null, 'qris_expires_at' => $payment['qris_expires_at'] ?? null,
-        ]);
+        });
 
-        if ($this->isApiRequest($request)) {
-            $payment = $booking->pembayaran()->firstOrFail();
-
-            return response()->json(['data' => $this->paymentData($payment)], 201);
-        }
-
-        return ! empty($payment['qris_url'])
-            ? redirect()->route('customer.qris', $booking->id_pemesanan)
-            : redirect()->route('customer.checkout', $booking->id_pemesanan);
+        return redirect()->route('home')->with('success', 'Pesanan berhasil dibatalkan.');
     }
 
     public function reschedule(Request $request, int $id): RedirectResponse
@@ -366,15 +464,32 @@ class BookingController extends Controller
         $booking = $this->ownedBooking($id);
         $this->ensureActivePaidBooking($booking);
         $pending = $booking->perubahan()->where('status', 'PENDING')->latest('id_perubahan')->first();
+        $pendingData = $pending?->anggota_baru ?? [];
+        $pendingPaymentStarted = $pending !== null && $this->changePaymentStarted($pending);
 
-        return view('customer.manage-trip', compact('booking', 'pending'));
+        return view('customer.manage-trip', compact('booking', 'pending', 'pendingData', 'pendingPaymentStarted'));
     }
 
     public function reviewChanges(Request $request, int $id): RedirectResponse|JsonResponse
     {
         $booking = $this->ownedBooking($id);
         $this->ensureActivePaidBooking($booking);
-        $remaining = 10 - (1 + count($booking->anggota_names ?? []));
+        $pendingChange = $booking->perubahan()
+            ->where('status', 'PENDING')
+            ->latest('id_perubahan')
+            ->first();
+        if ($pendingChange !== null && $this->changePaymentStarted($pendingChange)) {
+            if ($this->isApiRequest($request)) {
+                return response()->json(['data' => [
+                    'id' => $pendingChange->id_perubahan,
+                    'status' => $pendingChange->status,
+                    'amount' => (float) $pendingChange->nominal,
+                ]]);
+            }
+
+            return redirect()->route('customer.change.checkout', [$id, $pendingChange->id_perubahan]);
+        }
+
         $maxVisitDate = now()->addMonths(2)->endOfDay();
         $data = $request->validate([
             'tanggal_kunjungan' => [
@@ -383,12 +498,13 @@ class BookingController extends Controller
                 'after_or_equal:today',
                 'before_or_equal:'.$maxVisitDate->format('Y-m-d'),
             ],
-            'anggota' => ['nullable', 'array', 'max:'.max(0, $remaining)],
+            'anggota' => ['nullable', 'array', 'max:'.max(0, 10 - (1 + count($booking->anggota_names ?? [])))],
             'anggota.*.nama' => ['nullable', 'string', 'max:150'],
             'anggota.*.id_jenis_tiket' => ['nullable', 'integer', 'exists:jenis_tiket,id_jenis_tiket'],
         ], [
             'tanggal_kunjungan.before_or_equal' => 'Tanggal kunjungan maksimal 2 bulan dari hari ini.',
         ]);
+
         $destination = $booking->destinasi()->with('jenisTiket')->firstOrFail();
         $availableTypes = $destination->jenisTiket->keyBy('id_jenis_tiket');
         $rawMembers = collect($data['anggota'] ?? []);
@@ -402,21 +518,40 @@ class BookingController extends Controller
         if ($data['tanggal_kunjungan'] === date('Y-m-d', strtotime((string) $booking->tanggal_kunjungan)) && $members->isEmpty()) {
             return redirect()->route('customer.manage', $id)->withInput()->with('change_error', 'Pilih tanggal baru atau tambahkan minimal satu tiket terlebih dahulu.');
         }
-        abort_if($booking->perubahan()->where('status', 'PENDING')->exists(), 422, 'Selesaikan perubahan sebelumnya terlebih dahulu.');
 
-        $change = PerubahanPemesanan::create([
-            'id_pemesanan' => $booking->id_pemesanan,
+        $changeData = [
             'anggota_baru' => ['tanggal_kunjungan' => $data['tanggal_kunjungan'], 'anggota' => $members->all()],
             'nominal' => $members->sum('harga'),
-            'status' => 'PENDING',
-        ]);
+        ];
+        [$change, $created] = app(DatabaseManager::class)->transaction(function () use ($booking, $changeData): array {
+            $lockedBooking = Pemesanan::query()->whereKey($booking->getKey())->lockForUpdate()->firstOrFail();
+            $pendingChange = $lockedBooking->perubahan()
+                ->where('status', 'PENDING')
+                ->latest('id_perubahan')
+                ->lockForUpdate()
+                ->first();
+
+            if ($pendingChange !== null) {
+                if (! $this->changePaymentStarted($pendingChange)) {
+                    $pendingChange->update($changeData);
+                }
+
+                return [$pendingChange, false];
+            }
+
+            return [PerubahanPemesanan::create([
+                'id_pemesanan' => $lockedBooking->id_pemesanan,
+                ...$changeData,
+                'status' => 'PENDING',
+            ]), true];
+        });
 
         if ($this->isApiRequest($request)) {
             return response()->json(['data' => [
                 'id' => $change->id_perubahan,
                 'status' => $change->status,
                 'amount' => (float) $change->nominal,
-            ]], 201);
+            ]], $created ? 201 : 200);
         }
 
         return redirect()->route('customer.change.checkout', [$id, $change->id_perubahan]);
@@ -518,6 +653,7 @@ class BookingController extends Controller
     public function qrisPayment(int $id): View|JsonResponse
     {
         $booking = $this->ownedBooking($id);
+        abort_if($booking->status_pemesanan === 'CANCELLED', 410, 'Pesanan ini sudah dibatalkan.');
         $payment = $booking->pembayaran;
         if (request()->expectsJson()) {
             if (! $this->syncPaymentStatus($booking)) {
@@ -536,6 +672,7 @@ class BookingController extends Controller
     public function qrisImage(int $id): Response
     {
         $booking = $this->ownedBooking($id);
+        abort_if($booking->status_pemesanan === 'CANCELLED', 410, 'Pesanan ini sudah dibatalkan.');
         abort_if(! $booking->pembayaran?->qris_url, 404, 'Gambar kode pembayaran tidak ditemukan.');
 
         return $this->paymentQrImage($booking->pembayaran->qris_url);
@@ -581,7 +718,7 @@ class BookingController extends Controller
     private function syncPaymentStatus(Pemesanan $booking): bool
     {
         $payment = $booking->pembayaran;
-        if (! $payment || ! $payment->order_id || $payment->status_pembayaran === 'PAID') {
+        if (! $payment || ! $payment->order_id || in_array($booking->status_pemesanan, ['PAID', 'CANCELLED'], true)) {
             return true;
         }
 
@@ -596,7 +733,8 @@ class BookingController extends Controller
         $status = match ($transactionStatus) {
             'settlement', 'capture' => 'PAID',
             'expire' => 'EXPIRED',
-            'deny', 'cancel', 'failure' => 'FAILED',
+            'cancel' => 'CANCELLED',
+            'deny', 'failure' => 'FAILED',
             default => 'PENDING',
         };
 
@@ -605,7 +743,14 @@ class BookingController extends Controller
         }
 
         app(DatabaseManager::class)->transaction(function () use ($booking, $payment, $verified, $status, $transactionStatus): void {
-            $payment->update([
+            $lockedBooking = Pemesanan::query()->whereKey($booking->id_pemesanan)->lockForUpdate()->firstOrFail();
+            $lockedPayment = Pembayaran::query()->whereKey($payment->id_pembayaran)->lockForUpdate()->firstOrFail();
+
+            if ($lockedBooking->status_pemesanan === 'CANCELLED' || $lockedPayment->status_pembayaran === 'CANCELLED' || $lockedPayment->status_pembayaran === 'PAID') {
+                return;
+            }
+
+            $lockedPayment->update([
                 'status_pembayaran' => $status,
                 'transaction_status' => $transactionStatus,
                 'transaction_id' => $verified['transaction_id'] ?? $payment->transaction_id,
@@ -615,9 +760,9 @@ class BookingController extends Controller
                 'paid_at' => $status === 'PAID' ? now() : null,
                 'waktu_pembayaran' => $status === 'PAID' ? now() : null,
             ]);
-            $booking->update(['status_pemesanan' => $status]);
+            $lockedBooking->update(['status_pemesanan' => $status]);
             if ($status === 'PAID') {
-                app(BookingTicketService::class)->issue($booking->fresh());
+                app(BookingTicketService::class)->issue($lockedBooking->fresh());
             }
         });
 
@@ -778,6 +923,14 @@ class BookingController extends Controller
     private function ownedChange(Pemesanan $booking, int $change): PerubahanPemesanan
     {
         return $booking->perubahan()->whereKey($change)->firstOrFail();
+    }
+
+    private function changePaymentStarted(PerubahanPemesanan $change): bool
+    {
+        return filled($change->order_id)
+            || filled($change->transaction_id)
+            || filled($change->snap_token)
+            || filled($change->qris_url);
     }
 
     private function ensureActivePaidBooking(Pemesanan $booking): void

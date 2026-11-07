@@ -19,48 +19,55 @@
 
     <main class="qris-page">
         <div class="container qris-container">
-            <a href="{{ $isChange ? route('customer.change.checkout', [$booking->id_pemesanan, $change->id_perubahan]) : route('customer.checkout', $booking->id_pemesanan) }}"
-                class="qris-back"><i class="bi bi-arrow-left"></i> Kembali</a>
             <div class="qris-header">
                 <div>
                     <h1>Scan dan selesaikan pembayaran.</h1>
                     <p>Gunakan aplikasi pembayaran yang mendukung QRIS untuk membayar pesanan JemberGo.
                     </p>
-                </div><strong>{{ $payment->order_id }}</strong>
+                </div>
             </div>
             <div class="qris-grid">
                 <section class="qris-card qris-main-card">
                     <div class="qris-status"><span class="status-dot"></span><span>Status
                             pembayaran</span><strong id="paymentStatus">{{ $paymentLabel }}</strong>
                     </div>
-                    <img class="qris-logo" src="{{ asset('images/logo-qris-transparent.png') }}" alt="QRIS">
-                    <div class="qris-frame"><img
-                            src="{{ $isChange ? route('customer.change.qris.image', [$booking->id_pemesanan, $change->id_perubahan]) : route('customer.qris.image', $booking->id_pemesanan) }}"
-                            alt="QRIS pembayaran {{ $payment->order_id }}"></div>
+                    <div class="qris-code-card">
+                        <img class="qris-logo" src="{{ asset('images/logo-qris-transparent.png') }}" alt="QRIS">
+                        <div class="qris-frame"><img
+                                src="{{ $isChange ? route('customer.change.qris.image', [$booking->id_pemesanan, $change->id_perubahan]) : route('customer.qris.image', $booking->id_pemesanan) }}"
+                                alt="QRIS pembayaran {{ $payment->order_id }}"></div>
+                        <div class="qris-countdown"><i class="bi bi-clock"></i><span>Berlaku
+                                selama</span><strong id="countdown">--:--:--</strong></div>
+                        @if (filled($payment->qris_url))
+                            <button type="button" class="qris-copy-link" id="copyMidtransLink"
+                                data-midtrans-url="{{ $payment->qris_url }}" aria-label="Salin tautan Midtrans"
+                                title="Salin tautan Midtrans">
+                                <i class="bi bi-copy" aria-hidden="true"></i>
+                            </button>
+                        @endif
+                    </div>
                     <h2>Scan QRIS untuk melakukan pembayaran</h2>
                     <p class="qris-instruction">Buka aplikasi pembayaran yang mendukung QRIS, lalu scan
                         QR Code di atas.</p>
                     @if (filled($payment->qris_url))
-                        <button type="button" class="qris-copy-link" id="copyMidtransLink"
-                            data-midtrans-url="{{ $payment->qris_url }}">
-                            <i class="bi bi-copy"></i> Salin tautan Midtrans
-                        </button>
                         <p class="qris-copy-status" id="copyMidtransStatus" aria-live="polite"></p>
                     @endif
-                    <div class="qris-countdown"><i class="bi bi-clock"></i><span>Berlaku
-                            selama</span><strong id="countdown">--:--:--</strong></div>
                     @if (in_array($payment->status_pembayaran ?? $payment->status, ['FAILED', 'EXPIRED'], true))
                         <form method="POST"
                             action="{{ $isChange ? route('customer.change.payment', [$booking->id_pemesanan, $change->id_perubahan]) : route('customer.payment', $booking->id_pemesanan) }}">
                             @csrf<button class="qris-retry" type="submit">Buat QRIS baru</button>
                         </form>
                     @endif
-                    <button type="button" class="qris-check-status" id="checkPaymentStatus">Cek status
-                        pembayaran</button>
+                    <div class="qris-payment-actions">
+                        <button type="button" class="qris-check-status" id="checkPaymentStatus">Cek status pembayaran</button>
+                    </div>
                     <div class="qris-refresh {{ ($statusCheckFailed ?? false) ? 'qris-refresh-error' : '' }}"
                         id="refreshMessage">
                         {{ ($statusCheckFailed ?? false) ? 'Status belum dapat diperiksa dari Midtrans. Coba lagi sebentar.' : 'Status pembayaran diperbarui otomatis dari Midtrans.' }}
                     </div>
+                    @if ($errors->has('cancel'))
+                        <div class="qris-refresh qris-refresh-error">{{ $errors->first('cancel') }}</div>
+                    @endif
                 </section>
                 <aside class="qris-card qris-summary"><span class="summary-label">Ringkasan
                         pesanan</span>
@@ -96,7 +103,7 @@
 
     <style>
         .qris-page {
-            font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+            font-family: "DM Sans", sans-serif;
             font-size: .9rem;
             line-height: 1.5;
         }
@@ -117,7 +124,7 @@
 
         .qris-page {
             min-height: 100vh;
-            padding: 7.5rem 0 5rem;
+            padding: 2rem 0 5rem;
             background: #f7f9fb;
             color: #173b60
         }
@@ -126,18 +133,12 @@
             max-width: 1050px
         }
 
-        .qris-back {
-            color: #61788b;
-            text-decoration: none;
-            font-size: .86rem
-        }
-
         .qris-header {
             display: flex;
             justify-content: space-between;
             align-items: end;
             gap: 1rem;
-            margin: 2rem 0 1.5rem
+            margin: 1.25rem 0 1.5rem
         }
 
         .qris-header span,
@@ -160,15 +161,6 @@
             color: #708496
         }
 
-        .qris-header>strong {
-            padding: .7rem .9rem;
-            border: 1px solid #dce6ed;
-            border-radius: .65rem;
-            background: #fff;
-            font-family: monospace;
-            font-size: .78rem
-        }
-
         .qris-grid {
             display: grid;
             grid-template-columns: minmax(0, 1.35fr) minmax(280px, .75fr);
@@ -184,7 +176,7 @@
         }
 
         .qris-main-card {
-            padding: 1.5rem;
+            padding: 1.75rem;
             text-align: center
         }
 
@@ -210,23 +202,35 @@
             background: #f58b05
         }
 
+        .qris-code-card {
+            display: grid;
+            justify-items: center;
+            gap: .65rem;
+            width: min(100%, 390px);
+            margin: 1.25rem auto 1.5rem;
+            padding: 1rem;
+            border: 1px solid #dce6ed;
+            border-radius: 1rem;
+            background: #fff;
+            box-shadow: 0 8px 24px rgba(23, 59, 96, .06);
+            text-align: center;
+        }
+
         .qris-logo {
             display: block;
-            width: min(100%, 140px);
-            height: auto;
-            margin: 1.25rem auto .75rem;
-            object-fit: contain
+            width: min(100%, 200px);
+            height: 76px;
+            object-fit: cover;
+            object-position: center
         }
 
         .qris-frame {
             display: grid;
             place-items: center;
-            width: min(100%, 330px);
+            width: min(100%, 300px);
             aspect-ratio: 1;
-            margin: .75rem auto 1.5rem;
-            padding: 1rem;
-            border: 1px solid #dce6ed;
-            border-radius: 1rem;
+            padding: .5rem;
+            border-radius: .65rem;
             background: #fff
         }
 
@@ -248,29 +252,32 @@
         }
 
         .qris-copy-link {
-            display: inline-flex;
+            display: inline-grid;
             align-items: center;
             justify-content: center;
-            gap: .5rem;
-            padding: .7rem 1rem;
+            justify-self: end;
+            width: 2.5rem;
+            height: 2.5rem;
             border: 1px solid #dce6ed;
-            border-radius: .65rem;
+            border-radius: 50%;
             background: #fff;
             color: #315d78;
             font: inherit;
-            font-size: .84rem;
+            font-size: 1rem;
             font-weight: 600;
-            cursor: pointer
+            cursor: pointer;
         }
 
-        .qris-copy-link:hover {
+        .qris-copy-link:hover,
+        .qris-copy-link:focus-visible {
             border-color: #f58b05;
+            background: #fff8ed;
             color: #d97706
         }
 
         .qris-copy-status {
-            min-height: 1.2rem;
-            margin: .4rem 0 .6rem;
+            min-height: 0;
+            margin: -.9rem 0 .75rem;
             color: #567087;
             font-size: .75rem
         }
@@ -308,7 +315,8 @@
         .qris-summary {
             position: sticky;
             top: 6.5rem;
-            padding: 1.5rem
+            padding: 1.5rem;
+            border-color: #dce6ed
         }
 
         .qris-summary h2 {
@@ -345,7 +353,7 @@
         }
 
         .summary-total strong {
-            color: #f58b05;
+            color: #173b60;
             font-size: 1.3rem
         }
 
@@ -422,7 +430,7 @@
 
         @media(max-width:560px) {
             .qris-page {
-                padding-top: 6rem
+                padding-top: 1.5rem
             }
 
             .qris-main-card,
@@ -430,16 +438,10 @@
                 padding: 1rem
             }
 
-            .qris-header>strong {
-                align-self: stretch;
-                text-align: center
+            .qris-code-card {
+                padding: .75rem
             }
-        }
 
-        .qris-page {
-            font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
-            font-size: .9rem;
-            line-height: 1.5;
         }
 
         .qris-header h1 {
@@ -457,20 +459,56 @@
             font-size: .8rem !important;
         }
 
-        .qris-check-status {
+        .qris-payment-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .75rem;
             margin-top: 1rem;
-            padding: .7rem 1rem;
-            border: 1px solid #315d78;
+        }
+
+        .qris-payment-actions form {
+            display: flex;
+            min-width: 0;
+            margin: 0;
+        }
+
+        .qris-payment-actions > :only-child {
+            grid-column: 1 / -1;
+        }
+
+        .qris-payment-actions .qris-check-status {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 46px;
+            padding: .65rem .75rem;
+            border: 1px solid #f58b05;
             border-radius: .65rem;
             background: #fff;
-            color: #315d78;
-            font-weight: 600
+            color: #df7900;
+            font: inherit;
+            font-size: .82rem;
+            font-weight: 600;
+            line-height: 1.25;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease;
+        }
+
+        .qris-payment-actions .qris-check-status:hover,
+        .qris-payment-actions .qris-check-status:focus-visible {
+            border-color: #df7900;
+            background: #f58b05;
+            color: #fff;
         }
 
         .qris-check-status:disabled {
             opacity: .6;
             cursor: wait
         }
+
     </style>
     <script>
         (() => {

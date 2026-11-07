@@ -18,7 +18,7 @@
     <link href="{{ asset('css/superadmin.css') }}" rel="stylesheet">
 </head>
 
-<body class="superadmin-body" data-theme="light">
+<body class="superadmin-body tourism-admin-body" data-theme="light">
     <div class="superadmin-app">
         @include('components.superadmin-sidebar')
         <div class="superadmin-main">

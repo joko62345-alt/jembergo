@@ -146,8 +146,11 @@ class AuthController extends Controller
 
         $customer = Customer::query()->where('email', $profile['email'])->first();
 
-        if ($customer?->google_verified_at) {
-            $customer->update(['auth_provider' => 'google']);
+        if ($customer && ($customer->google_verified_at !== null || $customer->auth_provider === 'google')) {
+            $customer->update([
+                'auth_provider' => 'google',
+                'google_verified_at' => $customer->google_verified_at ?? now(),
+            ]);
 
             return $this->signInCustomer($request, $customer);
         }

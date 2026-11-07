@@ -136,7 +136,7 @@ class Pemesanan extends Model
         $expiredBookings = static::query()
             ->where('status_pemesanan', 'PENDING')
             ->whereNotNull('batas_waktu_pembayaran')
-            ->where('batas_waktu_pembayaran', '<', Carbon::now())
+            ->where('batas_waktu_pembayaran', '<=', Carbon::now())
             ->when($destinationId, fn ($query) => $query->where('id_destinasi', $destinationId))
             ->pluck('id_pemesanan');
 

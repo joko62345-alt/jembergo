@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\AdminPariwisata;
 use App\Models\Customer;
 use App\Models\DestinasiWisata;
 use App\Models\JenisTiket;
+use App\Models\Pembayaran;
 use App\Models\Pemesanan;
 use App\Services\BookingTicketService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -264,7 +266,7 @@ class BookingIntegrityTest extends TestCase
         $this->assertSame($booking->id_pemesanan, $booking->fresh()->tiket()->first()->id_pemesanan);
     }
 
-    public function test_ticket_qr_api_returns_minimal_booking_data_for_a_public_scan(): void
+    public function test_ticket_qr_uses_booking_code_and_admin_can_review_booking(): void
     {
         $destination = DestinasiWisata::create([
             'nama_wisata' => 'Pantai Papuma',
@@ -273,7 +275,7 @@ class BookingIntegrityTest extends TestCase
             'latitude' => -8.152,
             'longitude' => 113.719,
             'alamat' => 'Jember',
-            'jam_operasional' => '08:00-17:00',
+            'jam_operasional' => '00:00-23:59',
             'status_aktif' => true,
             'kuota_harian_aktif' => false,
         ]);
@@ -300,13 +302,19 @@ class BookingIntegrityTest extends TestCase
             'anggota_names' => [['nama' => 'Budi', 'id_jenis_tiket' => $ticketType->id_jenis_tiket]],
             'kode_booking' => 'JGO-TEST-QR-001',
             'tanggal_pemesanan' => now(),
-            'tanggal_kunjungan' => now()->addDay()->toDateString(),
+            'tanggal_kunjungan' => today()->toDateString(),
             'total_harga' => 50000,
             'status_pemesanan' => 'PAID',
             'batas_waktu_pembayaran' => now()->addHours(2),
         ]);
         $qrCode = Crypt::encryptString(json_encode(['booking_code' => $booking->kode_booking], JSON_THROW_ON_ERROR));
         $booking->tiket()->create(['kode_qr' => $qrCode, 'status_tiket' => 'ACTIVE']);
+        Pembayaran::create([
+            'id_pemesanan' => $booking->id_pemesanan,
+            'metode_pembayaran' => 'QRIS',
+            'nominal' => $booking->total_harga,
+            'status_pembayaran' => 'PAID',
+        ]);
 
         $this->getJson(route('api.tickets.scan', ['kode_qr' => $qrCode]))
             ->assertOk()
@@ -325,6 +333,40 @@ class BookingIntegrityTest extends TestCase
             ->assertSee('Andi')
             ->assertSee('Budi')
             ->assertSee('Times New Roman');
+
+        $this->withSession([
+            'jg_user_id' => $customer->id_customer,
+            'jg_role' => 'CUSTOMER',
+        ])
+            ->get(route('customer.ticket', $booking->id_pemesanan))
+            ->assertOk()
+            ->assertSee('data=JGO-TEST-QR-001', false);
+
+        $booking->load(['destinasi', 'pembayaran', 'tiket', 'detailPemesanan.jenisTiket']);
+        $pdfHtml = view('customer.ticket-pdf', compact('booking'))->render();
+        $this->assertStringContainsString(
+            'data=JGO-TEST-QR-001',
+            $pdfHtml,
+        );
+
+        $admin = AdminPariwisata::create([
+            'id_destinasi' => $destination->id_destinasi,
+            'nama' => 'Admin Wisata',
+            'email' => 'admin@example.com',
+            'no_hp' => '081234567890',
+            'password' => bcrypt('secret123'),
+            'status_akun' => 'AKTIF',
+        ]);
+
+        $this->withSession([
+            'jg_user_id' => $admin->id_admin,
+            'jg_role' => 'ADMIN_PARIWISATA',
+        ])
+            ->post(route('admin.verification.lookup'), ['kode_booking' => $booking->kode_booking])
+            ->assertOk()
+            ->assertSee('JGO-TEST-QR-001')
+            ->assertSee('Scan dengan kamera')
+            ->assertSee('Verifikasi seluruh');
 
         $this->getJson(route('api.tickets.scan', ['kode_qr' => 'invalid-token']))
             ->assertNotFound();

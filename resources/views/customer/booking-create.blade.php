@@ -4,6 +4,33 @@
 
 @section('content')
     @include('components.public-navbar')
+    @php
+        $bookingParticipants = old('peserta');
+        if (!is_array($bookingParticipants)) {
+            $bookingParticipants = $existingBooking
+                ? collect($existingBooking->anggota_names)
+                    ->prepend([
+                        'nama' => $existingBooking->ketua_nama,
+                        'id_jenis_tiket' => $existingBooking->ketua_jenis_tiket,
+                    ])
+                    ->all()
+                : [[
+                    'nama' => old('ketua_nama', $customer->nama),
+                    'id_jenis_tiket' => '',
+                ]];
+        }
+        $bookingParticipants = collect($bookingParticipants)
+            ->filter(fn ($participant) => is_array($participant))
+            ->take(10)
+            ->values()
+            ->all();
+        if ($bookingParticipants === []) {
+            $bookingParticipants = [[
+                'nama' => old('ketua_nama', $existingBooking?->ketua_nama ?? $customer->nama),
+                'id_jenis_tiket' => '',
+            ]];
+        }
+    @endphp
 
     <main class="section-pad booking-page"
         style="padding-top: 8rem; background: var(--jg-bg); min-height: 100vh;">
@@ -36,6 +63,10 @@
                                 action="{{ route('customer.booking.store', $destination->id_destinasi) }}"
                                 method="POST" id="bookingForm">
                                 @csrf
+                                @if ($existingBooking)
+                                    <input type="hidden" name="booking_id"
+                                        value="{{ $existingBooking->id_pemesanan }}">
+                                @endif
 
                                 <section class="booking-section mb-4">
                                     <div class="d-flex align-items-center gap-2 mb-3">
@@ -45,14 +76,14 @@
                                         <div class="col-md-6"><label class="form-label"
                                                 for="ketua_nama">Nama lengkap</label><input
                                                 id="ketua_nama" name="ketua_nama"
-                                                value="{{ old('ketua_nama', $customer->nama) }}" class="form-control"
+                                                value="{{ old('ketua_nama', $existingBooking?->ketua_nama ?? $customer->nama) }}" class="form-control"
                                                 placeholder="Masukkan nama lengkap" required
                                                 data-booking-name><small class="booking-field-warning"
                                                 data-booking-name-warning hidden></small></div>
                                         <div class="col-md-6"><label class="form-label"
                                                 for="ketua_email">Email</label><input id="ketua_email"
                                                 name="ketua_email" type="email"
-                                                value="{{ old('ketua_email', $customer->email) }}" class="form-control"
+                                                value="{{ old('ketua_email', $existingBooking?->ketua_email ?? $customer->email) }}" class="form-control"
                                                 placeholder="Masukkan email anda" required
                                                 data-booking-email><small class="booking-field-warning"
                                                 data-booking-email-warning hidden></small></div>
@@ -60,7 +91,7 @@
                                                 for="ketua_no_hp">Nomor WhatsApp</label><input
                                                 id="ketua_no_hp" name="ketua_no_hp" type="tel"
                                                 inputmode="tel" pattern="(?:[0-9]{10,12}|\+[0-9]{10,15})"
-                                                maxlength="16" value="{{ old('ketua_no_hp', $customer->no_hp) }}"
+                                                maxlength="16" value="{{ old('ketua_no_hp', $existingBooking?->ketua_no_hp ?? $customer->no_hp) }}"
                                                 class="form-control" placeholder="Masukkan nomor anda"
                                                 minlength="10" required data-booking-phone><small
                                                 class="booking-field-warning" data-booking-phone-warning
@@ -69,7 +100,7 @@
                                                 for="tanggal_kunjungan">Tanggal kunjungan</label><input
                                                 id="tanggal_kunjungan" type="date"
                                                 name="tanggal_kunjungan"
-                                                value="{{ old('tanggal_kunjungan') }}"
+                                                value="{{ old('tanggal_kunjungan', $existingBooking?->tanggal_kunjungan?->format('Y-m-d')) }}"
                                                 class="form-control" min="{{ date('Y-m-d') }}"
                                                 max="{{ now()->addMonths(2)->format('Y-m-d') }}"
                                                 data-closing-time="{{ $destination->closingTime() }}"
@@ -88,39 +119,59 @@
                                                 id="participantCount">1</span>/10 orang</span>
                                     </div>
                                     <div id="participants" class="d-grid gap-3">
-                                        <div class="participant-row public-card p-3" data-index="0">
-                                            <div
-                                                class="d-flex justify-content-between align-items-center mb-3">
-                                                <strong>Peserta 1 · Ketua</strong><span
-                                                    class="badge text-bg-light">Ketua kelompok</span>
+                                        @foreach ($bookingParticipants as $index => $participant)
+                                            <div class="participant-row public-card p-3"
+                                                data-index="{{ $index }}">
+                                                <div
+                                                    class="d-flex justify-content-between align-items-center mb-3">
+                                                    <strong>Peserta {{ $index + 1 }} ·
+                                                        {{ $index === 0 ? 'Ketua' : 'Anggota' }}</strong>
+                                                    @if ($index === 0)
+                                                        <span class="badge text-bg-light">Ketua kelompok</span>
+                                                    @else
+                                                        <button type="button"
+                                                            class="btn btn-sm btn-outline-danger rounded-pill remove-participant">
+                                                            <i class="bi bi-trash" aria-hidden="true"></i>
+                                                            <span class="visually-hidden">Hapus anggota</span>
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                                <div class="row g-3">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label"
+                                                            for="participant-name-{{ $index }}">
+                                                            {{ $index === 0 ? 'Nama ketua' : 'Nama peserta' }}
+                                                        </label>
+                                                        <input id="participant-name-{{ $index }}"
+                                                            name="peserta[{{ $index }}][nama]"
+                                                            value="{{ old('peserta.'.$index.'.nama', $participant['nama'] ?? '') }}"
+                                                            class="form-control"
+                                                            placeholder="{{ $index === 0 ? 'Nama ketua mengikuti data di atas' : 'Masukkan nama peserta' }}"
+                                                            {{ $index === 0 ? 'readonly' : '' }} required>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label"
+                                                            for="participant-ticket-{{ $index }}">
+                                                            {{ $index === 0 ? 'Jenis tiket ketua' : 'Jenis tiket' }}
+                                                        </label>
+                                                        <select id="participant-ticket-{{ $index }}"
+                                                            name="peserta[{{ $index }}][id_jenis_tiket]"
+                                                            class="form-select participant-ticket" required>
+                                                            <option value="">Pilih jenis tiket</option>
+                                                            @foreach ($destination->jenisTiket as $ticket)
+                                                                <option
+                                                                    value="{{ $ticket->id_jenis_tiket }}"
+                                                                    data-price="{{ $ticket->harga }}"
+                                                                    @selected((string) old('peserta.'.$index.'.id_jenis_tiket', $participant['id_jenis_tiket'] ?? '') === (string) $ticket->id_jenis_tiket)>
+                                                                    {{ $ticket->nama_jenis }} · Rp
+                                                                    {{ number_format($ticket->harga, 0, ',', '.') }}
+                                                                </option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div class="row g-3">
-                                                <div class="col-md-6"><label class="form-label"
-                                                        for="participant-name-0">Nama
-                                                        ketua</label><input id="participant-name-0"
-                                                        name="peserta[0][nama]"
-                                                        value="{{ old('peserta.0.nama', old('ketua_nama', $customer->nama)) }}"
-                                                        class="form-control"
-                                                        placeholder="Nama ketua mengikuti data di atas"
-                                                        readonly required></div>
-                                                <div class="col-md-6"><label class="form-label"
-                                                        for="participant-ticket-0">Jenis tiket
-                                                        ketua</label><select id="participant-ticket-0"
-                                                        name="peserta[0][id_jenis_tiket]"
-                                                        class="form-select participant-ticket" required>
-                                                        <option value="">Pilih jenis tiket
-                                                        </option>
-                                                        @foreach ($destination->jenisTiket as $ticket)
-                                                            <option
-                                                                value="{{ $ticket->id_jenis_tiket }}"
-                                                                data-price="{{ $ticket->harga }}">
-                                                                {{ $ticket->nama_jenis }} · Rp
-                                                                {{ number_format($ticket->harga, 0, ',', '.') }}
-                                                            </option>
-                                                        @endforeach
-                                                    </select></div>
-                                            </div>
-                                        </div>
+                                        @endforeach
                                     </div>
                                     <button type="button" id="addParticipant"
                                         class="btn btn-outline-secondary rounded-pill mt-3"><i
@@ -131,8 +182,8 @@
 
                                 <div class="booking-form-actions d-flex justify-content-end gap-2 mt-5"><a
                                         href="{{ route('destinations.show', $destination->id_destinasi) }}"
-                                        class="btn btn-outline-secondary rounded-pill">Batal</a><button
-                                        type="submit" class="btn btn-jg-primary btn-lg px-5">Lanjut
+                                        class="btn booking-navigation-action rounded-pill">Batal</a><button
+                                        type="submit" class="btn booking-navigation-action rounded-pill">Lanjut
                                         ke Pembayaran</button></div>
                             </form>
                         </div>
@@ -163,6 +214,9 @@
                             <div class="d-flex justify-content-between mt-2"><span
                                     class="text-secondary">Total harga</span><strong
                                     class="text-orange" id="summaryTotal">Rp 0</strong></div>
+                            <p class="booking-refund-notice" role="note">
+                                Tiket yang sudah dibeli tidak dapat dibatalkan atau di-refund.
+                            </p>
                             <p class="small text-secondary mt-3 mb-0">Harga akhir dihitung berdasarkan
                                 jenis tiket yang dipilih setiap peserta.</p>
                         </div>
@@ -173,8 +227,29 @@
     </main>
 
     <style>
+        .booking-navigation-action {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            padding: .625rem 1.25rem;
+            border: 1px solid #f58b05 !important;
+            background: #fff !important;
+            color: #df7900 !important;
+            font-weight: 600;
+            transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+        }
+
+        .booking-navigation-action:hover,
+        .booking-navigation-action:focus-visible {
+            border-color: #df7900 !important;
+            background: #f58b05 !important;
+            color: #fff !important;
+            transform: translateY(-1px);
+        }
+
         .booking-page {
-            font-family: "Plus Jakarta Sans", "Segoe UI", sans-serif;
+            font-family: "DM Sans", sans-serif;
             color: #173b60;
             font-size: .92rem;
             line-height: 1.5;
@@ -282,6 +357,17 @@
             opacity: 1;
         }
 
+        .booking-refund-notice {
+            margin: 1rem 0 0;
+            padding: .75rem .85rem;
+            border-left: 3px solid #d97706;
+            border-radius: .25rem;
+            background: #fff8eb;
+            color: #854d0e;
+            font-size: .78rem;
+            line-height: 1.5;
+        }
+
         .booking-page #addParticipant {
             border-color: var(--jg-blue);
             color: #315d78;
@@ -315,7 +401,7 @@
             const summaryTotal = document.getElementById('summaryTotal');
             const visitDate = document.getElementById('tanggal_kunjungan');
             const quotaAvailability = document.getElementById('quotaAvailability');
-            let nextIndex = 1;
+            let nextIndex = participants.children.length;
 
             const showBookingValidation = (input, warning, message) => {
                 const invalid = Boolean(message);

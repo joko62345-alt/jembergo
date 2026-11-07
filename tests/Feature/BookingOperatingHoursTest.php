@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\DestinasiWisata;
 use App\Models\JenisTiket;
 use App\Models\Pemesanan;
+use App\Support\StatusLabel;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -82,6 +83,86 @@ class BookingOperatingHoursTest extends TestCase
         $destination->update(['jam_operasional' => '08:00-17:30']);
         Pemesanan::expireTicketsPastVisitDate();
         $this->assertSame('EXPIRED', $ticket->fresh()->status_tiket);
+    }
+
+    public function test_pending_booking_expires_after_two_hours_and_does_not_consume_quota(): void
+    {
+        $this->travelTo(now()->startOfMinute());
+        [$customer, $destination, $ticketType] = $this->createBookingFixture();
+        $destination->update([
+            'kuota_harian_aktif' => true,
+            'kuota_harian' => 10,
+        ]);
+        $booking = Pemesanan::query()->create([
+            'id_customer' => $customer->id_customer,
+            'id_destinasi' => $destination->id_destinasi,
+            'kode_booking' => 'JGO-PENDING-EXPIRY',
+            'tanggal_pemesanan' => now(),
+            'tanggal_kunjungan' => today()->addDay(),
+            'total_harga' => $ticketType->harga * 3,
+            'status_pemesanan' => 'PENDING',
+            'batas_waktu_pembayaran' => now()->addHours(2),
+        ]);
+        $booking->detailPemesanan()->create([
+            'id_jenis_tiket' => $ticketType->id_jenis_tiket,
+            'jumlah' => 3,
+            'subtotal' => $ticketType->harga * 3,
+        ]);
+        $payment = $booking->pembayaran()->create([
+            'nominal' => $booking->total_harga,
+            'status_pembayaran' => 'PENDING',
+        ]);
+
+        $this->travel(119)->minutes();
+        Pemesanan::expirePendingPayments();
+        $this->assertSame('PENDING', $booking->fresh()->status_pemesanan);
+        $this->assertSame(0, $destination->bookedTicketsForDate(today()->addDay()->toDateString()));
+
+        $this->travel(1)->minutes();
+        Pemesanan::expirePendingPayments();
+
+        $this->assertSame('EXPIRED', $booking->fresh()->status_pemesanan);
+        $this->assertSame('EXPIRED', $payment->fresh()->status_pembayaran);
+        $this->assertSame('expire', $payment->fresh()->transaction_status);
+        $this->assertSame('Gagal', StatusLabel::order($booking->fresh()->status_pemesanan));
+        $this->assertSame(0, $destination->bookedTicketsForDate(today()->addDay()->toDateString()));
+
+        $this->withSession([
+            'jg_user_id' => $customer->id_customer,
+            'jg_role' => 'CUSTOMER',
+        ])->get(route('customer.orders'))
+            ->assertOk()
+            ->assertSee('Gagal')
+            ->assertSee('order-status danger', false);
+    }
+
+    public function test_only_paid_bookings_reduce_daily_destination_quota(): void
+    {
+        [$customer, $destination, $ticketType] = $this->createBookingFixture();
+        $destination->update([
+            'kuota_harian_aktif' => true,
+            'kuota_harian' => 10,
+        ]);
+        $visitDate = today()->addDay()->toDateString();
+
+        foreach (['PENDING', 'EXPIRED', 'PAID'] as $index => $status) {
+            $booking = Pemesanan::query()->create([
+                'id_customer' => $customer->id_customer,
+                'id_destinasi' => $destination->id_destinasi,
+                'kode_booking' => 'JGO-QUOTA-'.$index,
+                'tanggal_pemesanan' => now(),
+                'tanggal_kunjungan' => $visitDate,
+                'total_harga' => $ticketType->harga * 2,
+                'status_pemesanan' => $status,
+            ]);
+            $booking->detailPemesanan()->create([
+                'id_jenis_tiket' => $ticketType->id_jenis_tiket,
+                'jumlah' => 2,
+                'subtotal' => $ticketType->harga * 2,
+            ]);
+        }
+
+        $this->assertSame(2, $destination->bookedTicketsForDate($visitDate));
     }
 
     /**

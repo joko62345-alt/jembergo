@@ -13,7 +13,7 @@
                 <strong>Jelajahi</strong>
                 <a href="{{ route('destinations.index') }}">Destinasi Wisata</a>
                 <a href="{{ route('articles.index') }}">Artikel & Tips</a>
-                <a href="{{ route('home') }}#tentang">Tentang JemberGo</a>
+                <a href="{{ route('about') }}">Tentang JemberGo</a>
             </div>
             <div class="col-lg-4">
                 <strong>Ikuti Kami</strong>

@@ -2369,8 +2369,199 @@ input[type="file"]::file-selector-button {
     .sidebar-collapse-toggle {
         display: none;
     }
-    .superadmin-sidebar {
-        transform: translateX(-100%);
+}
+
+body.tourism-admin-body {
+        --jg-success: #f59e0b;
+        --bs-primary: #0f2747;
+        --bs-primary-rgb: 15, 39, 71;
+        --bs-success: #f59e0b;
+        --bs-success-rgb: 245, 158, 11;
+        --bs-danger: #f59e0b;
+        --bs-danger-rgb: 245, 158, 11;
+        --bs-warning: #f59e0b;
+        --bs-warning-rgb: 245, 158, 11;
+        --bs-link-color: #0f2747;
+        --bs-link-hover-color: #a86b00;
+    }
+
+    .tourism-admin-body .btn-success,
+    .tourism-admin-body .btn-danger {
+        border-color: #f59e0b;
+        background-color: #f59e0b;
+        color: #0f2747;
+    }
+
+    .tourism-admin-body .btn-success:hover,
+    .tourism-admin-body .btn-success:focus-visible,
+    .tourism-admin-body .btn-danger:hover,
+    .tourism-admin-body .btn-danger:focus-visible {
+        border-color: #d98700;
+        background-color: #d98700;
+        color: #0f2747;
+    }
+
+    .tourism-admin-body .btn-primary {
+        border-color: #0f2747;
+        background-color: #0f2747;
+        color: #fff;
+    }
+
+    .tourism-admin-body .btn-primary:hover,
+    .tourism-admin-body .btn-primary:focus-visible {
+        border-color: #183b63;
+        background-color: #183b63;
+        color: #fff;
+    }
+
+    .tourism-admin-body .btn-outline-success,
+    .tourism-admin-body .btn-outline-danger {
+        border-color: #f59e0b;
+        color: #0f2747;
+    }
+
+    .tourism-admin-body .btn-outline-success:hover,
+    .tourism-admin-body .btn-outline-danger:hover {
+        border-color: #f59e0b;
+        background-color: #f59e0b;
+        color: #0f2747;
+    }
+
+    .tourism-admin-body .text-success,
+    .tourism-admin-body .text-danger,
+    .tourism-admin-body .text-primary,
+    .tourism-admin-body .text-info {
+        color: #0f2747 !important;
+    }
+
+    .tourism-admin-body .text-warning {
+        color: #a86b00 !important;
+    }
+
+    .tourism-admin-body .text-bg-success,
+    .tourism-admin-body .text-bg-danger,
+    .tourism-admin-body .badge.bg-success,
+    .tourism-admin-body .badge.bg-danger,
+    .tourism-admin-body .bg-success,
+    .tourism-admin-body .bg-danger {
+        border: 1px solid #f5d58b;
+        background-color: #fff7e2 !important;
+        color: #0f2747 !important;
+    }
+
+    .tourism-admin-body .bg-primary,
+    .tourism-admin-body .text-bg-primary {
+        background-color: #0f2747 !important;
+        color: #fff !important;
+    }
+
+    .tourism-admin-body .alert-success,
+    .tourism-admin-body .alert-danger,
+    .tourism-admin-body .alert-warning {
+        border-color: #f5d58b;
+        background-color: #fff7e2;
+        color: #0f2747;
+    }
+
+    .tourism-admin-body .admin-stat-icon-green,
+    .tourism-admin-body .admin-stat-icon-blue {
+        background: var(--jg-orange-soft);
+        color: #0f2747;
+    }
+
+    .tourism-admin-body .admin-stat-icon-orange {
+        background: var(--jg-orange-soft);
+        color: #a86b00;
+    }
+
+    .tourism-admin-body .verification-status-success,
+    .tourism-admin-body .verification-status-warning {
+        border-color: #f5d58b;
+        background: #fff7e2;
+        color: #8d5c00;
+    }
+
+    .tourism-admin-body .verification-status-info {
+        border-color: #c8d6e5;
+        background: #f0f4f8;
+        color: #0f2747;
+    }
+
+    .tourism-admin-body .table-warning {
+        --bs-table-bg: #fff7e2;
+        --bs-table-color: #0f2747;
+        --bs-table-border-color: #f5d58b;
+    }
+
+    [data-theme="dark"].tourism-admin-body .btn-success,
+    [data-theme="dark"].tourism-admin-body .btn-danger {
+        border-color: #f59e0b;
+        background-color: #f59e0b;
+        color: #0f2747;
+    }
+
+    [data-theme="dark"].tourism-admin-body .text-success,
+    [data-theme="dark"].tourism-admin-body .text-danger,
+    [data-theme="dark"].tourism-admin-body .text-primary,
+    [data-theme="dark"].tourism-admin-body .text-info {
+        color: #f5d58b !important;
+    }
+
+    [data-theme="dark"].tourism-admin-body .text-warning {
+        color: #f5d58b !important;
+    }
+
+    [data-theme="dark"].tourism-admin-body .text-bg-success,
+    [data-theme="dark"].tourism-admin-body .text-bg-danger,
+    [data-theme="dark"].tourism-admin-body .badge.bg-success,
+    [data-theme="dark"].tourism-admin-body .badge.bg-danger,
+    [data-theme="dark"].tourism-admin-body .bg-success,
+    [data-theme="dark"].tourism-admin-body .bg-danger,
+    [data-theme="dark"].tourism-admin-body .alert-success,
+    [data-theme="dark"].tourism-admin-body .alert-danger,
+    [data-theme="dark"].tourism-admin-body .alert-warning {
+        border-color: #725722;
+        background-color: #3a301b !important;
+        color: #f5d58b !important;
+    }
+
+    [data-theme="dark"].tourism-admin-body .bg-primary,
+    [data-theme="dark"].tourism-admin-body .text-bg-primary,
+    [data-theme="dark"].tourism-admin-body .btn-primary {
+        border-color: #35516e;
+        background-color: #1a2c43 !important;
+        color: #e7eef7 !important;
+    }
+
+    [data-theme="dark"].tourism-admin-body .admin-stat-icon-green,
+    [data-theme="dark"].tourism-admin-body .admin-stat-icon-blue,
+    [data-theme="dark"].tourism-admin-body .admin-stat-icon-orange {
+        background: #3a301b;
+        color: #f5d58b;
+    }
+
+    [data-theme="dark"].tourism-admin-body .verification-status-success,
+    [data-theme="dark"].tourism-admin-body .verification-status-warning {
+        border-color: #725722;
+        background: #3a301b;
+        color: #f5d58b;
+    }
+
+    [data-theme="dark"].tourism-admin-body .verification-status-info {
+        border-color: #35516e;
+        background: #1a2c43;
+        color: #c1d3e5;
+    }
+
+    [data-theme="dark"].tourism-admin-body .table-warning {
+        --bs-table-bg: #3a301b;
+        --bs-table-color: #f5d58b;
+        --bs-table-border-color: #725722;
+    }
+
+    @media (max-width: 767.98px) {
+        .superadmin-sidebar {
+            transform: translateX(-100%);
         transition: transform 220ms ease;
         box-shadow: 12px 0 30px rgba(15, 39, 71, 0.16);
     }

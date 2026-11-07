@@ -15,14 +15,13 @@
 <body class="customer-page"><x-public-navbar />
     <main class="container profile-page">
         <div class="row justify-content-center">
-            <div class="col-lg-7">
-                <a href="{{ route('home') }}" class="profile-back"><i class=""></i>
-                   </a>
-                <div class="profile-heading"><span class="profile-eyebrow">Akun saya</span>
-
+            <div class="col-lg-8">
+                <div class="profile-heading">
+                    <span class="profile-eyebrow">Akun saya</span>
+                    <h1>Profil saya</h1>
                     <p>Kelola informasi akun dan keamananmu di JemberGo.</p>
                 </div>
-                <div class="customer-card profile-card mt-4">
+                <div class="customer-card profile-card mt-3">
                     <div class="card-body p-4 p-lg-5">
                         <div class="profile-card-heading"><span class="profile-avatar"><i
                                     class="bi bi-person"></i></span>
@@ -122,27 +121,14 @@
     </main>
     <x-public-footer />
     <style>
-        .profile-page {
-            padding-top: 3rem;
+        .customer-page main.profile-page {
+            padding-top: 1.25rem;
             padding-bottom: 5rem;
             font-size: .9rem;
         }
 
-        .profile-back {
-            display: inline-flex;
-            align-items: center;
-            gap: .45rem;
-            color: #567087;
-            text-decoration: none;
-            font-size: .8rem;
-        }
-
-        .profile-back:hover {
-            color: var(--jg-orange);
-        }
-
         .profile-heading {
-            margin-top: 1.5rem;
+            margin-bottom: 0;
         }
 
         .profile-eyebrow {
@@ -161,13 +147,14 @@
 
         .profile-heading p {
             margin: 0;
-            color: #7890a1;
+            color: #64748b;
             font-size: .85rem;
         }
 
         .profile-card {
-            border-color: #dbe6ee;
-            box-shadow: 0 12px 30px rgba(31, 41, 55, .06);
+            border: 1px solid #d5e0e8;
+            border-radius: 1rem;
+            box-shadow: 0 8px 24px rgba(31, 41, 55, .05);
         }
 
         .profile-card-heading {
@@ -180,14 +167,14 @@
         .profile-card-heading h2 {
             margin: 0;
             color: #173b60;
-            font-size: 1rem;
+            font-size: 1.1rem !important;
             font-weight: 600;
         }
 
         .profile-card-heading p {
             margin: .15rem 0 0;
-            color: #7890a1;
-            font-size: .72rem;
+            color: #64748b;
+            font-size: .78rem;
         }
 
         .profile-avatar {
@@ -208,18 +195,19 @@
         }
 
         .profile-page .form-label {
-            margin-bottom: .35rem;
+            margin-bottom: .45rem;
             color: #31516b;
-            font-size: .76rem;
+            font-size: .82rem;
             font-weight: 600;
         }
 
         .profile-page .form-control {
-            min-height: 44px;
-            border-radius: .7rem;
-            padding: .55rem .75rem;
+            min-height: 46px;
+            border: 1px solid #d5e0e8;
+            border-radius: .65rem;
+            padding: .6rem .8rem;
             font-size: .85rem;
-            background: #fbfdfe;
+            background: #fff;
         }
 
         .profile-page .form-control::placeholder {
@@ -248,9 +236,9 @@
         }
 
         .profile-form .input-group .btn {
-            border-color: #dbe6ee;
-            background: #fbfdfe;
-            color: #7890a1;
+            border-color: #d5e0e8;
+            background: #fff;
+            color: #64748b;
         }
 
         .profile-form .input-group .btn:hover {
@@ -259,9 +247,9 @@
         }
 
         .profile-security {
-            margin-top: 1.5rem;
-            padding-top: 1.25rem;
-            border-top: 1px solid #e5edf2;
+            margin-top: 1.75rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #dfe7ed;
         }
 
         .profile-security .profile-card-heading {

@@ -15,10 +15,10 @@ class BookingMemberNormalizationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_anggota_names_are_normalized_to_a_list(): void
+    public function test_nama_anggota_are_normalized_to_a_list(): void
     {
         $bookingFromList = new Pemesanan;
-        $bookingFromList->anggota_names = [
+        $bookingFromList->nama_anggota = [
             ['nama' => 'Rehan', 'id_jenis_tiket' => 5],
             ['nama' => 'Dina', 'id_jenis_tiket' => 3],
         ];
@@ -26,31 +26,31 @@ class BookingMemberNormalizationTest extends TestCase
         $this->assertSame([
             ['nama' => 'Rehan', 'id_jenis_tiket' => 5],
             ['nama' => 'Dina', 'id_jenis_tiket' => 3],
-        ], $bookingFromList->anggota_names);
+        ], $bookingFromList->nama_anggota);
 
         $bookingFromSingleObject = new Pemesanan;
-        $bookingFromSingleObject->anggota_names = ['nama' => 'Rehan', 'id_jenis_tiket' => 5];
+        $bookingFromSingleObject->nama_anggota = ['nama' => 'Rehan', 'id_jenis_tiket' => 5];
 
         $this->assertSame([
             ['nama' => 'Rehan', 'id_jenis_tiket' => 5],
-        ], $bookingFromSingleObject->anggota_names);
+        ], $bookingFromSingleObject->nama_anggota);
 
         $bookingFromJsonString = new Pemesanan;
-        $bookingFromJsonString->anggota_names = '{"nama":"Rehan","id_jenis_tiket":5}';
+        $bookingFromJsonString->nama_anggota = '{"nama":"Rehan","id_jenis_tiket":5}';
 
         $this->assertSame([
             ['nama' => 'Rehan', 'id_jenis_tiket' => 5],
-        ], $bookingFromJsonString->anggota_names);
+        ], $bookingFromJsonString->nama_anggota);
 
         $bookingFromMalformedJsonString = new Pemesanan;
-        $bookingFromMalformedJsonString->anggota_names = '[{"nama":"Rehan","id_jenis_tiket":5},{"nama":"Farel","id_jenis_tiket":5}]';
+        $bookingFromMalformedJsonString->nama_anggota = '[{"nama":"Rehan","id_jenis_tiket":5},{"nama":"Farel","id_jenis_tiket":5}]';
 
         $this->assertSame([
             ['nama' => 'Rehan', 'id_jenis_tiket' => 5],
             ['nama' => 'Farel', 'id_jenis_tiket' => 5],
-        ], $bookingFromMalformedJsonString->anggota_names);
+        ], $bookingFromMalformedJsonString->nama_anggota);
 
-        $this->assertSame('Rehan, Farel', $bookingFromMalformedJsonString->anggota_names_text);
+        $this->assertSame('Rehan, Farel', $bookingFromMalformedJsonString->nama_anggota_text);
     }
 
     public function test_successful_payment_redirects_directly_to_ticket_without_alert_popup(): void
@@ -88,8 +88,8 @@ class BookingMemberNormalizationTest extends TestCase
             'ketua_nama' => 'Andi Wijaya',
             'ketua_email' => 'andi@example.com',
             'ketua_no_hp' => '081234567890',
-            'ketua_jenis_tiket' => $ticketType->id_jenis_tiket,
-            'anggota_names' => [['nama' => 'Sari', 'id_jenis_tiket' => $ticketType->id_jenis_tiket]],
+            'jenis_tiket_ketua' => $ticketType->id_jenis_tiket,
+            'nama_anggota' => [['nama' => 'Sari', 'id_jenis_tiket' => $ticketType->id_jenis_tiket]],
             'id_destinasi' => $destination->id_destinasi,
             'kode_booking' => 'JGO-TEST-001',
             'tanggal_pemesanan' => now(),
@@ -157,8 +157,8 @@ class BookingMemberNormalizationTest extends TestCase
             'ketua_nama' => 'Andi Wijaya',
             'ketua_email' => 'andi@example.com',
             'ketua_no_hp' => '081234567890',
-            'ketua_jenis_tiket' => $ticketType->id_jenis_tiket,
-            'anggota_names' => [['nama' => 'Sari', 'id_jenis_tiket' => $ticketType->id_jenis_tiket]],
+            'jenis_tiket_ketua' => $ticketType->id_jenis_tiket,
+            'nama_anggota' => [['nama' => 'Sari', 'id_jenis_tiket' => $ticketType->id_jenis_tiket]],
             'id_destinasi' => $destination->id_destinasi,
             'kode_booking' => 'JGO-TEST-002',
             'tanggal_pemesanan' => now(),

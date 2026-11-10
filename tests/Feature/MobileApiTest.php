@@ -594,8 +594,8 @@ class MobileApiTest extends TestCase
             'ketua_nama' => 'Citra Wijaya',
             'ketua_email' => 'citra@gmail.com',
             'ketua_no_hp' => '081234567892',
-            'ketua_jenis_tiket' => $ticketType->id_jenis_tiket,
-            'anggota_names' => [],
+            'jenis_tiket_ketua' => $ticketType->id_jenis_tiket,
+            'nama_anggota' => [],
         ]);
         $token = $customer->createToken('mobile', ['CUSTOMER'])->plainTextToken;
         $otherToken = $otherCustomer->createToken('mobile', ['CUSTOMER'])->plainTextToken;
@@ -649,8 +649,8 @@ class MobileApiTest extends TestCase
             'ketua_nama' => 'Citra Wijaya',
             'ketua_email' => 'citra.review@example.com',
             'ketua_no_hp' => '081234567892',
-            'ketua_jenis_tiket' => $ticketType->id_jenis_tiket,
-            'anggota_names' => [],
+            'jenis_tiket_ketua' => $ticketType->id_jenis_tiket,
+            'nama_anggota' => [],
         ]);
         $ticket = $booking->tiket()->create([
             'kode_qr' => 'reviewed-ticket',

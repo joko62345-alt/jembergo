@@ -35,6 +35,7 @@ Route::prefix('v1')->name('api.v1.')->group(function (): void {
         Route::put('/profil', [CustomerController::class, 'updateProfile'])->name('profile.update');
         Route::get('/pesanan', [CustomerController::class, 'orders'])->name('orders.index');
         Route::get('/pesanan/{id}', [CustomerController::class, 'booking'])->whereNumber('id')->name('orders.show');
+        Route::post('/pesanan/{id}/batal', [BookingController::class, 'cancel'])->whereNumber('id')->name('orders.cancel');
         Route::get('/pesanan/{id}/e-ticket/pdf', [BookingController::class, 'ticketPdf'])->whereNumber('id')->name('orders.ticket-pdf');
         Route::get('/pesanan/{id}/kelola', [BookingController::class, 'apiManage'])->whereNumber('id')->name('orders.manage');
         Route::post('/pesanan/{id}/kelola', [BookingController::class, 'reviewChanges'])->whereNumber('id')->name('orders.manage.review');

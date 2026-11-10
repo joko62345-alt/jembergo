@@ -58,7 +58,7 @@ class BookingController extends Controller
 
     public function store(Request $request, int $id): JsonResponse|RedirectResponse
     {
-        if (! Schema::hasTable('pemesanan') || ! Schema::hasColumn('pemesanan', 'ketua_nama') || ! Schema::hasColumn('pemesanan', 'anggota_names') || ! Schema::hasColumn('pemesanan', 'ketua_jenis_tiket')) {
+        if (! Schema::hasTable('pemesanan') || ! Schema::hasColumn('pemesanan', 'ketua_nama') || ! Schema::hasColumn('pemesanan', 'nama_anggota') || ! Schema::hasColumn('pemesanan', 'jenis_tiket_ketua')) {
             if ($this->isApiRequest($request)) {
                 abort(503, 'Struktur database pemesanan belum diperbarui. Jalankan php artisan migrate terlebih dahulu.');
             }
@@ -141,8 +141,8 @@ class BookingController extends Controller
                 'ketua_nama' => $data['ketua_nama'],
                 'ketua_email' => $data['ketua_email'],
                 'ketua_no_hp' => $data['ketua_no_hp'],
-                'ketua_jenis_tiket' => (int) $participants->first()['id_jenis_tiket'],
-                'anggota_names' => $members,
+                'jenis_tiket_ketua' => (int) $participants->first()['id_jenis_tiket'],
+                'nama_anggota' => $members,
                 'id_destinasi' => $destination->id_destinasi,
                 'tanggal_kunjungan' => $data['tanggal_kunjungan'],
                 'total_harga' => $total,
@@ -353,7 +353,7 @@ class BookingController extends Controller
         });
     }
 
-    public function cancel(int $id): RedirectResponse
+    public function cancel(Request $request, int $id): JsonResponse|RedirectResponse
     {
         app(DatabaseManager::class)->transaction(function () use ($id): void {
             $booking = Pemesanan::query()
@@ -386,6 +386,13 @@ class BookingController extends Controller
             ]);
         });
 
+        if ($this->isApiRequest($request)) {
+            return response()->json([
+                'message' => 'Pesanan berhasil dibatalkan.',
+                'data' => ['id' => $id, 'status' => 'CANCELLED'],
+            ]);
+        }
+
         return redirect()->route('home')->with('success', 'Pesanan berhasil dibatalkan.');
     }
 
@@ -412,8 +419,8 @@ class BookingController extends Controller
         $ticketTypeById = $ticketTypes->keyBy('id');
         $participants = collect([[
             'nama' => $booking->ketua_nama,
-            'id_jenis_tiket' => $booking->ketua_jenis_tiket,
-        ]])->concat($booking->anggota_names ?? [])->map(function (array $participant) use ($ticketTypeById): array {
+            'id_jenis_tiket' => $booking->jenis_tiket_ketua,
+        ]])->concat($booking->nama_anggota ?? [])->map(function (array $participant) use ($ticketTypeById): array {
             $ticketType = $ticketTypeById->get((int) ($participant['id_jenis_tiket'] ?? 0));
 
             return [
@@ -498,7 +505,7 @@ class BookingController extends Controller
                 'after_or_equal:today',
                 'before_or_equal:'.$maxVisitDate->format('Y-m-d'),
             ],
-            'anggota' => ['nullable', 'array', 'max:'.max(0, 10 - (1 + count($booking->anggota_names ?? [])))],
+            'anggota' => ['nullable', 'array', 'max:'.max(0, 10 - (1 + count($booking->nama_anggota ?? [])))],
             'anggota.*.nama' => ['nullable', 'string', 'max:150'],
             'anggota.*.id_jenis_tiket' => ['nullable', 'integer', 'exists:jenis_tiket,id_jenis_tiket'],
         ], [
@@ -949,8 +956,8 @@ class BookingController extends Controller
     {
         app(DatabaseManager::class)->transaction(function () use ($booking, $change, $payment): void {
             $data = $this->changeData($change);
-            $members = collect($booking->anggota_names ?? [])->concat($data['anggota'] ?? [])->values()->all();
-            $updates = ['anggota_names' => $members];
+            $members = collect($booking->nama_anggota ?? [])->concat($data['anggota'] ?? [])->values()->all();
+            $updates = ['nama_anggota' => $members];
             if (! empty($data['tanggal_kunjungan'])) {
                 $updates['tanggal_kunjungan'] = $data['tanggal_kunjungan'];
             }

@@ -38,8 +38,8 @@ class VerificationController extends Controller
             ->where('kode_qr', $data['kode_qr'])
             ->firstOrFail();
         $booking = $ticket->pemesanan;
-        $participants = collect($booking->anggota_names)
-            ->prepend(['nama' => $booking->ketua_nama, 'id_jenis_tiket' => (int) $booking->ketua_jenis_tiket])
+        $participants = collect($booking->nama_anggota)
+            ->prepend(['nama' => $booking->ketua_nama, 'id_jenis_tiket' => (int) $booking->jenis_tiket_ketua])
             ->values()
             ->map(function (array $participant) use ($booking): array {
                 $ticketTypeId = (int) ($participant['id_jenis_tiket'] ?? 0);

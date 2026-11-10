@@ -136,7 +136,7 @@
                                             <tr
                                                 class="{{ $selectedTicketId === $ticket->id_tiket ? 'table-warning' : '' }}">
                                                 <td>{{ $index + 1 }}</td>
-                                                <td>{{ $index === 0 ? $booking->ketua_nama : data_get($booking->anggota_names, $index - 1 . '.nama', 'Anggota ' . ($index + 1)) }}
+                                                <td>{{ $index === 0 ? $booking->ketua_nama : data_get($booking->nama_anggota, $index - 1 . '.nama', 'Anggota ' . ($index + 1)) }}
                                                 </td>
                                                 <td class="text-break">{{ $ticket->kode_qr }}</td>
                                                 <td><span

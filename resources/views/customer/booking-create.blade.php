@@ -8,10 +8,10 @@
         $bookingParticipants = old('peserta');
         if (!is_array($bookingParticipants)) {
             $bookingParticipants = $existingBooking
-                ? collect($existingBooking->anggota_names)
+                ? collect($existingBooking->nama_anggota)
                     ->prepend([
                         'nama' => $existingBooking->ketua_nama,
-                        'id_jenis_tiket' => $existingBooking->ketua_jenis_tiket,
+                        'id_jenis_tiket' => $existingBooking->jenis_tiket_ketua,
                     ])
                     ->all()
                 : [[

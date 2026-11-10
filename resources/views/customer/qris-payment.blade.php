@@ -76,7 +76,7 @@
                             kunjungan</span><strong>{{ $booking->tanggal_kunjungan->translatedFormat('d F Y') }}</strong>
                     </div>
                     <div class="summary-row"><span>Jumlah
-                            tiket</span><strong>{{ 1 + count($booking->anggota_names ?? []) + ($isChange ? count($change->anggota_baru['anggota'] ?? []) : 0) }}
+                            tiket</span><strong>{{ 1 + count($booking->nama_anggota ?? []) + ($isChange ? count($change->anggota_baru['anggota'] ?? []) : 0) }}
                             tiket</strong></div>
                     <div class="summary-row"><span>Kode
                             pesanan</span><strong>{{ $booking->kode_booking }}</strong></div>

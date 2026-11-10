@@ -35,7 +35,7 @@ class BookingTicketService
                 'destination' => $booking->destinasi->nama_wisata,
                 'visit_date' => date('Y-m-d', strtotime((string) $booking->tanggal_kunjungan)),
                 'leader' => $booking->ketua_nama,
-                'members' => $booking->anggota_names ?? [],
+                'members' => $booking->nama_anggota ?? [],
                 'scope' => 'GROUP',
             ], JSON_THROW_ON_ERROR);
 

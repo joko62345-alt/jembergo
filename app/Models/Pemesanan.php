@@ -17,29 +17,29 @@ class Pemesanan extends Model
 
     protected $primaryKey = 'id_pemesanan';
 
-    protected $fillable = ['id_customer', 'ketua_nama', 'ketua_email', 'ketua_no_hp', 'ketua_jenis_tiket', 'anggota_names', 'id_destinasi', 'kode_booking', 'tanggal_pemesanan', 'tanggal_kunjungan', 'total_harga', 'status_pemesanan', 'batas_waktu_pembayaran'];
+    protected $fillable = ['id_customer', 'ketua_nama', 'ketua_email', 'ketua_no_hp', 'jenis_tiket_ketua', 'nama_anggota', 'id_destinasi', 'kode_booking', 'tanggal_pemesanan', 'tanggal_kunjungan', 'total_harga', 'status_pemesanan', 'batas_waktu_pembayaran'];
 
-    protected $casts = ['anggota_names' => 'array', 'tanggal_pemesanan' => 'datetime', 'tanggal_kunjungan' => 'date', 'total_harga' => 'decimal:2', 'batas_waktu_pembayaran' => 'datetime'];
+    protected $casts = ['nama_anggota' => 'array', 'tanggal_pemesanan' => 'datetime', 'tanggal_kunjungan' => 'date', 'total_harga' => 'decimal:2', 'batas_waktu_pembayaran' => 'datetime'];
 
-    public function getAnggotaNamesAttribute($value): array
+    public function getNamaAnggotaAttribute($value): array
     {
-        return $this->normalizeAnggotaNames($value);
+        return $this->normalizeNamaAnggota($value);
     }
 
-    public function getAnggotaNamesTextAttribute(): string
+    public function getNamaAnggotaTextAttribute(): string
     {
-        return collect($this->anggota_names)
+        return collect($this->nama_anggota)
             ->map(fn (mixed $member) => is_array($member) ? trim((string) data_get($member, 'nama', '')) : trim((string) $member))
             ->filter()
             ->implode(', ');
     }
 
-    public function setAnggotaNamesAttribute($value): void
+    public function setNamaAnggotaAttribute($value): void
     {
-        $this->attributes['anggota_names'] = json_encode($this->normalizeAnggotaNames($value), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        $this->attributes['nama_anggota'] = json_encode($this->normalizeNamaAnggota($value), JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
     }
 
-    private function normalizeAnggotaNames(mixed $value): array
+    private function normalizeNamaAnggota(mixed $value): array
     {
         if ($value === null) {
             return [];

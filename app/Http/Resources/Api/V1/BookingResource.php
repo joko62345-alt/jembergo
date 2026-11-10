@@ -19,6 +19,15 @@ class BookingResource extends JsonResource
             'tanggal_pemesanan' => $this->tanggal_pemesanan?->toIso8601String(),
             'tanggal_kunjungan' => $this->tanggal_kunjungan?->toDateString(),
             'status' => $this->status_pemesanan,
+            'can_cancel' => $this->status_pemesanan === 'PENDING'
+                && $this->pembayaran?->status_pembayaran === 'PENDING'
+                && ! filled($this->pembayaran?->order_id)
+                && ! filled($this->pembayaran?->snap_token)
+                && ! filled($this->pembayaran?->qris_url)
+                && ! filled($this->pembayaran?->transaction_id)
+                && ! filled($this->pembayaran?->referensi_gateway)
+                && $this->relationLoaded('tiket')
+                && $this->tiket->isEmpty(),
             'total_harga' => (float) $this->total_harga,
             'batas_waktu_pembayaran' => $this->batas_waktu_pembayaran?->toIso8601String(),
             'ketua' => [
@@ -26,7 +35,7 @@ class BookingResource extends JsonResource
                 'email' => $this->ketua_email,
                 'no_hp' => $this->ketua_no_hp,
             ],
-            'anggota' => $this->anggota_names ?? [],
+            'anggota' => $this->nama_anggota ?? [],
             'destinasi' => $this->whenLoaded('destinasi', fn () => [
                 'id' => $this->destinasi?->id_destinasi,
                 'nama' => $this->destinasi?->nama_wisata,

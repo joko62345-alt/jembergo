@@ -61,7 +61,7 @@
 
     @if (isset($booking))
         @php(
-    $participants = collect($booking->anggota_names ?? [])->prepend(['nama' => $booking->ketua_nama, 'id_jenis_tiket' => (int) $booking->ketua_jenis_tiket])->values()
+    $participants = collect($booking->nama_anggota ?? [])->prepend(['nama' => $booking->ketua_nama, 'id_jenis_tiket' => (int) $booking->jenis_tiket_ketua])->values()
 )
         <section class="verification-result-card">
             <div class="verification-result-header">
@@ -131,7 +131,7 @@
                     </thead>
                     <tbody>
                         @foreach ($booking->tiket as $index => $ticket)
-                            @php($participant = $participants->get($index, ['nama' => $booking->ketua_nama, 'id_jenis_tiket' => (int) $booking->ketua_jenis_tiket]))
+                            @php($participant = $participants->get($index, ['nama' => $booking->ketua_nama, 'id_jenis_tiket' => (int) $booking->jenis_tiket_ketua]))
                             <tr class="{{ $selectedTicketId === $ticket->id_tiket ? 'table-warning' : '' }}">
                                 <td>
                                     <strong>{{ $participant['nama'] }}</strong>

@@ -54,6 +54,48 @@ class CancelPendingBookingTest extends TestCase
         $this->get(route('customer.checkout', $booking->id_pemesanan))->assertGone();
     }
 
+    public function test_customer_can_cancel_a_pending_booking_through_the_mobile_api(): void
+    {
+        ['customer' => $customer, 'booking' => $booking] = $this->createPendingBooking();
+        $token = $customer->createToken('mobile', ['CUSTOMER'])->plainTextToken;
+
+        $this->withToken($token)
+            ->getJson('/api/v1/customer/pesanan')
+            ->assertOk()
+            ->assertJsonPath('data.0.can_cancel', true);
+
+        $this->withToken($token)
+            ->postJson('/api/v1/customer/pesanan/'.$booking->id_pemesanan.'/batal')
+            ->assertOk()
+            ->assertJsonPath('data.id', $booking->id_pemesanan)
+            ->assertJsonPath('data.status', 'CANCELLED');
+
+        $this->assertDatabaseHas('pemesanan', [
+            'id_pemesanan' => $booking->id_pemesanan,
+            'status_pemesanan' => 'CANCELLED',
+        ]);
+        $this->assertDatabaseHas('pembayaran', [
+            'id_pemesanan' => $booking->id_pemesanan,
+            'status_pembayaran' => 'CANCELLED',
+        ]);
+    }
+
+    public function test_customer_cannot_cancel_a_booking_after_payment_starts_through_the_mobile_api(): void
+    {
+        ['customer' => $customer, 'booking' => $booking] = $this->createPendingBooking('JGO-TEST-001');
+        $token = $customer->createToken('mobile', ['CUSTOMER'])->plainTextToken;
+
+        $this->withToken($token)
+            ->postJson('/api/v1/customer/pesanan/'.$booking->id_pemesanan.'/batal')
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Pesanan hanya dapat dibatalkan sebelum pembayaran dimulai.');
+
+        $this->assertDatabaseHas('pemesanan', [
+            'id_pemesanan' => $booking->id_pemesanan,
+            'status_pemesanan' => 'PENDING',
+        ]);
+    }
+
     public function test_customer_can_rebook_after_cancelling_an_unpaid_booking(): void
     {
         ['customer' => $customer, 'booking' => $booking, 'destination' => $destination, 'ticketType' => $ticketType] = $this->createPendingBooking();
@@ -244,8 +286,8 @@ class CancelPendingBookingTest extends TestCase
             'ketua_nama' => $customer->nama,
             'ketua_email' => $customer->email,
             'ketua_no_hp' => $customer->no_hp,
-            'ketua_jenis_tiket' => $ticketType->id_jenis_tiket,
-            'anggota_names' => [],
+            'jenis_tiket_ketua' => $ticketType->id_jenis_tiket,
+            'nama_anggota' => [],
             'id_destinasi' => $destination->id_destinasi,
             'kode_booking' => 'JGO-TEST-001',
             'tanggal_pemesanan' => now(),

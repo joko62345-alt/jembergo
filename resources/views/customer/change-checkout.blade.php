@@ -9,7 +9,7 @@
     @php
         $newDate = $changeData['tanggal_kunjungan'] ?: $booking->tanggal_kunjungan->toDateString();
         $newMembers = collect($changeData['anggota'] ?? []);
-        $totalTickets = 1 + count($booking->anggota_names ?? []) + $newMembers->count();
+        $totalTickets = 1 + count($booking->nama_anggota ?? []) + $newMembers->count();
     @endphp
 
     <main class="review-page">
@@ -58,7 +58,7 @@
                         </div>
                         <div class="ticket-counts">
                             <div><small>Tiket
-                                    lama</small><strong>{{ 1 + count($booking->anggota_names ?? []) }}
+                                    lama</small><strong>{{ 1 + count($booking->nama_anggota ?? []) }}
                                     tiket</strong></div>
                             <div><small>Tiket tambahan</small><strong>+{{ $newMembers->count() }}
                                     tiket</strong></div>

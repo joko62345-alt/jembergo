@@ -14,7 +14,7 @@
 
 <body class="customer-page"><x-public-navbar />
     @php(
-    $participants = collect($booking->anggota_names ?? [])->prepend(['nama' => $booking->ketua_nama, 'id_jenis_tiket' => (int) $booking->ketua_jenis_tiket])->values()
+    $participants = collect($booking->nama_anggota ?? [])->prepend(['nama' => $booking->ketua_nama, 'id_jenis_tiket' => (int) $booking->jenis_tiket_ketua])->values()
 )
     @php($canCancelBooking = $booking->status_pemesanan === 'PENDING'
         && $booking->pembayaran?->status_pembayaran === 'PENDING'

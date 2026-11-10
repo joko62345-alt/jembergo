@@ -6,7 +6,7 @@
     @include('components.public-navbar')
 
     @php
-        $currentMembers = collect($booking->anggota_names ?? []);
+        $currentMembers = collect($booking->nama_anggota ?? []);
         $currentCount = 1 + $currentMembers->count();
         $remaining = max(0, 10 - $currentCount);
         $pendingMembers = collect($pendingData['anggota'] ?? []);

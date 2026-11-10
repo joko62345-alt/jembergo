@@ -67,7 +67,7 @@ class DestinationPermanentDeletionTest extends TestCase
         $booking = Pemesanan::create([
             'id_customer' => $customer->id_customer,
             'id_destinasi' => $destination->id_destinasi,
-            'ketua_jenis_tiket' => $ticketType->id_jenis_tiket,
+            'jenis_tiket_ketua' => $ticketType->id_jenis_tiket,
             'kode_booking' => 'BOOKING-DESTINATION-DELETE',
             'tanggal_pemesanan' => now(),
             'tanggal_kunjungan' => now()->addDay()->toDateString(),

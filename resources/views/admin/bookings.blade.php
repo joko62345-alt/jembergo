@@ -55,7 +55,7 @@
                             </td>
                             <td><strong>{{ $booking->ketua_nama }}</strong> <small
                                     class="text-secondary">Ketua</small>
-                                @foreach ($booking->anggota_names ?? [] as $member)
+                                @foreach ($booking->nama_anggota ?? [] as $member)
                                     <small class="d-block">{{ data_get($member, 'nama', $member) }}
                                         <span class="text-secondary">(Anggota)</span></small>
                                 @endforeach

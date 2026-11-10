@@ -6,10 +6,10 @@
     @include('components.public-navbar')
 
     @php
-        $participants = collect($booking->anggota_names ?? [])
+        $participants = collect($booking->nama_anggota ?? [])
             ->prepend([
                 'nama' => $booking->ketua_nama,
-                'id_jenis_tiket' => (int) $booking->ketua_jenis_tiket,
+                'id_jenis_tiket' => (int) $booking->jenis_tiket_ketua,
             ])
             ->values();
         $reviewableTicket = $booking->tiket->firstWhere('status_tiket', 'USED');

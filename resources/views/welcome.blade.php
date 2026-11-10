@@ -380,7 +380,7 @@
                             pemesanan yang mudah dan aman.</p>
                     </div>
                     <a href="{{ route('destinations.index') }}"
-                        class="btn btn-jg-primary btn-lg flex-shrink-0">Mulai Eksplorasi <i
+                        class="btn btn-jg-primary btn-lg">Mulai Eksplorasi <i
                             class="bi bi-arrow-right"></i></a>
                 </div>
             </div>

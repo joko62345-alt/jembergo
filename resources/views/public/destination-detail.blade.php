@@ -122,16 +122,6 @@
             color: #f58b05;
         }
 
-        #route-source-link a,
-        #route-source-link a:visited {
-            color: #f58b05;
-        }
-
-        #route-source-link a:hover,
-        #route-source-link a:focus-visible {
-            color: #d97706;
-        }
-
         .destination-locate-button {
             display: inline-flex;
             align-items: center;
@@ -139,12 +129,23 @@
             gap: 0.55rem;
             border: 0;
             border-radius: 0.85rem;
-            padding: 0.8rem 1.1rem;
+            width: 14.75rem;
+            height: 3.75rem;
+            box-sizing: border-box;
+            padding: 0.65rem 0.85rem;
             background: linear-gradient(135deg, #f58b05, #ffad1f);
             box-shadow: 0 8px 18px rgba(245, 139, 5, 0.2);
             color: #fff;
+            font-family: inherit;
+            font-size: 0.875rem;
             font-weight: 600;
+            line-height: 1.5;
             transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+        }
+
+        #route-map-link {
+            max-width: 100%;
+            white-space: nowrap;
         }
 
         .destination-locate-button:hover {
@@ -165,7 +166,7 @@
         }
 
         .destination-locate-button i {
-            font-size: 1.1rem;
+            font-size: 1rem;
         }
 
         .destination-gallery-scroller {
@@ -358,9 +359,16 @@
                 <section>
                     <h2 class="destination-detail-section-heading">Lokasi & rute</h2>
                     <div id="map"></div>
-                    <button id="locate" class="destination-locate-button mt-3" type="button">
-                        <span id="locate-label">Lihat estimasi jarak & waktu</span>
-                    </button>
+                    <div class="d-flex flex-wrap align-items-center gap-2 mt-3">
+                        <button id="locate" class="destination-locate-button" type="button">
+                            <span id="locate-label">Lihat estimasi jarak & waktu</span>
+                        </button>
+                        <a id="route-map-link" href="https://map.project-osrm.org/"
+                            class="destination-locate-button d-none text-decoration-none" target="_blank"
+                            rel="noopener noreferrer">
+                            <i class="bi bi-map" aria-hidden="true"></i> Lihat rute di peta OSRM
+                        </a>
+                    </div>
                     <p id="location-status" class="small text-secondary mt-2 mb-0"></p>
                     <div id="route-estimate" class="d-none row g-2 mt-2">
                         <div class="col-6">
@@ -376,11 +384,7 @@
                         <div class="col-12">
                             <p class="small text-secondary mb-0">
                                 <span id="route-source">Sumber data rute: </span>
-                                <span id="route-source-link">
-                                    <a id="route-map-link" href="https://map.project-osrm.org/" target="_blank"
-                                        rel="noopener noreferrer">Lihat rute di peta OSRM</a> ·
-                                    © OpenStreetMap contributors
-                                </span>
+                                <span id="route-source-link" hidden> · © OpenStreetMap contributors</span>
                             </p>
                         </div>
                     </div>
@@ -529,6 +533,7 @@
             const routeSource = document.getElementById('route-source');
             const routeSourceLink = document.getElementById('route-source-link');
             const routeMapLink = document.getElementById('route-map-link');
+            routeMapLink.classList.add('d-none');
             if (!navigator.geolocation) {
                 status.textContent = 'Browser tidak mendukung lokasi.';
                 return;
@@ -567,6 +572,7 @@
                 } else {
                     routeSource.textContent = 'Sumber data rute: ';
                     routeSourceLink.hidden = false;
+                    routeMapLink.classList.remove('d-none');
                     const routeMapUrl = new URL('https://map.project-osrm.org/');
                     const mapCenter = map.getCenter();
                     routeMapUrl.searchParams.set('z', String(map.getZoom()));

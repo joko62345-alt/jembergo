@@ -144,7 +144,8 @@ class AuthController extends Controller
             return redirect()->route('login')->with('error', 'Email Google belum terverifikasi.');
         }
 
-        $customer = Customer::query()->where('email', $profile['email'])->first();
+        $email = strtolower($profile['email']);
+        $customer = Customer::query()->whereRaw('LOWER(email) = ?', [$email])->first();
 
         if ($customer && ($customer->google_verified_at !== null || $customer->auth_provider === 'google')) {
             $customer->update([
@@ -157,7 +158,7 @@ class AuthController extends Controller
 
         return $this->beginCustomerEmailVerification(
             $request,
-            $profile['email'],
+            $email,
             $profile['name'] ?? $profile['email'],
             'google',
             ['nama' => $profile['name'] ?? $profile['email']],
@@ -315,6 +316,7 @@ class AuthController extends Controller
         ]);
 
         $data['password'] = Hash::make($data['password']);
+        $data['email'] = strtolower($data['email']);
 
         return $this->beginCustomerEmailVerification(
             $request,

@@ -261,6 +261,87 @@ class MobileApiTest extends TestCase
         ]);
     }
 
+    public function test_mobile_password_reset_otp_can_be_resent(): void
+    {
+        Mail::fake();
+        Customer::query()->create([
+            'nama' => 'Siti Aminah',
+            'email' => 'siti@example.com',
+            'no_hp' => '081234567890',
+            'password' => Hash::make('old-password'),
+            'auth_provider' => 'manual',
+        ]);
+
+        $this->postJson('/api/v1/auth/password/otp', [
+            'email' => 'siti@example.com',
+        ])->assertAccepted();
+
+        $this->postJson('/api/v1/auth/otp/resend', [
+            'email' => 'siti@example.com',
+            'purpose' => 'password_reset',
+        ])->assertAccepted();
+
+        Mail::assertSent(CustomerOtp::class, 2);
+        foreach (Mail::sent(CustomerOtp::class) as $mail) {
+            $this->assertFalse($mail->isEmailVerification);
+        }
+
+        $challenge = DB::table('mobile_auth_challenges')
+            ->where('email', 'siti@example.com')
+            ->where('purpose', 'password_reset')
+            ->first();
+        $this->assertTrue(Hash::check(
+            Mail::sent(CustomerOtp::class)->last()->otp,
+            $challenge->token,
+        ));
+    }
+
+    public function test_mobile_password_reset_finds_existing_email_without_case_sensitivity(): void
+    {
+        Mail::fake();
+        Customer::query()->create([
+            'nama' => 'Siti Aminah',
+            'email' => 'Siti@Example.com',
+            'no_hp' => '081234567890',
+            'password' => Hash::make('old-password'),
+            'auth_provider' => 'google',
+        ]);
+
+        $this->postJson('/api/v1/auth/password/otp', [
+            'email' => 'siti@example.com',
+        ])->assertAccepted();
+
+        Mail::assertSent(CustomerOtp::class, fn (CustomerOtp $mail): bool => $mail->hasTo('siti@example.com'));
+    }
+
+    public function test_mobile_password_reset_reports_email_delivery_failure(): void
+    {
+        Customer::query()->create([
+            'nama' => 'Siti Aminah',
+            'email' => 'siti@example.com',
+            'no_hp' => '081234567890',
+            'password' => Hash::make('old-password'),
+            'auth_provider' => 'google',
+        ]);
+        Mail::shouldReceive('to')
+            ->once()
+            ->with('siti@example.com')
+            ->andThrow(new \RuntimeException('SMTP unavailable'));
+
+        $this->postJson('/api/v1/auth/password/otp', [
+            'email' => 'siti@example.com',
+        ])->assertServiceUnavailable()
+            ->assertJsonPath(
+                'message',
+                'Kode OTP gagal dikirim. Silakan periksa konfigurasi email lalu coba lagi.',
+            );
+
+        $this->assertDatabaseMissing('mobile_auth_challenges', [
+            'email' => 'siti@example.com',
+            'purpose' => 'password_reset',
+        ]);
+    }
+
     public function test_mobile_password_reset_uses_email_otp_and_a_single_use_reset_token(): void
     {
         Mail::fake();

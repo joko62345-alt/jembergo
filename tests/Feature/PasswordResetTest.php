@@ -116,6 +116,28 @@ class PasswordResetTest extends TestCase
         $this->assertDatabaseCount('password_reset_tokens', 0);
     }
 
+    public function test_customer_is_told_when_reset_code_email_cannot_be_sent(): void
+    {
+        $customer = Customer::create([
+            'nama' => 'Customer Test',
+            'email' => 'customer@example.com',
+            'no_hp' => '08123456789',
+            'password' => Hash::make('old-password'),
+            'auth_provider' => 'google',
+        ]);
+        Mail::shouldReceive('to')
+            ->once()
+            ->with($customer->email)
+            ->andThrow(new \RuntimeException('SMTP unavailable'));
+
+        $this->post(route('password.email'), ['email' => $customer->email])
+            ->assertRedirect(route('password.request'))
+            ->assertSessionHas('error', 'Kode OTP gagal dikirim. Silakan coba lagi beberapa saat.')
+            ->assertSessionMissing('password_reset_email');
+
+        $this->assertDatabaseMissing('password_reset_tokens', ['email' => $customer->email]);
+    }
+
     public function test_registration_success_alert_keeps_its_login_link(): void
     {
         $this->withSession(['success' => 'Registrasi berhasil. Silakan ke halaman login.'])

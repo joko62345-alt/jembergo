@@ -83,7 +83,7 @@ class AuthController extends Controller
             ], 403);
         }
 
-        $customer = Customer::query()->where('email', $email)->first();
+        $customer = Customer::query()->whereRaw('LOWER(email) = ?', [$email])->first();
         if ($customer?->google_verified_at !== null) {
             if ($customer->auth_provider !== 'google') {
                 $customer->update(['auth_provider' => 'google']);
@@ -210,10 +210,11 @@ class AuthController extends Controller
     {
         $data = $request->validate([
             'email' => ['required', 'email', 'max:150'],
-            'purpose' => ['required', 'in:registration,google'],
+            'purpose' => ['required', 'in:registration,google,password_reset'],
         ]);
+        $email = strtolower($data['email']);
         $challenge = DB::table('mobile_auth_challenges')
-            ->where('email', strtolower($data['email']))
+            ->where('email', $email)
             ->where('purpose', $data['purpose'])
             ->first();
 
@@ -221,6 +222,24 @@ class AuthController extends Controller
             return response()->json([
                 'message' => 'Tidak ada proses verifikasi yang perlu dikirim ulang.',
             ], 404);
+        }
+
+        if ($data['purpose'] === 'password_reset') {
+            $customer = Customer::query()->whereRaw('LOWER(email) = ?', [$email])->first();
+
+            if (! $customer) {
+                return response()->json([
+                    'message' => 'Tidak ada proses verifikasi yang perlu dikirim ulang.',
+                ], 404);
+            }
+
+            return $this->beginEmailVerification(
+                $email,
+                $customer->nama,
+                'password_reset',
+                [],
+                false,
+            );
         }
 
         $pendingData = $this->challengePayload($challenge);
@@ -240,7 +259,7 @@ class AuthController extends Controller
     {
         $data = $request->validate(['email' => ['required', 'email', 'max:150']]);
         $email = strtolower($data['email']);
-        $customer = Customer::query()->where('email', $email)->first();
+        $customer = Customer::query()->whereRaw('LOWER(email) = ?', [$email])->first();
 
         if (! $customer) {
             return response()->json([
@@ -313,7 +332,7 @@ class AuthController extends Controller
                 return $this->invalidOtpResponse();
             }
 
-            $customer = Customer::query()->where('email', $email)->first();
+            $customer = Customer::query()->whereRaw('LOWER(email) = ?', [$email])->first();
             if (! $customer) {
                 DB::table('mobile_auth_challenges')->where('id', $challenge->id)->delete();
 

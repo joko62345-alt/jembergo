@@ -43,9 +43,10 @@ class PasswordController extends Controller
     public function sendResetLink(Request $request): RedirectResponse
     {
         $data = $request->validate(['email' => ['required', 'email']]);
-        $customer = Customer::where('email', $data['email'])->first();
+        $email = strtolower($data['email']);
+        $customer = Customer::query()->whereRaw('LOWER(email) = ?', [$email])->first();
 
-        $request->session()->put('password_reset_email', $data['email']);
+        $request->session()->put('password_reset_email', $email);
         $request->session()->forget(['password_reset_verified_email', 'password_reset_verified_at']);
 
         if ($customer) {
@@ -61,6 +62,15 @@ class PasswordController extends Controller
             } catch (\Throwable $exception) {
                 DB::table('password_reset_tokens')->where('email', $customer->email)->delete();
                 report($exception);
+
+                $request->session()->forget([
+                    'password_reset_email',
+                    'password_reset_verified_email',
+                    'password_reset_verified_at',
+                ]);
+
+                return redirect()->route('password.request')
+                    ->with('error', 'Kode OTP gagal dikirim. Silakan coba lagi beberapa saat.');
             }
         }
 
@@ -112,7 +122,7 @@ class PasswordController extends Controller
         }
 
         $data = $request->validate(['password' => ['required', 'string', 'min:8', 'confirmed']]);
-        $customer = Customer::where('email', $email)->first();
+        $customer = Customer::query()->whereRaw('LOWER(email) = ?', [strtolower($email)])->first();
 
         if (! $customer) {
             $request->session()->forget([

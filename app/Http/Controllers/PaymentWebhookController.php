@@ -43,38 +43,59 @@ class PaymentWebhookController extends Controller
         $paymentType = strtolower((string) ($verified['payment_type'] ?? $data['payment_type'] ?? ''));
         $status = $this->mapStatus($transactionStatus, $verified['fraud_status'] ?? null);
         $transactionId = $verified['transaction_id'] ?? $data['transaction_id'] ?? null;
-        $change = PerubahanPemesanan::where('order_id', $data['order_id'])->with('pemesanan')->first();
-
-        if ($change) {
-            if ($change->status === 'PAID') {
-                return response()->json(['message' => 'Already processed.']);
-            }
-            $change->update([
-                'status' => $status,
-                'transaction_status' => $transactionStatus,
-                'payment_type' => 'qris',
-                'transaction_id' => $transactionId,
-                'gross_amount' => $verified['gross_amount'] ?? $change->gross_amount,
-                'referensi_gateway' => $transactionId,
-                'paid_at' => $status === 'PAID' ? now() : null,
-                'waktu_pembayaran' => $status === 'PAID' ? now() : null,
-            ]);
-            if ($status === 'PAID') {
-                app(BookingController::class)->applyChange($change->pemesanan->fresh(['destinasi', 'detailPemesanan.jenisTiket']), $change->fresh(), ['status' => 'PAID', 'method' => 'QRIS', 'reference' => $transactionId]);
-            }
-
-            return response()->json(['message' => 'Notification processed.']);
-        }
-
-        $payment = Pembayaran::where('order_id', $data['order_id'])->with('pemesanan')->first();
+        $payment = Pembayaran::where('order_id', $data['order_id'])
+            ->with(['pemesanan', 'perubahanPemesanan.pemesanan'])
+            ->first();
         if (! $payment) {
             return response()->json(['message' => 'Order not found.'], 404);
         }
-        $booking = $payment->pemesanan;
+        $change = $payment->perubahanPemesanan;
+        $booking = $change?->pemesanan ?? $payment->pemesanan;
+        if (! $booking) {
+            return response()->json(['message' => 'Order not found.'], 404);
+        }
+
         $verifiedAmount = (float) ($verified['gross_amount'] ?? $data['gross_amount'] ?? 0);
         if (abs($verifiedAmount - (float) $payment->nominal) > 0.01) {
             return response()->json(['message' => 'Transaction amount mismatch.'], 422);
         }
+
+        if ($change) {
+            $processed = DB::transaction(function () use ($booking, $change, $payment, $status, $transactionStatus, $paymentType, $transactionId, $verified): bool {
+                $lockedBooking = Pemesanan::query()->whereKey($booking->id_pemesanan)->lockForUpdate()->firstOrFail();
+                $lockedPayment = Pembayaran::query()->whereKey($payment->id_pembayaran)->lockForUpdate()->firstOrFail();
+                $lockedChange = PerubahanPemesanan::query()->whereKey($change->id_perubahan)->lockForUpdate()->firstOrFail();
+
+                if ($lockedChange->status === 'PAID' || $lockedPayment->status_pembayaran === 'PAID') {
+                    return false;
+                }
+
+                $lockedPayment->update([
+                    'status_pembayaran' => $status,
+                    'transaction_status' => $transactionStatus,
+                    'payment_type' => $paymentType ?: $lockedPayment->payment_type,
+                    'transaction_id' => $transactionId,
+                    'gross_amount' => $verified['gross_amount'] ?? $lockedPayment->gross_amount,
+                    'referensi_gateway' => $transactionId,
+                    'paid_at' => $status === 'PAID' ? now() : null,
+                    'waktu_pembayaran' => $status === 'PAID' ? now() : null,
+                ]);
+                $lockedChange->update(['status' => $status]);
+
+                if ($status === 'PAID') {
+                    app(BookingController::class)->applyChange(
+                        $lockedBooking->fresh(['destinasi', 'detailPemesanan.jenisTiket']),
+                        $lockedChange->fresh(),
+                        ['status' => 'PAID', 'method' => 'QRIS', 'reference' => $transactionId],
+                    );
+                }
+
+                return true;
+            });
+
+            return response()->json(['message' => $processed ? 'Notification processed.' : 'Already processed.']);
+        }
+
         $processed = DB::transaction(function () use ($booking, $payment, $status, $transactionStatus, $paymentType, $transactionId, $verified): bool {
             $lockedBooking = Pemesanan::query()->whereKey($booking->id_pemesanan)->lockForUpdate()->firstOrFail();
             $lockedPayment = Pembayaran::query()->whereKey($payment->id_pembayaran)->lockForUpdate()->firstOrFail();

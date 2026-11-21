@@ -93,6 +93,36 @@ class DestinasiWisata extends Model
         return null;
     }
 
+    public function openingTime(): ?string
+    {
+        $raw = trim((string) $this->jam_operasional);
+
+        if ($raw === '') {
+            return null;
+        }
+
+        if (preg_match('/(\d{1,2}:\d{2})\s*-\s*\d{1,2}:\d{2}/i', $raw, $matches) === 1) {
+            return $matches[1];
+        }
+
+        return null;
+    }
+
+    public function isOpenAt(Carbon $dateTime): bool
+    {
+        $openingTime = $this->openingTime();
+        $closingTime = $this->closingTime();
+        if ($openingTime === null || $closingTime === null) {
+            return false;
+        }
+
+        $openingDateTime = $dateTime->copy()->setTimeFromTimeString($openingTime);
+        $closingDateTime = $dateTime->copy()->setTimeFromTimeString($closingTime);
+
+        return $dateTime->greaterThanOrEqualTo($openingDateTime)
+            && $dateTime->lessThan($closingDateTime);
+    }
+
     public function closingDateTime(Carbon $date): ?Carbon
     {
         $closingTime = $this->closingTime();

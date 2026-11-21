@@ -54,13 +54,14 @@ class AdminReportController extends Controller
                 throw new \RuntimeException('Tidak dapat membuat file laporan CSV.');
             }
 
-            fputcsv($handle, ['Kode Booking', 'Destinasi', 'Tanggal', 'Status Tiket', 'Status Pembayaran', 'Total']);
+            fputcsv($handle, ['Kode Booking', 'Destinasi', 'Tanggal', 'Kanal Penjualan', 'Status Tiket', 'Status Pembayaran', 'Total']);
             foreach ($orders as $order) {
                 $ticketStatus = StatusLabel::ticketStatus($order->tiket->pluck('status_tiket'), $order->status_pemesanan);
                 fputcsv($handle, [
                     $order->kode_booking,
                     $order->destinasi?->nama_wisata ?? '',
                     $order->tanggal_pemesanan->format('Y-m-d H:i'),
+                    $order->kanal_penjualan === 'LOKET' ? 'Di tempat' : 'Online',
                     StatusLabel::ticket($ticketStatus),
                     StatusLabel::order($order->status_pemesanan),
                     $order->total_harga,
@@ -99,34 +100,37 @@ class AdminReportController extends Controller
     }
 
     /**
-     * @return array{from: ?Carbon, to: ?Carbon}
+     * @return array{from: ?Carbon, to: ?Carbon, kanal_penjualan: ?string}
      */
     private function validatedDateFilters(Request $request): array
     {
         $filters = $request->validate([
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],
+            'kanal_penjualan' => ['nullable', 'in:ONLINE,LOKET'],
         ]);
 
         return [
             'from' => isset($filters['from']) ? Carbon::parse($filters['from'])->startOfDay() : null,
             'to' => isset($filters['to']) ? Carbon::parse($filters['to'])->endOfDay() : null,
+            'kanal_penjualan' => $filters['kanal_penjualan'] ?? null,
         ];
     }
 
     /**
-     * @param  array{from: ?Carbon, to: ?Carbon}  $dateFilters
+     * @param  array{from: ?Carbon, to: ?Carbon, kanal_penjualan: ?string}  $dateFilters
      */
     private function ordersQuery(AdminPariwisata $admin, array $dateFilters): Builder
     {
         return Pemesanan::query()
             ->where('id_destinasi', $admin->id_destinasi)
             ->when($dateFilters['from'], fn (Builder $query, Carbon $from) => $query->whereDate('tanggal_pemesanan', '>=', $from))
-            ->when($dateFilters['to'], fn (Builder $query, Carbon $to) => $query->whereDate('tanggal_pemesanan', '<=', $to));
+            ->when($dateFilters['to'], fn (Builder $query, Carbon $to) => $query->whereDate('tanggal_pemesanan', '<=', $to))
+            ->when($dateFilters['kanal_penjualan'], fn (Builder $query, string $channel) => $query->where('kanal_penjualan', $channel));
     }
 
     /**
-     * @param  array{from: ?Carbon, to: ?Carbon}  $dateFilters
+     * @param  array{from: ?Carbon, to: ?Carbon, kanal_penjualan: ?string}  $dateFilters
      * @return Collection<int, Pemesanan>
      */
     private function reportOrders(AdminPariwisata $admin, array $dateFilters): Collection
@@ -138,7 +142,7 @@ class AdminReportController extends Controller
     }
 
     /**
-     * @param  array{from: ?Carbon, to: ?Carbon}  $dateFilters
+     * @param  array{from: ?Carbon, to: ?Carbon, kanal_penjualan: ?string}  $dateFilters
      * @return array{orders: Collection<int, Pemesanan>, totalPendapatan: float, destination: DestinasiWisata, from: ?Carbon, to: ?Carbon}
      */
     private function reportDocumentData(AdminPariwisata $admin, array $dateFilters): array

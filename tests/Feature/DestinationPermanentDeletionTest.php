@@ -81,7 +81,6 @@ class DestinationPermanentDeletionTest extends TestCase
         ]);
         $detail = DetailPemesanan::create([
             'id_pemesanan' => $booking->id_pemesanan,
-            'id_tiket' => $ticket->id_tiket,
             'id_jenis_tiket' => $ticketType->id_jenis_tiket,
             'jumlah' => 1,
             'subtotal' => 25000,

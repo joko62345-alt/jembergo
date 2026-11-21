@@ -3,7 +3,10 @@
 namespace Tests\Feature;
 
 use App\Mail\CustomerOtp;
+use App\Models\AdminPariwisata;
 use App\Models\Customer;
+use App\Models\DestinasiWisata;
+use App\Models\SuperAdmin;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -84,6 +87,99 @@ class CustomerEmailVerificationTest extends TestCase
             ->assertSessionHas('error');
 
         $this->assertDatabaseMissing('customer', ['email' => 'customer@example.com']);
+    }
+
+    public function test_registration_rejects_admin_and_superadmin_emails_without_sending_otp(): void
+    {
+        Mail::fake();
+        $superAdmin = SuperAdmin::query()->create([
+            'nama' => 'Super Admin',
+            'email' => 'superadmin@example.com',
+            'password' => Hash::make('password123'),
+        ]);
+        $destination = DestinasiWisata::query()->create([
+            'nama_wisata' => 'Pantai Papuma',
+            'deskripsi' => 'Wisata pantai',
+            'kategori' => 'Bahari',
+            'latitude' => -8.431,
+            'longitude' => 113.548,
+            'alamat' => 'Jember',
+            'jam_operasional' => '08:00-17:00',
+            'status_aktif' => true,
+        ]);
+        AdminPariwisata::query()->create([
+            'id_destinasi' => $destination->id_destinasi,
+            'nama' => 'Admin Destinasi',
+            'email' => 'admin@example.com',
+            'no_hp' => '081234567890',
+            'password' => Hash::make('password123'),
+        ]);
+
+        foreach ([$superAdmin->email, 'admin@example.com'] as $email) {
+            $this->from(route('register'))
+                ->post(route('register.store'), [
+                    'nama' => 'Akun Baru',
+                    'email' => $email,
+                    'no_hp' => '081234567891',
+                    'password' => 'password123',
+                ])
+                ->assertRedirect(route('register'))
+                ->assertSessionHasErrors(['email']);
+
+            $this->withSession([
+                'customer_verification_email' => $email,
+                'customer_verification_intent' => 'registration',
+                'customer_verification_data' => [
+                    'nama' => 'Akun Baru',
+                    'no_hp' => '081234567891',
+                    'password' => Hash::make('password123'),
+                ],
+            ])->post(route('register.otp.resend'))
+                ->assertRedirect(route('register'))
+                ->assertSessionHas('error', 'Akun administrator tidak memerlukan verifikasi OTP.');
+        }
+
+        Mail::assertNothingSent();
+    }
+
+    public function test_google_sign_in_does_not_send_otp_to_admin_or_superadmin(): void
+    {
+        Mail::fake();
+        $superAdmin = SuperAdmin::query()->create([
+            'nama' => 'Super Admin',
+            'email' => 'superadmin@example.com',
+            'password' => Hash::make('password123'),
+        ]);
+        $destination = DestinasiWisata::query()->create([
+            'nama_wisata' => 'Pantai Papuma',
+            'deskripsi' => 'Wisata pantai',
+            'kategori' => 'Bahari',
+            'latitude' => -8.431,
+            'longitude' => 113.548,
+            'alamat' => 'Jember',
+            'jam_operasional' => '08:00-17:00',
+            'status_aktif' => true,
+        ]);
+        AdminPariwisata::query()->create([
+            'id_destinasi' => $destination->id_destinasi,
+            'nama' => 'Admin Destinasi',
+            'email' => 'admin@example.com',
+            'no_hp' => '081234567890',
+            'password' => Hash::make('password123'),
+        ]);
+
+        foreach (['admin@example.com', $superAdmin->email] as $index => $email) {
+            $this->fakeGoogleAccount($email, 'Administrator');
+            $this->withSession(['google_oauth_state' => 'google-state-'.$index])
+                ->get(route('google.callback', [
+                    'state' => 'google-state-'.$index,
+                    'code' => 'google-code',
+                ]))
+                ->assertRedirect(route('login'))
+                ->assertSessionHas('error', 'Akun administrator tidak dapat masuk menggunakan Google.');
+        }
+
+        Mail::assertNothingSent();
     }
 
     public function test_first_google_login_requires_otp_then_logs_customer_in(): void

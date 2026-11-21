@@ -20,7 +20,7 @@
     <div class="card mb-4">
         <div class="card-body p-4">
             <form id="report-filter-form" class="row g-3 align-items-end">
-                <div class="col-md-4"><label class="form-label"
+                <div class="col-md-3"><label class="form-label"
                         for="id_destinasi">Destinasi</label><select id="id_destinasi"
                         name="id_destinasi" class="form-select">
                         <option value="">Semua destinasi</option>
@@ -29,12 +29,19 @@
                                 @selected((string) $destinationId === (string) $destination->id_destinasi)>{{ $destination->nama_wisata }}</option>
                         @endforeach
                     </select></div>
-                <div class="col-md-3"><label class="form-label" for="from">Dari</label><input
+                <div class="col-md-2"><label class="form-label" for="from">Dari</label><input
                         id="from" type="date" name="from" value="{{ request('from') }}"
                         class="form-control"></div>
-                <div class="col-md-3"><label class="form-label" for="to">Sampai</label><input
+                <div class="col-md-2"><label class="form-label" for="to">Sampai</label><input
                         id="to" type="date" name="to" value="{{ request('to') }}"
                         class="form-control"></div>
+                <div class="col-md-3"><label class="form-label" for="kanal_penjualan">Kanal penjualan</label>
+                    <select id="kanal_penjualan" name="kanal_penjualan" class="form-select">
+                        <option value="">Online & di tempat</option>
+                        <option value="ONLINE" @selected($channel === 'ONLINE')>Online</option>
+                        <option value="LOKET" @selected($channel === 'LOKET')>Beli di tempat</option>
+                    </select>
+                </div>
                 <div class="col-md-2"><button class="btn btn-warning w-100" type="submit">Tampilkan
                         data</button></div>
             </form>
@@ -53,6 +60,7 @@
                         <th>Kode booking</th>
                         <th>Destinasi</th>
                         <th>Tanggal pesan</th>
+                        <th>Kanal penjualan</th>
                         <th>Status tiket</th>
                         <th>Total</th>
                     </tr>
@@ -64,6 +72,7 @@
                             <td class="fw-semibold">{{ $order->kode_booking }}</td>
                             <td>{{ $order->destinasi->nama_wisata }}</td>
                             <td>{{ $order->tanggal_pemesanan->format('d/m/Y H:i') }}</td>
+                            <td>{{ $order->kanal_penjualan === 'LOKET' ? 'Beli di tempat' : 'Online' }}</td>
                             <td><span
                                     class="status-text {{ $displayStatus === 'USED' ? 'status-used' : ($displayStatus === 'PARTIAL' ? 'status-partial' : 'status-default') }}">{{ \App\Support\StatusLabel::ticket($displayStatus) }}</span><small
                                     class="d-block text-secondary">Pembayaran:
@@ -73,7 +82,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center text-secondary py-5">Belum ada
+                            <td colspan="6" class="text-center text-secondary py-5">Belum ada
                                 transaksi.</td>
                         </tr>
                     @endforelse

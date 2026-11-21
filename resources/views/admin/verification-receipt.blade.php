@@ -6,6 +6,11 @@
         ])
         ->values();
     $verifiedTickets = $booking->tiket->where('status_tiket', 'USED')->values();
+    $isCounterSale = $booking->kanal_penjualan === 'LOKET';
+    $isVerified = $verifiedTickets->isNotEmpty();
+    $receiptTime = $isCounterSale && !$isVerified
+        ? ($booking->pembayaran?->paid_at ?? $booking->pembayaran?->waktu_pembayaran)
+        : $verifiedTickets->first()?->waktu_verifikasi;
 @endphp
 <!doctype html>
 <html lang="id">
@@ -13,7 +18,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Struk {{ $booking->kode_booking }} | JemberGo</title>
+    <title>{{ $isCounterSale && !$isVerified ? 'Struk Pembelian' : 'Struk Verifikasi' }} {{ $booking->kode_booking }} | JemberGo</title>
     <style>
         :root {
             color: #17212b;
@@ -108,8 +113,8 @@
 
         .ticket-item {
             display: grid;
-            grid-template-columns: 1fr auto;
-            gap: 2px 8px;
+            grid-template-columns: minmax(0, 1fr) auto auto;
+            gap: 2px 6px;
             padding: 5px 0;
             border-bottom: 1px dotted #b9c1c8;
             align-items: center;
@@ -131,7 +136,16 @@
         }
 
         .ticket-item .qty {
+            min-width: 13px;
             font-weight: 700;
+            text-align: right;
+        }
+
+        .ticket-item .line-total {
+            min-width: 56px;
+            font-weight: 700;
+            text-align: right;
+            white-space: nowrap;
         }
 
         .total {
@@ -176,12 +190,14 @@
 
 <body>
     <nav class="receipt-actions" aria-label="Aksi struk">
-        <a href="{{ route('admin.verification') }}" class="secondary">Kembali</a>
-        <button type="button" onclick="window.print()">Print struk</button>
+        <a href="{{ $isCounterSale && !$isVerified ? route('admin.counter-sales.create') : route('admin.verification') }}"
+            class="secondary">{{ $isCounterSale && !$isVerified ? 'Penjualan berikutnya' : 'Kembali' }}</a>
+        <button type="button" onclick="window.print()">Cetak struk</button>
     </nav>
     <main class="receipt">
         <header class="receipt-header">
             <img class="receipt-logo" src="{{ route('assets.logo') }}" alt="JemberGo">
+            <p><strong>{{ $isCounterSale && !$isVerified ? 'BUKTI PEMBELIAN TIKET' : 'BUKTI VERIFIKASI TIKET' }}</strong></p>
             <p>{{ $booking->destinasi->nama_wisata }}</p>
             <p class="muted">{{ $booking->destinasi->alamat }}</p>
         </header>
@@ -191,35 +207,66 @@
         <div class="receipt-row"><span>Tanggal
                 kunjungan</span><strong>{{ $booking->tanggal_kunjungan->format('d/m/Y') }}</strong>
         </div>
-        <div class="receipt-row"><span>Waktu
-                verifikasi</span><strong>{{ $verifiedTickets->first()?->waktu_verifikasi?->setTimezone(config('app.timezone'))->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i') }}</strong>
+        <div class="receipt-row"><span>{{ $isCounterSale && !$isVerified ? 'Waktu transaksi' : 'Waktu verifikasi' }}</span><strong>{{ $receiptTime?->setTimezone(config('app.timezone'))->format('d/m/Y H:i') ?? now()->format('d/m/Y H:i') }}</strong>
         </div>
         <div class="rule"></div>
-        <div class="receipt-section-title">Pemesan</div>
-        <div>{{ $booking->ketua_nama }}</div>
-        <div class="muted">{{ $booking->ketua_email }}</div>
-        <div class="muted">{{ $booking->ketua_no_hp }}</div>
+        <div class="receipt-section-title">{{ $isCounterSale ? 'Penjualan di loket' : 'Pemesan' }}</div>
+        @if ($isCounterSale)
+            <div class="receipt-row"><span>Metode pembayaran</span><strong>{{ $booking->pembayaran?->metode_pembayaran ?? '-' }}</strong></div>
+            <div class="receipt-row"><span>Status pembayaran</span><strong>{{ \App\Support\StatusLabel::payment($booking->pembayaran?->status_pembayaran) }}</strong></div>
+            @if ($booking->pembayaran?->uang_diterima !== null)
+                <div class="receipt-row"><span>Uang diterima</span><strong>Rp {{ number_format($booking->pembayaran->uang_diterima, 0, ',', '.') }}</strong></div>
+                <div class="receipt-row"><span>Kembalian</span><strong>Rp {{ number_format($booking->pembayaran->uang_kembalian, 0, ',', '.') }}</strong></div>
+            @endif
+        @else
+            <div>{{ $booking->ketua_nama }}</div>
+            <div class="muted">{{ $booking->ketua_email }}</div>
+            <div class="muted">{{ $booking->ketua_no_hp }}</div>
+        @endif
         <div class="rule"></div>
         <div class="receipt-section-title">Rincian tiket</div>
-        @foreach ($participants as $index => $participant)
-            @php($participantName = data_get($participant, 'nama', 'Peserta ' . ($index + 1)))
-            @php($participantTypeId = (int) data_get($participant, 'id_jenis_tiket', 0))
-            @php($ticketType = $booking->detailPemesanan->firstWhere('id_jenis_tiket', $participantTypeId)?->jenisTiket?->nama_jenis ?? 'Tiket wisata')
-            <div class="ticket-item">
-                <span>
-                    <span class="participant-name">{{ $participantName }}</span>
-                    <span class="participant-meta">{{ $ticketType }}</span>
-                </span>
-                <strong class="qty">1</strong>
-            </div>
-        @endforeach
+        @if ($booking->kanal_penjualan === 'LOKET')
+            @foreach ($booking->detailPemesanan as $detail)
+                @php($ticketPrice = (float) ($detail->jenisTiket?->harga ?? 0))
+                <div class="ticket-item">
+                    <span>
+                        <span class="participant-name">{{ $detail->jenisTiket?->nama_jenis ?? 'Tiket wisata' }}</span>
+                        <span class="participant-meta">Rp {{ number_format($ticketPrice, 0, ',', '.') }} / tiket</span>
+                    </span>
+                    <strong class="qty">{{ $detail->jumlah }}</strong>
+                    <strong class="line-total">Rp {{ number_format($detail->subtotal, 0, ',', '.') }}</strong>
+                </div>
+            @endforeach
+        @else
+            @foreach ($participants as $index => $participant)
+                @php($participantName = data_get($participant, 'nama', 'Peserta ' . ($index + 1)))
+                @php($participantTypeId = (int) data_get($participant, 'id_jenis_tiket', 0))
+                @php($ticketDetail = $booking->detailPemesanan->firstWhere('id_jenis_tiket', $participantTypeId))
+                @php($ticketType = $ticketDetail?->jenisTiket?->nama_jenis ?? 'Tiket wisata')
+                @php($ticketPrice = (float) ($ticketDetail?->jenisTiket?->harga ?? 0))
+                <div class="ticket-item">
+                    <span>
+                        <span class="participant-name">{{ $participantName }}</span>
+                        <span class="participant-meta">{{ $ticketType }} · Rp {{ number_format($ticketPrice, 0, ',', '.') }}</span>
+                    </span>
+                    <strong class="qty">1</strong>
+                    <strong class="line-total">Rp {{ number_format($ticketPrice, 0, ',', '.') }}</strong>
+                </div>
+            @endforeach
+        @endif
         <div class="receipt-row total"><span>Total bayar</span><strong>Rp
                 {{ number_format($booking->total_harga, 0, ',', '.') }}</strong></div>
         <div class="rule"></div>
         <footer class="receipt-footer">
-            <p><strong>VERIFIKASI BERHASIL</strong></p>
-            <p class="muted">Terima kasih telah berkunjung.</p>
-            <p class="muted">Simpan struk ini sebagai bukti masuk.</p>
+            @if ($isCounterSale && !$isVerified)
+                <p><strong>PEMBAYARAN LUNAS</strong></p>
+                <p class="muted">Simpan struk ini sebagai bukti pembelian tiket.</p>
+                <p class="muted">Tiket berlaku untuk tanggal kunjungan di atas.</p>
+            @else
+                <p><strong>VERIFIKASI BERHASIL</strong></p>
+                <p class="muted">Terima kasih telah berkunjung.</p>
+                <p class="muted">Simpan struk ini sebagai bukti masuk.</p>
+            @endif
         </footer>
     </main>
     @if (request()->boolean('print'))

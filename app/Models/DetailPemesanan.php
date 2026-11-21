@@ -14,18 +14,13 @@ class DetailPemesanan extends Model
 
     protected $primaryKey = 'id_detail';
 
-    protected $fillable = ['id_pemesanan', 'id_tiket', 'id_jenis_tiket', 'jumlah', 'subtotal'];
+    protected $fillable = ['id_pemesanan', 'id_jenis_tiket', 'jumlah', 'subtotal'];
 
     protected $casts = ['subtotal' => 'decimal:2'];
 
     public function pemesanan(): BelongsTo
     {
         return $this->belongsTo(Pemesanan::class, 'id_pemesanan');
-    }
-
-    public function tiket(): BelongsTo
-    {
-        return $this->belongsTo(Tiket::class, 'id_tiket');
     }
 
     public function jenisTiket(): BelongsTo

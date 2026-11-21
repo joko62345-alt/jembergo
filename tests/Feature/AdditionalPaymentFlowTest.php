@@ -162,7 +162,12 @@ class AdditionalPaymentFlowTest extends TestCase
         $this->assertSame($updatedDate, $updatedChangeData['tanggal_kunjungan']);
         $this->assertSame('Sari Wijaya', $updatedChangeData['anggota'][0]['nama']);
 
-        $change->update(['snap_token' => 'legacy-snap-token']);
+        $change->pembayaran()->create([
+            'id_pemesanan' => $booking->id_pemesanan,
+            'snap_token' => 'legacy-snap-token',
+            'nominal' => $change->nominal,
+            'status_pembayaran' => 'PENDING',
+        ]);
         $this->post($reviewRoute)->assertRedirect($checkoutRoute);
         $this->assertDatabaseCount('perubahan_pemesanan', 1);
 
@@ -183,12 +188,13 @@ class AdditionalPaymentFlowTest extends TestCase
             $booking->id_pemesanan,
             $change->id_perubahan,
         ]));
-        $this->assertDatabaseHas('perubahan_pemesanan', [
+        $this->assertDatabaseHas('pembayaran', [
             'id_perubahan' => $change->id_perubahan,
+            'id_pemesanan' => $booking->id_pemesanan,
             'order_id' => 'JGO-JGO-TEST-001-CHG-ABCDEFGH',
             'nominal' => 25000,
             'gross_amount' => 25000,
-            'status' => 'PENDING',
+            'status_pembayaran' => 'PENDING',
             'snap_token' => null,
             'qris_url' => 'https://api.sandbox.midtrans.com/v2/qris/gopay/test/qr-code',
         ]);
@@ -228,6 +234,24 @@ class AdditionalPaymentFlowTest extends TestCase
             ->assertStatus(502)
             ->assertJsonPath('message', 'Status pembayaran belum dapat diverifikasi oleh Midtrans. Coba periksa koneksi server dan credential Midtrans.');
 
+        $orderId = 'JGO-JGO-TEST-001-CHG-ABCDEFGH';
+        $statusCode = '200';
+        $grossAmount = '25000.00';
+        $this->postJson(route('api.midtrans.notification'), [
+            'order_id' => $orderId,
+            'status_code' => $statusCode,
+            'transaction_status' => 'settlement',
+            'transaction_id' => 'sandbox-additional-transaction',
+            'payment_type' => 'qris',
+            'gross_amount' => $grossAmount,
+            'signature_key' => hash(
+                'sha512',
+                $orderId.$statusCode.$grossAmount.config('services.midtrans.server_key'),
+            ),
+        ])
+            ->assertOk()
+            ->assertJsonPath('message', 'Notification processed.');
+
         $this->withToken($token)->getJson(
             $apiBasePath.'/perubahan/'.$change->id_perubahan.'/pembayaran',
         )
@@ -237,6 +261,10 @@ class AdditionalPaymentFlowTest extends TestCase
         $this->assertDatabaseHas('perubahan_pemesanan', [
             'id_perubahan' => $change->id_perubahan,
             'status' => 'PAID',
+        ]);
+        $this->assertDatabaseHas('pembayaran', [
+            'id_perubahan' => $change->id_perubahan,
+            'status_pembayaran' => 'PAID',
             'transaction_status' => 'settlement',
         ]);
         $this->assertDatabaseHas('pemesanan', [

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\CustomerOtp;
 use App\Models\AdminPariwisata;
 use App\Models\Customer;
+use App\Models\SuperAdmin;
 use Carbon\Carbon;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
@@ -77,7 +78,7 @@ class AuthController extends Controller
         }
 
         $email = strtolower($claims['email']);
-        if (AdminPariwisata::query()->where('email', $email)->exists()) {
+        if ($this->isAdministratorEmail($email)) {
             return response()->json([
                 'message' => 'Akun administrator tidak dapat masuk menggunakan Google.',
             ], 403);
@@ -134,6 +135,7 @@ class AuthController extends Controller
             if (
                 Customer::query()->where('email', $email)->orWhere('no_hp', $pendingData['no_hp'])->exists()
                 || AdminPariwisata::query()->where('email', $email)->exists()
+                || SuperAdmin::query()->where('email', $email)->exists()
             ) {
                 DB::table('mobile_auth_challenges')->where('id', $challenge->id)->delete();
 
@@ -167,6 +169,12 @@ class AuthController extends Controller
             'device_name' => ['nullable', 'string', 'max:100'],
         ]);
         $email = strtolower($data['email']);
+
+        if ($this->isAdministratorEmail($email)) {
+            return response()->json([
+                'message' => 'Akun administrator tidak memerlukan verifikasi OTP.',
+            ], 403);
+        }
 
         return DB::transaction(function () use ($email, $data): JsonResponse {
             $challenge = DB::table('mobile_auth_challenges')
@@ -213,6 +221,13 @@ class AuthController extends Controller
             'purpose' => ['required', 'in:registration,google,password_reset'],
         ]);
         $email = strtolower($data['email']);
+
+        if ($this->isAdministratorEmail($email)) {
+            return response()->json([
+                'message' => 'Akun administrator tidak memerlukan verifikasi OTP.',
+            ], 403);
+        }
+
         $challenge = DB::table('mobile_auth_challenges')
             ->where('email', $email)
             ->where('purpose', $data['purpose'])
@@ -350,7 +365,14 @@ class AuthController extends Controller
     {
         $data = $request->validate([
             'nama' => ['required', 'string', 'max:100', 'regex:/^[\p{L}\s]+$/u'],
-            'email' => ['required', 'email', 'max:150', 'unique:customer,email', 'unique:admin_pariwisata,email'],
+            'email' => [
+                'required',
+                'email',
+                'max:150',
+                'unique:customer,email',
+                'unique:admin_pariwisata,email',
+                'unique:super_admin,email',
+            ],
             'no_hp' => ['required', 'regex:/^(?:[0-9]{10,12}|\+[0-9]{10,15})$/', 'unique:customer,no_hp'],
             'password' => ['required', 'string', 'min:8'],
             'device_name' => ['nullable', 'string', 'max:100'],
@@ -376,6 +398,12 @@ class AuthController extends Controller
         array $pendingData,
         bool $isEmailVerification = true,
     ): JsonResponse {
+        if ($this->isAdministratorEmail($email)) {
+            return response()->json([
+                'message' => 'Akun administrator tidak memerlukan verifikasi OTP.',
+            ], 403);
+        }
+
         $otp = (string) random_int(100000, 999999);
         DB::table('mobile_auth_challenges')->updateOrInsert(
             ['email' => $email, 'purpose' => $purpose],
@@ -419,6 +447,12 @@ class AuthController extends Controller
 
         return $createdAt->greaterThanOrEqualTo(now()->subMinutes(10))
             && $createdAt->lessThanOrEqualTo(now());
+    }
+
+    private function isAdministratorEmail(string $email): bool
+    {
+        return AdminPariwisata::query()->whereRaw('LOWER(email) = ?', [$email])->exists()
+            || SuperAdmin::query()->whereRaw('LOWER(email) = ?', [$email])->exists();
     }
 
     /**

@@ -334,7 +334,9 @@ class BookingController extends Controller
                 ]);
             }
             $booking->pembayaran()->update([
-                'order_id' => $payment['order_id'], 'snap_token' => $payment['snap_token'] ?? null, 'transaction_id' => $payment['transaction_id'],
+                'order_id' => $payment['order_id'],
+                'snap_token' => $payment['snap_token'] ?? null,
+                'transaction_id' => $payment['transaction_id'],
                 'metode_pembayaran' => 'QRIS', 'status_pembayaran' => 'PENDING',
                 'transaction_status' => $payment['transaction_status'], 'payment_type' => $payment['payment_type'],
                 'gross_amount' => $payment['gross_amount'], 'referensi_gateway' => $payment['reference'],
@@ -363,6 +365,7 @@ class BookingController extends Controller
                 ->firstOrFail();
             $payment = Pembayaran::query()
                 ->where('id_pemesanan', $booking->id_pemesanan)
+                ->whereNull('id_perubahan')
                 ->lockForUpdate()
                 ->firstOrFail();
 
@@ -568,7 +571,7 @@ class BookingController extends Controller
     {
         $booking = $this->ownedBooking($id);
         $this->ensureActivePaidBooking($booking);
-        $change = $this->ownedChange($booking, $change);
+        $change = $this->ownedChange($booking, $change)->load('pembayaran');
         abort_if(! in_array($change->status, ['PENDING', 'FAILED', 'EXPIRED'], true), 422, 'Tagihan tambahan ini sudah diproses.');
         if (request()->expectsJson()) {
             if (! $this->syncChangePaymentStatus($booking, $change)) {
@@ -579,7 +582,7 @@ class BookingController extends Controller
 
             return response()->json(['status' => $change->fresh()->status]);
         }
-        if ($change->status === 'PENDING' && $change->qris_url) {
+        if ($change->status === 'PENDING' && $change->pembayaran?->qris_url) {
             return redirect()->route('customer.change.qris', [$id, $change->id_perubahan]);
         }
         $changeData = $this->changeData($change);
@@ -591,14 +594,14 @@ class BookingController extends Controller
     {
         $booking = $this->ownedBooking($id);
         $this->ensureActivePaidBooking($booking);
-        $change = $this->ownedChange($booking, $change);
+        $change = $this->ownedChange($booking, $change)->load('pembayaran');
         abort_if(! in_array($change->status, ['PENDING', 'FAILED', 'EXPIRED'], true), 422, 'Tagihan tambahan ini sudah diproses.');
-        if ($change->status === 'PENDING' && $change->qris_url) {
+        if ($change->status === 'PENDING' && $change->pembayaran?->qris_url) {
             if ($this->isApiRequest($request)) {
                 return response()->json(['data' => $this->changePaymentData($booking, $change)]);
             }
 
-            return $change->qris_url
+            return $change->pembayaran->qris_url
                 ? redirect()->route('customer.change.qris', [$id, $change->id_perubahan])
                 : redirect()->route('customer.change.checkout', [$id, $change->id_perubahan]);
         }
@@ -640,16 +643,22 @@ class BookingController extends Controller
             ]);
         }
 
-        $change->update([
-            'order_id' => $payment['order_id'], 'snap_token' => $payment['snap_token'] ?? null, 'transaction_id' => $payment['transaction_id'],
-            'metode_pembayaran' => 'QRIS', 'status' => 'PENDING',
+        $change->pembayaran()->updateOrCreate([], [
+            'id_pemesanan' => $booking->id_pemesanan,
+            'order_id' => $payment['order_id'],
+            'snap_token' => $payment['snap_token'] ?? null,
+            'transaction_id' => $payment['transaction_id'],
+            'metode_pembayaran' => 'QRIS',
+            'nominal' => $change->nominal,
+            'status_pembayaran' => 'PENDING',
             'transaction_status' => $payment['transaction_status'], 'payment_type' => 'qris',
             'gross_amount' => $payment['gross_amount'], 'referensi_gateway' => $payment['reference'],
             'qris_url' => $payment['qris_url'] ?? null, 'qris_expires_at' => $payment['qris_expires_at'] ?? null,
         ]);
+        $change->update(['status' => 'PENDING']);
 
         if ($this->isApiRequest($request)) {
-            return response()->json(['data' => $this->changePaymentData($booking, $change->fresh())], 201);
+            return response()->json(['data' => $this->changePaymentData($booking, $change->fresh('pembayaran'))], 201);
         }
 
         return ! empty($payment['qris_url'])
@@ -688,19 +697,19 @@ class BookingController extends Controller
     public function additionalQrisImage(int $id, int $change): Response
     {
         $booking = $this->ownedBooking($id);
-        $paymentChange = $this->ownedChange($booking, $change);
-        abort_if(! $paymentChange->qris_url, 404, 'Gambar kode pembayaran tidak ditemukan.');
+        $payment = $this->ownedChange($booking, $change)->pembayaran;
+        abort_if(! $payment?->qris_url, 404, 'Gambar kode pembayaran tidak ditemukan.');
 
-        return $this->paymentQrImage($paymentChange->qris_url);
+        return $this->paymentQrImage($payment->qris_url);
     }
 
     public function apiAdditionalQrisImage(int $id, int $change): Response
     {
         $booking = $this->ownedBooking($id);
-        $paymentChange = $this->ownedChange($booking, $change);
-        abort_if(! $paymentChange->qris_url, 404, 'Gambar kode pembayaran tidak ditemukan.');
+        $payment = $this->ownedChange($booking, $change)->pembayaran;
+        abort_if(! $payment?->qris_url, 404, 'Gambar kode pembayaran tidak ditemukan.');
 
-        return $this->paymentQrImage($paymentChange->qris_url);
+        return $this->paymentQrImage($payment->qris_url);
     }
 
     public function apiQrisImage(int $id): Response
@@ -778,14 +787,15 @@ class BookingController extends Controller
 
     private function syncChangePaymentStatus(Pemesanan $booking, PerubahanPemesanan $change): bool
     {
-        if (! $change->order_id || $change->status === 'PAID') {
+        $payment = $change->pembayaran;
+        if (! $payment?->order_id || $payment->status_pembayaran === 'PAID') {
             return true;
         }
 
         try {
-            $verified = app(MidtransGateway::class)->verify($change->order_id);
+            $verified = app(MidtransGateway::class)->verify($payment->order_id);
         } catch (\Throwable $exception) {
-            Log::warning('Midtrans additional payment check failed.', ['order_id' => $change->order_id, 'error' => $exception->getMessage()]);
+            Log::warning('Midtrans additional payment check failed.', ['order_id' => $payment->order_id, 'error' => $exception->getMessage()]);
 
             return false;
         }
@@ -797,26 +807,27 @@ class BookingController extends Controller
             default => 'PENDING',
         };
 
-        if ($status === 'PENDING' && $change->status === 'PENDING') {
+        if ($status === 'PENDING' && $payment->status_pembayaran === 'PENDING') {
             return true;
         }
 
-        $change->update([
-            'status' => $status,
+        $payment->update([
+            'status_pembayaran' => $status,
             'transaction_status' => $transactionStatus,
-            'transaction_id' => $verified['transaction_id'] ?? $change->transaction_id,
+            'transaction_id' => $verified['transaction_id'] ?? $payment->transaction_id,
             'payment_type' => $verified['payment_type'] ?? 'qris',
-            'gross_amount' => $verified['gross_amount'] ?? $change->gross_amount,
-            'referensi_gateway' => $verified['transaction_id'] ?? $change->referensi_gateway,
+            'gross_amount' => $verified['gross_amount'] ?? $payment->gross_amount,
+            'referensi_gateway' => $verified['transaction_id'] ?? $payment->referensi_gateway,
             'paid_at' => $status === 'PAID' ? now() : null,
             'waktu_pembayaran' => $status === 'PAID' ? now() : null,
         ]);
+        $change->update(['status' => $status]);
 
         if ($status === 'PAID') {
             $this->applyChange($booking->fresh(['destinasi', 'detailPemesanan.jenisTiket']), $change->fresh(), [
                 'status' => 'PAID',
                 'method' => 'QRIS',
-                'reference' => $change->transaction_id,
+                'reference' => $payment->transaction_id,
             ]);
         }
 
@@ -828,7 +839,7 @@ class BookingController extends Controller
         $booking = $this->ownedBooking($id);
         $change = $this->ownedChange($booking, $change);
         $statusVerified = $this->syncChangePaymentStatus($booking, $change);
-        $change->refresh();
+        $change->refresh()->load('pembayaran');
         if (request()->expectsJson()) {
             if (! $statusVerified) {
                 return response()->json([
@@ -846,7 +857,7 @@ class BookingController extends Controller
 
         return view('customer.qris-payment', [
             'booking' => $booking,
-            'payment' => $change,
+            'payment' => $change->pembayaran,
             'change' => $change,
             'statusCheckFailed' => ! $statusVerified,
         ]);
@@ -856,7 +867,7 @@ class BookingController extends Controller
     {
         $booking = $this->ownedBooking($id);
         $booking->expireTicketsIfPastVisitDate();
-        $booking->load(['tiket.review', 'tiket.detailPemesanan.jenisTiket', 'detailPemesanan.jenisTiket', 'pembayaran']);
+        $booking->load(['tiket.review', 'detailPemesanan.jenisTiket', 'pembayaran']);
 
         return view('customer.ticket', compact('booking'));
     }
@@ -865,7 +876,7 @@ class BookingController extends Controller
     {
         $booking = $this->ownedBooking($id);
         $booking->expireTicketsIfPastVisitDate();
-        $booking->load(['destinasi', 'pembayaran', 'tiket.detailPemesanan.jenisTiket', 'detailPemesanan.jenisTiket']);
+        $booking->load(['destinasi', 'pembayaran', 'tiket', 'detailPemesanan.jenisTiket']);
 
         return Pdf::loadView('customer.ticket-pdf', compact('booking'))
             ->setPaper('a4')
@@ -913,16 +924,18 @@ class BookingController extends Controller
      */
     private function changePaymentData(Pemesanan $booking, PerubahanPemesanan $change): array
     {
+        $payment = $change->pembayaran;
+
         return [
             'status' => $change->status,
-            'order_id' => $change->order_id,
-            'snap_token' => $change->snap_token,
-            'checkout_url' => $change->snap_token === null ? null : app(MidtransGateway::class)->checkoutUrl($change->snap_token),
-            'qris_url' => $change->qris_url,
-            'qris_image_url' => $change->qris_url === null
+            'order_id' => $payment?->order_id,
+            'snap_token' => $payment?->snap_token,
+            'checkout_url' => $payment?->snap_token === null ? null : app(MidtransGateway::class)->checkoutUrl($payment->snap_token),
+            'qris_url' => $payment?->qris_url,
+            'qris_image_url' => $payment?->qris_url === null
                 ? null
                 : route('api.v1.customer.change-payments.qr-image', [$booking->id_pemesanan, $change->id_perubahan]),
-            'qris_expires_at' => $change->qris_expires_at?->toIso8601String(),
+            'qris_expires_at' => $payment?->qris_expires_at?->toIso8601String(),
             'nominal' => (float) $change->nominal,
         ];
     }
@@ -934,10 +947,12 @@ class BookingController extends Controller
 
     private function changePaymentStarted(PerubahanPemesanan $change): bool
     {
-        return filled($change->order_id)
-            || filled($change->transaction_id)
-            || filled($change->snap_token)
-            || filled($change->qris_url);
+        $payment = $change->pembayaran;
+
+        return filled($payment?->order_id)
+            || filled($payment?->transaction_id)
+            || filled($payment?->snap_token)
+            || filled($payment?->qris_url);
     }
 
     private function ensureActivePaidBooking(Pemesanan $booking): void
@@ -974,7 +989,7 @@ class BookingController extends Controller
                     $booking->detailPemesanan()->create(['id_jenis_tiket' => $typeId, 'jumlah' => $group->count(), 'subtotal' => $group->sum('harga')]);
                 }
             }
-            $change->update(['status' => $payment['status'], 'metode_pembayaran' => $payment['method'], 'referensi_gateway' => $payment['reference'], 'waktu_pembayaran' => $payment['status'] === 'PAID' ? now() : null]);
+            $change->update(['status' => $payment['status']]);
             app(BookingTicketService::class)->issue($booking->fresh());
         });
     }

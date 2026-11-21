@@ -16,34 +16,6 @@
             <div class="alert alert-danger">{{ $errors->first() }}</div>
         @endif
 
-        <section class="admin-panel mb-4">
-            <div class="admin-panel-heading">
-                <div><span class="admin-kicker">Kapasitas kunjungan</span>
-                    <h2>Kuota tiket harian</h2>
-                    <p>Atur batas total peserta per tanggal kunjungan.</p>
-                </div>
-            </div>
-            <form method="POST" action="{{ route('admin.quota.update') }}"
-                class="row g-3 align-items-end">@csrf @method('PUT')<div class="col-md-4"><label
-                        class="form-label" for="kuota_harian">Maksimal peserta per
-                        hari</label><input id="kuota_harian" name="kuota_harian" type="number"
-                        min="1" max="100000" class="form-control"
-                        value="{{ old('kuota_harian', $destination->kuota_harian) }}"
-                        @disabled(!old('kuota_harian_aktif', $destination->kuota_harian_aktif))></div>
-                <div class="col-md-5">
-                    <div class="form-check form-switch mb-2"><input id="kuota_harian_aktif"
-                            name="kuota_harian_aktif" value="1" type="checkbox"
-                            class="form-check-input" @checked(old('kuota_harian_aktif', $destination->kuota_harian_aktif))><label
-                            for="kuota_harian_aktif" class="form-check-label">Terapkan kuota
-                            harian</label></div><small class="text-secondary">Matikan untuk menerima
-                        peserta tanpa batas harian.</small>
-                </div>
-                <div class="col-md-3"><button class="btn btn-warning w-100" type="submit"><i
-                            class="bi bi-check2 me-1" aria-hidden="true"></i>Simpan kuota</button>
-                </div>
-            </form>
-        </section>
-
         <section class="admin-stat-grid" aria-label="Ringkasan destinasi">
             <article class="admin-stat-card">
                 <div class="admin-stat-icon"><i class="bi bi-calendar-check" aria-hidden="true"></i>
@@ -70,6 +42,13 @@
                     transaksi lunas</small>
             </article>
         </section>
+
+        @include('components.dashboard-analytics', [
+            'analytics' => $analytics,
+            'isSuperAdmin' => false,
+            'destinationName' => $destination->nama_wisata,
+            'reportRoute' => route('admin.report'),
+        ])
 
         <section class="admin-dashboard-grid">
             <article class="admin-panel admin-verification-panel">
@@ -118,6 +97,12 @@
                                 class="bi bi-list-check" aria-hidden="true"></i></span>
                         <div><strong>Lihat pemesanan</strong><small>Semua booking destinasi
                                 Anda</small></div><i class="bi bi-arrow-right"
+                            aria-hidden="true"></i>
+                    </a><a href="{{ route('admin.counter-sales.create') }}"
+                        class="admin-quick-action"><span><i class="bi bi-ticket-perforated"
+                                aria-hidden="true"></i></span>
+                        <div><strong>Jual tiket di tempat</strong><small>Catat penjualan langsung
+                                di loket</small></div><i class="bi bi-arrow-right"
                             aria-hidden="true"></i>
                     </a></div>
             </article>
@@ -172,10 +157,3 @@
         </section>
     </div>
 </x-admin-layout>
-<script>
-    const quotaToggle = document.getElementById('kuota_harian_aktif');
-    const quotaInput = document.getElementById('kuota_harian');
-    quotaToggle?.addEventListener('change', () => {
-        quotaInput.disabled = !quotaToggle.checked;
-    });
-</script>

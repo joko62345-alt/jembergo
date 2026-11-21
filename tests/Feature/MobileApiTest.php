@@ -15,6 +15,7 @@ use App\Models\Review;
 use App\Models\SuperAdmin;
 use App\Services\PaymentGateway\PaymentGateway;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -157,6 +158,86 @@ class MobileApiTest extends TestCase
             'device_name' => 'android',
         ])->assertOk()
             ->assertJsonPath('data.user.email', 'siti@example.com');
+    }
+
+    public function test_mobile_auth_does_not_send_otp_to_admin_or_superadmin(): void
+    {
+        $this->withoutMiddleware(ThrottleRequests::class);
+        Mail::fake();
+        $superAdmin = SuperAdmin::query()->create([
+            'nama' => 'Super Admin',
+            'email' => 'superadmin@example.com',
+            'password' => bcrypt('password123'),
+        ]);
+        $destination = DestinasiWisata::query()->create([
+            'nama_wisata' => 'Pantai Papuma',
+            'deskripsi' => 'Wisata pantai',
+            'kategori' => 'Bahari',
+            'latitude' => -8.431,
+            'longitude' => 113.548,
+            'alamat' => 'Jember',
+            'jam_operasional' => '08:00-17:00',
+            'status_aktif' => true,
+            'kuota_harian_aktif' => false,
+        ]);
+        AdminPariwisata::query()->create([
+            'id_destinasi' => $destination->id_destinasi,
+            'nama' => 'Admin Destinasi',
+            'email' => 'admin@example.com',
+            'no_hp' => '081234567890',
+            'password' => bcrypt('password123'),
+            'status_akun' => 'AKTIF',
+        ]);
+
+        foreach (['admin@example.com', $superAdmin->email] as $email) {
+            $this->postJson('/api/v1/auth/register', [
+                'nama' => 'Akun Baru',
+                'email' => $email,
+                'no_hp' => '081234567891',
+                'password' => 'password123',
+            ])->assertUnprocessable()
+                ->assertJsonValidationErrors(['email']);
+        }
+
+        config(['services.google.client_id' => 'jembergo-web-client-id']);
+        $googleEmails = ['admin@example.com', $superAdmin->email];
+        Http::fake([
+            'https://oauth2.googleapis.com/tokeninfo*' => function () use (&$googleEmails) {
+                return Http::response([
+                    'aud' => 'jembergo-web-client-id',
+                    'iss' => 'https://accounts.google.com',
+                    'exp' => (string) now()->addHour()->timestamp,
+                    'email_verified' => 'true',
+                    'email' => array_shift($googleEmails),
+                    'name' => 'Administrator',
+                ]);
+            },
+        ]);
+
+        foreach (['admin@example.com', $superAdmin->email] as $email) {
+            $this->postJson('/api/v1/auth/google', ['id_token' => 'valid-google-id-token'])
+                ->assertForbidden()
+                ->assertJsonPath('message', 'Akun administrator tidak dapat masuk menggunakan Google.');
+
+            DB::table('mobile_auth_challenges')->insert([
+                'email' => $email,
+                'purpose' => 'registration',
+                'token' => Hash::make('123456'),
+                'payload' => json_encode([
+                    'nama' => 'Administrator',
+                    'no_hp' => '081234567891',
+                    'password' => Hash::make('password123'),
+                ], JSON_THROW_ON_ERROR),
+                'created_at' => now(),
+            ]);
+            $this->postJson('/api/v1/auth/otp/resend', [
+                'email' => $email,
+                'purpose' => 'registration',
+            ])->assertForbidden()
+                ->assertJsonPath('message', 'Akun administrator tidak memerlukan verifikasi OTP.');
+        }
+
+        Mail::assertNothingSent();
     }
 
     public function test_mobile_registration_sends_otp_and_creates_customer_only_after_verification(): void

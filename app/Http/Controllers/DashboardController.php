@@ -9,6 +9,7 @@ use App\Models\Pemesanan;
 use App\Models\Tiket;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -66,8 +67,9 @@ class DashboardController extends Controller
                 'verified' => (clone $destinationOrders)->whereHas('tiket', fn ($query) => $query->where('status_tiket', 'USED'))->count(),
                 'revenue' => (float) (clone $destinationOrders)->sum('total_harga'),
             ];
+            $analytics = $this->destinationAnalytics($admin->id_destinasi);
 
-            return view('admin.dashboard', compact('role', 'counts', 'admin', 'destination', 'adminStats', 'recentBookings', 'pendingVerification'));
+            return view('admin.dashboard', compact('role', 'counts', 'admin', 'destination', 'adminStats', 'analytics', 'recentBookings', 'pendingVerification'));
         }
 
         if ($role === 'CUSTOMER') {
@@ -120,9 +122,57 @@ class DashboardController extends Controller
             ->all();
         $empty['favoriteName'] = $empty['favorite'][0]['name'] ?? null;
 
+        return array_merge($empty, $this->monthlyAnalytics($paidOrders));
+    }
+
+    private function destinationAnalytics(int $destinationId): array
+    {
+        $empty = ['favorite' => [], 'months' => [], 'transactions' => [], 'revenue' => [], 'totalTransactions' => 0, 'totalRevenue' => 0, 'totalTickets' => 0, 'favoriteName' => null];
+
+        if (! Schema::hasTable('pemesanan') || ! Schema::hasTable('detail_pemesanan') || ! Schema::hasTable('jenis_tiket')) {
+            return $empty;
+        }
+
+        $paidOrders = DB::table('pemesanan')
+            ->where('status_pemesanan', 'PAID')
+            ->where('id_destinasi', $destinationId);
+        $empty['totalTransactions'] = (clone $paidOrders)->count();
+        $empty['totalRevenue'] = (float) (clone $paidOrders)->sum('total_harga');
+        $empty['totalTickets'] = (int) DB::table('detail_pemesanan')
+            ->join('pemesanan', 'pemesanan.id_pemesanan', '=', 'detail_pemesanan.id_pemesanan')
+            ->where('pemesanan.id_destinasi', $destinationId)
+            ->where('pemesanan.status_pemesanan', 'PAID')
+            ->sum('detail_pemesanan.jumlah');
+        $empty['favorite'] = DB::table('detail_pemesanan')
+            ->join('pemesanan', 'pemesanan.id_pemesanan', '=', 'detail_pemesanan.id_pemesanan')
+            ->join('jenis_tiket', 'jenis_tiket.id_jenis_tiket', '=', 'detail_pemesanan.id_jenis_tiket')
+            ->where('pemesanan.id_destinasi', $destinationId)
+            ->where('pemesanan.status_pemesanan', 'PAID')
+            ->select('jenis_tiket.nama_jenis as name', DB::raw('SUM(detail_pemesanan.jumlah) as tickets'))
+            ->groupBy('jenis_tiket.id_jenis_tiket', 'jenis_tiket.nama_jenis')
+            ->orderByDesc('tickets')
+            ->limit(5)
+            ->get()
+            ->map(fn ($item) => ['name' => $item->name, 'tickets' => (int) $item->tickets])
+            ->all();
+        $empty['favoriteName'] = $empty['favorite'][0]['name'] ?? null;
+
+        return array_merge($empty, $this->monthlyAnalytics($paidOrders));
+    }
+
+    private function monthlyAnalytics(QueryBuilder $paidOrders): array
+    {
         $start = now()->startOfMonth()->subMonths(5);
-        $months = collect(CarbonPeriod::create($start, '1 month', now()->startOfMonth()))->mapWithKeys(fn (Carbon $month) => [$month->format('Y-m') => ['label' => $month->translatedFormat('M'), 'transactions' => 0, 'revenue' => 0]])->all();
-        $monthlyOrders = (clone $paidOrders)->where('tanggal_pemesanan', '>=', $start)->get(['tanggal_pemesanan', 'total_harga']);
+        $months = collect(CarbonPeriod::create($start, '1 month', now()->startOfMonth()))
+            ->mapWithKeys(fn (Carbon $month) => [$month->format('Y-m') => [
+                'label' => $month->translatedFormat('M'),
+                'transactions' => 0,
+                'revenue' => 0,
+            ]])
+            ->all();
+        $monthlyOrders = (clone $paidOrders)
+            ->where('tanggal_pemesanan', '>=', $start)
+            ->get(['tanggal_pemesanan', 'total_harga']);
 
         foreach ($monthlyOrders as $order) {
             $key = Carbon::parse($order->tanggal_pemesanan)->format('Y-m');
@@ -132,10 +182,12 @@ class DashboardController extends Controller
             }
         }
 
-        $empty['months'] = array_values($months);
-        $empty['transactions'] = array_column($empty['months'], 'transactions');
-        $empty['revenue'] = array_column($empty['months'], 'revenue');
+        $months = array_values($months);
 
-        return $empty;
+        return [
+            'months' => $months,
+            'transactions' => array_column($months, 'transactions'),
+            'revenue' => array_column($months, 'revenue'),
+        ];
     }
 }

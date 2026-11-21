@@ -145,6 +145,10 @@ class AuthController extends Controller
         }
 
         $email = strtolower($profile['email']);
+        if ($this->isAdministratorEmail($email)) {
+            return redirect()->route('login')->with('error', 'Akun administrator tidak dapat masuk menggunakan Google.');
+        }
+
         $customer = Customer::query()->whereRaw('LOWER(email) = ?', [$email])->first();
 
         if ($customer && ($customer->google_verified_at !== null || $customer->auth_provider === 'google')) {
@@ -184,6 +188,17 @@ class AuthController extends Controller
 
         if (! $isValid) {
             return redirect()->route('register', ['stage' => 'otp'])->with('error', 'Kode OTP tidak valid atau sudah kadaluarsa.');
+        }
+
+        if ($this->isAdministratorEmail(strtolower($email))) {
+            DB::table('customer_email_verification_tokens')->where('email', $email)->delete();
+            $request->session()->forget([
+                'customer_verification_email',
+                'customer_verification_intent',
+                'customer_verification_data',
+            ]);
+
+            return redirect()->route('login')->with('error', 'Akun administrator tidak memerlukan verifikasi OTP.');
         }
 
         if ($intent === 'registration') {
@@ -255,6 +270,17 @@ class AuthController extends Controller
         string $intent,
         array $pendingData,
     ): RedirectResponse {
+        if ($this->isAdministratorEmail(strtolower($email))) {
+            $request->session()->forget([
+                'customer_verification_email',
+                'customer_verification_intent',
+                'customer_verification_data',
+            ]);
+
+            return redirect()->route($intent === 'google' ? 'login' : 'register')
+                ->with('error', 'Akun administrator tidak memerlukan verifikasi OTP.');
+        }
+
         $otp = (string) random_int(100000, 999999);
 
         DB::table('customer_email_verification_tokens')->updateOrInsert(
@@ -303,7 +329,14 @@ class AuthController extends Controller
 
         $data = $request->validate([
             'nama' => ['required', 'string', 'max:100', 'regex:/^[\p{L}\s]+$/u'],
-            'email' => ['required', 'email', 'max:150', 'unique:customer,email'],
+            'email' => [
+                'required',
+                'email',
+                'max:150',
+                'unique:customer,email',
+                'unique:admin_pariwisata,email',
+                'unique:super_admin,email',
+            ],
             'no_hp' => ['required', 'regex:/^(?:[0-9]{10,12}|\+[0-9]{10,15})$/', 'unique:customer,no_hp'],
             'password' => ['required', 'string', 'min:8'],
         ], [
@@ -352,5 +385,11 @@ class AuthController extends Controller
             && filled($clientSecret)
             && str_ends_with($clientId, '.apps.googleusercontent.com')
             && ! in_array($clientSecret, ['...', 'your-client-secret'], true);
+    }
+
+    private function isAdministratorEmail(string $email): bool
+    {
+        return AdminPariwisata::query()->whereRaw('LOWER(email) = ?', [$email])->exists()
+            || SuperAdmin::query()->whereRaw('LOWER(email) = ?', [$email])->exists();
     }
 }

@@ -22,6 +22,7 @@
             <th>Kode Booking</th>
             <th>Destinasi</th>
             <th>Tanggal Pesan</th>
+            <th>Kanal Penjualan</th>
             <th>Status Tiket</th>
             <th>Status Pembayaran</th>
             <th>Total</th>
@@ -35,6 +36,7 @@
                 <td>{{ $order->kode_booking }}</td>
                 <td>{{ $order->destinasi->nama_wisata }}</td>
                 <td>{{ $order->tanggal_pemesanan->format('d/m/Y H:i') }}</td>
+                <td>{{ $order->kanal_penjualan === 'LOKET' ? 'Beli di tempat' : 'Online' }}</td>
                 <td>{{ \App\Support\StatusLabel::ticket($ticketStatus) }}</td>
                 <td>{{ \App\Support\StatusLabel::order($order->status_pemesanan) }}</td>
                 <td>Rp {{ number_format($order->total_harga, 0, ',', '.') }}</td>

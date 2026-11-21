@@ -119,6 +119,8 @@ class SuperAdminController extends Controller
         $from = $request->date('from')?->startOfDay();
         $to = $request->date('to')?->endOfDay();
         $destinationId = $request->integer('id_destinasi') ?: null;
+        $validated = $request->validate(['kanal_penjualan' => ['nullable', 'in:ONLINE,LOKET']]);
+        $channel = $validated['kanal_penjualan'] ?? null;
         $destinations = DestinasiWisata::orderBy('nama_wisata')->get(['id_destinasi', 'nama_wisata']);
         $totalPendapatan = 0;
 
@@ -126,14 +128,15 @@ class SuperAdminController extends Controller
             $ordersQuery = Pemesanan::query()
                 ->when($destinationId, fn ($query) => $query->where('id_destinasi', $destinationId))
                 ->when($from, fn ($query) => $query->where('tanggal_pemesanan', '>=', $from))
-                ->when($to, fn ($query) => $query->where('tanggal_pemesanan', '<=', $to));
+                ->when($to, fn ($query) => $query->where('tanggal_pemesanan', '<=', $to))
+                ->when($channel, fn ($query) => $query->where('kanal_penjualan', $channel));
             $totalPendapatan = (clone $ordersQuery)->where('status_pemesanan', 'PAID')->sum('total_harga');
             $orders = $ordersQuery->with(['destinasi', 'tiket'])->latest('tanggal_pemesanan')->paginate(20)->withQueryString();
         } else {
             $orders = collect();
         }
 
-        return view('superadmin.report', compact('orders', 'from', 'to', 'destinationId', 'destinations', 'totalPendapatan'));
+        return view('superadmin.report', compact('orders', 'from', 'to', 'destinationId', 'destinations', 'totalPendapatan', 'channel'));
     }
 
     private function validatedDestination(Request $request, ?int $destinationId = null): array

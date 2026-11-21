@@ -50,22 +50,28 @@
                     @forelse($bookings as $booking)
                         <tr>
                             <td><strong>{{ $booking->kode_booking }}</strong><small
-                                    class="d-block">{{ $booking->customer->nama ?? '-' }}</small><small
+                                    class="d-block">{{ $booking->kanal_penjualan === 'LOKET' ? 'Penjualan di tempat' : ($booking->customer->nama ?? $booking->ketua_nama ?? '-') }}</small><small
                                     class="d-block text-secondary">{{ $booking->customer->email ?? '-' }}</small>
                             </td>
-                            <td><strong>{{ $booking->ketua_nama }}</strong> <small
-                                    class="text-secondary">Ketua</small>
-                                @foreach ($booking->nama_anggota ?? [] as $member)
-                                    <small class="d-block">{{ data_get($member, 'nama', $member) }}
-                                        <span class="text-secondary">(Anggota)</span></small>
-                                @endforeach
+                            <td>
+                                @if ($booking->kanal_penjualan === 'LOKET')
+                                    @foreach ($booking->detailPemesanan as $detail)
+                                        <small class="d-block">{{ $detail->jenisTiket?->nama_jenis }} × {{ $detail->jumlah }}</small>
+                                    @endforeach
+                                @else
+                                    <strong>{{ $booking->ketua_nama }}</strong> <small class="text-secondary">Ketua</small>
+                                    @foreach ($booking->nama_anggota ?? [] as $member)
+                                        <small class="d-block">{{ data_get($member, 'nama', $member) }}
+                                            <span class="text-secondary">(Anggota)</span></small>
+                                    @endforeach
+                                @endif
                             </td>
                             <td>{{ $booking->tanggal_kunjungan->format('d/m/Y') }}<small
                                     class="d-block text-secondary">{{ \App\Support\StatusLabel::order($booking->status_pemesanan) }}</small>
                             </td>
                             <td><span
                                     class="{{ $booking->pembayaran?->status_pembayaran === 'PAID' ? 'text-success' : 'text-warning' }} fw-semibold">{{ \App\Support\StatusLabel::payment($booking->pembayaran?->status_pembayaran) }}</span><small
-                                    class="d-block text-secondary mt-1">{{ $booking->pembayaran ? 'QRIS' : '-' }}</small>
+                                    class="d-block text-secondary mt-1">{{ $booking->pembayaran?->metode_pembayaran ?? '-' }}</small>
                             </td>
                             <td>
                                 @forelse($booking->tiket as $ticket)

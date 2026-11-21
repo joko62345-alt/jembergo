@@ -60,9 +60,9 @@
     @endunless
 
     @if (isset($booking))
-        @php(
-    $participants = collect($booking->nama_anggota ?? [])->prepend(['nama' => $booking->ketua_nama, 'id_jenis_tiket' => (int) $booking->jenis_tiket_ketua])->values()
-)
+        @php($isCounterSale = $booking->kanal_penjualan === 'LOKET')
+        @php($participants = collect($booking->nama_anggota ?? [])->prepend(['nama' => $booking->ketua_nama, 'id_jenis_tiket' => (int) $booking->jenis_tiket_ketua])->values())
+        @php($participantCount = (int) $booking->detailPemesanan->sum('jumlah'))
         <section class="verification-result-card">
             <div class="verification-result-header">
                 <div>
@@ -80,9 +80,9 @@
             </div>
             <div class="verification-booking-details">
                 <div>
-                    <span class="verification-detail-label">Ketua kelompok</span>
-                    <strong>{{ $booking->ketua_nama }}</strong>
-                    <small>{{ $booking->ketua_email }} · {{ $booking->ketua_no_hp }}</small>
+                    <span class="verification-detail-label">{{ $isCounterSale ? 'Jenis transaksi' : 'Ketua kelompok' }}</span>
+                    <strong>{{ $isCounterSale ? 'Penjualan di tempat' : $booking->ketua_nama }}</strong>
+                    <small>{{ $isCounterSale ? ($booking->pembayaran->metode_pembayaran ?? '-') : $booking->ketua_email.' · '.$booking->ketua_no_hp }}</small>
                 </div>
                 <div>
                     <span class="verification-detail-label">Destinasi</span>
@@ -90,7 +90,7 @@
                 </div>
                 <div>
                     <span class="verification-detail-label">Jumlah peserta</span>
-                    <strong>{{ $participants->count() }} peserta</strong>
+                    <strong>{{ $participantCount }} peserta</strong>
                 </div>
                 <div>
                     <span class="verification-detail-label">Total pembayaran</span>
@@ -98,25 +98,31 @@
                 </div>
             </div>
             <div class="verification-members">
-                <strong>Anggota kelompok</strong>
+                <strong>{{ $isCounterSale ? 'Rincian jumlah tiket' : 'Anggota kelompok' }}</strong>
                 <div class="verification-member-list">
-                    @forelse($participants->skip(1) as $member)
-                        <span class="verification-member">
-                            <i class="bi bi-person" aria-hidden="true"></i>
-                            {{ $member['nama'] }} ·
-                            {{ $booking->detailPemesanan->firstWhere('id_jenis_tiket', (int) $member['id_jenis_tiket'])?->jenisTiket?->nama_jenis ?? 'Tiket' }}
-                        </span>
-                    @empty
-                        <span class="verification-no-members">Tidak ada anggota tambahan.</span>
-                    @endforelse
+                    @if ($isCounterSale)
+                        @foreach ($booking->detailPemesanan as $detail)
+                            <span class="verification-member">{{ $detail->jenisTiket?->nama_jenis ?? 'Tiket' }} × {{ $detail->jumlah }}</span>
+                        @endforeach
+                    @else
+                        @forelse($participants->skip(1) as $member)
+                            <span class="verification-member">
+                                <i class="bi bi-person" aria-hidden="true"></i>
+                                {{ $member['nama'] }} ·
+                                {{ $booking->detailPemesanan->firstWhere('id_jenis_tiket', (int) $member['id_jenis_tiket'])?->jenisTiket?->nama_jenis ?? 'Tiket' }}
+                            </span>
+                        @empty
+                            <span class="verification-no-members">Tidak ada anggota tambahan.</span>
+                        @endforelse
+                    @endif
                 </div>
             </div>
             <div class="verification-ticket-heading">
                 <div>
                     <h3>Daftar tiket</h3>
-                    <p>Periksa status tiket setiap peserta sebelum verifikasi.</p>
+                    <p>Periksa jumlah tiket sebelum verifikasi.</p>
                 </div>
-                <span>{{ $booking->tiket->count() }} tiket</span>
+                <span>{{ $participantCount }} peserta</span>
             </div>
             <div class="table-responsive verification-table-wrap">
                 <table class="table align-middle verification-table mb-0">
@@ -133,13 +139,22 @@
                         @foreach ($booking->tiket as $index => $ticket)
                             @php($participant = $participants->get($index, ['nama' => $booking->ketua_nama, 'id_jenis_tiket' => (int) $booking->jenis_tiket_ketua]))
                             <tr class="{{ $selectedTicketId === $ticket->id_tiket ? 'table-warning' : '' }}">
-                                <td>
-                                    <strong>{{ $participant['nama'] }}</strong>
-                                    @if ($index === 0)
-                                        <small class="d-block text-secondary">Ketua kelompok</small>
-                                    @endif
-                                </td>
-                                <td>{{ $booking->detailPemesanan->firstWhere('id_jenis_tiket', (int) $participant['id_jenis_tiket'])?->jenisTiket?->nama_jenis ?? 'Tiket' }}</td>
+                                @if ($isCounterSale)
+                                    <td><strong>Penjualan loket</strong><small class="d-block text-secondary">{{ $participantCount }} peserta dalam grup</small></td>
+                                    <td>
+                                        @foreach ($booking->detailPemesanan as $detail)
+                                            <span class="d-block">{{ $detail->jenisTiket?->nama_jenis ?? 'Tiket' }} × {{ $detail->jumlah }}</span>
+                                        @endforeach
+                                    </td>
+                                @else
+                                    <td>
+                                        <strong>{{ $participant['nama'] }}</strong>
+                                        @if ($index === 0)
+                                            <small class="d-block text-secondary">Ketua kelompok</small>
+                                        @endif
+                                    </td>
+                                    <td>{{ $booking->detailPemesanan->firstWhere('id_jenis_tiket', (int) $participant['id_jenis_tiket'])?->jenisTiket?->nama_jenis ?? 'Tiket' }}</td>
+                                @endif
                                 <td class="font-monospace">{{ $booking->kode_booking }}</td>
                                 <td>
                                     <span class="verification-status {{ $ticket->status_tiket === 'ACTIVE' ? 'verification-status-info' : 'verification-status-muted' }}">

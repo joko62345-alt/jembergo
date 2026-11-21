@@ -214,13 +214,14 @@ class SuperAdminManagementController extends Controller
 
         return response()->streamDownload(function () use ($orders): void {
             $handle = fopen('php://output', 'w');
-            fputcsv($handle, ['Kode Booking', 'Destinasi', 'Tanggal', 'Status Tiket', 'Status Pembayaran', 'Total']);
+            fputcsv($handle, ['Kode Booking', 'Destinasi', 'Tanggal', 'Kanal Penjualan', 'Status Tiket', 'Status Pembayaran', 'Total']);
             foreach ($orders as $order) {
                 $ticketStatus = StatusLabel::ticketStatus($order->tiket->pluck('status_tiket'), $order->status_pemesanan);
                 fputcsv($handle, [
                     $order->kode_booking,
                     $order->destinasi->nama_wisata,
                     $order->tanggal_pemesanan->format('Y-m-d H:i'),
+                    $order->kanal_penjualan === 'LOKET' ? 'Di tempat' : 'Online',
                     StatusLabel::ticket($ticketStatus),
                     StatusLabel::order($order->status_pemesanan),
                     $order->total_harga,
@@ -240,6 +241,7 @@ class SuperAdminManagementController extends Controller
             'destination' => $this->reportDestination($request),
             'from' => $request->date('from'),
             'to' => $request->date('to'),
+            'channel' => $request->query('kanal_penjualan'),
         ]);
     }
 
@@ -252,6 +254,7 @@ class SuperAdminManagementController extends Controller
             'destination' => $this->reportDestination($request),
             'from' => $request->date('from'),
             'to' => $request->date('to'),
+            'channel' => $request->query('kanal_penjualan'),
         ])->setPaper('a4', 'landscape');
 
         return $pdf->download('laporan-jembergo-'.now()->format('Ymd-His').'.pdf');
@@ -259,10 +262,15 @@ class SuperAdminManagementController extends Controller
 
     private function reportOrders(Request $request): Collection
     {
+        $filters = $request->validate([
+            'kanal_penjualan' => ['nullable', 'in:ONLINE,LOKET'],
+        ]);
+
         return Pemesanan::with(['destinasi', 'tiket'])
             ->when($request->integer('id_destinasi'), fn ($query, $destinationId) => $query->where('id_destinasi', $destinationId))
             ->when($request->date('from'), fn ($query, $from) => $query->whereDate('tanggal_pemesanan', '>=', $from))
             ->when($request->date('to'), fn ($query, $to) => $query->whereDate('tanggal_pemesanan', '<=', $to))
+            ->when($filters['kanal_penjualan'] ?? null, fn ($query, $channel) => $query->where('kanal_penjualan', $channel))
             ->latest('tanggal_pemesanan')
             ->get();
     }

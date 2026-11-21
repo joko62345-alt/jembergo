@@ -17,7 +17,7 @@ class Pemesanan extends Model
 
     protected $primaryKey = 'id_pemesanan';
 
-    protected $fillable = ['id_customer', 'ketua_nama', 'ketua_email', 'ketua_no_hp', 'jenis_tiket_ketua', 'nama_anggota', 'id_destinasi', 'kode_booking', 'tanggal_pemesanan', 'tanggal_kunjungan', 'total_harga', 'status_pemesanan', 'batas_waktu_pembayaran'];
+    protected $fillable = ['id_customer', 'ketua_nama', 'ketua_email', 'ketua_no_hp', 'jenis_tiket_ketua', 'nama_anggota', 'id_destinasi', 'kanal_penjualan', 'id_admin_pariwisata', 'kode_booking', 'tanggal_pemesanan', 'tanggal_kunjungan', 'total_harga', 'status_pemesanan', 'batas_waktu_pembayaran'];
 
     protected $casts = ['nama_anggota' => 'array', 'tanggal_pemesanan' => 'datetime', 'tanggal_kunjungan' => 'date', 'total_harga' => 'decimal:2', 'batas_waktu_pembayaran' => 'datetime'];
 
@@ -123,7 +123,12 @@ class Pemesanan extends Model
 
     public function pembayaran(): HasOne
     {
-        return $this->hasOne(Pembayaran::class, 'id_pemesanan');
+        return $this->hasOne(Pembayaran::class, 'id_pemesanan')->whereNull('id_perubahan');
+    }
+
+    public function semuaPembayaran(): HasMany
+    {
+        return $this->hasMany(Pembayaran::class, 'id_pemesanan');
     }
 
     public function perubahan(): HasMany
@@ -146,6 +151,7 @@ class Pemesanan extends Model
 
         static::whereIn('id_pemesanan', $expiredBookings)->update(['status_pemesanan' => 'EXPIRED']);
         Pembayaran::whereIn('id_pemesanan', $expiredBookings)
+            ->whereNull('id_perubahan')
             ->where('status_pembayaran', 'PENDING')
             ->update(['status_pembayaran' => 'EXPIRED', 'transaction_status' => 'expire']);
     }

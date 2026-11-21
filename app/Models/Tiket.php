@@ -24,11 +24,6 @@ class Tiket extends Model
         return $this->belongsTo(Pemesanan::class, 'id_pemesanan');
     }
 
-    public function detailPemesanan(): HasOne
-    {
-        return $this->hasOne(DetailPemesanan::class, 'id_tiket');
-    }
-
     public function review(): HasOne
     {
         return $this->hasOne(Review::class, 'id_tiket');

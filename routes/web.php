@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\AdminReportController;
+use App\Http\Controllers\AdminSettingsController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookingController;
+use App\Http\Controllers\CounterSaleController;
 use App\Http\Controllers\CustomerDashboardController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PasswordController;
@@ -92,6 +94,11 @@ Route::middleware('role:CUSTOMER')->group(function () {
 });
 
 Route::middleware('role:ADMIN_PARIWISATA')->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/pengaturan', [AdminSettingsController::class, 'index'])->name('settings');
+    Route::put('/pengaturan/password', [AdminSettingsController::class, 'updatePassword'])->name('settings.password');
+    Route::get('/penjualan-loket', [CounterSaleController::class, 'create'])->name('counter-sales.create');
+    Route::post('/penjualan-loket', [CounterSaleController::class, 'store'])->name('counter-sales.store');
+    Route::get('/penjualan-loket/{id}', [CounterSaleController::class, 'show'])->whereNumber('id')->name('counter-sales.show');
     Route::get('/verifikasi-tiket', [VerificationController::class, 'index'])->name('verification');
     Route::post('/verifikasi-tiket', [VerificationController::class, 'lookup'])->name('verification.lookup');
     Route::post('/verifikasi-tiket/konfirmasi', [VerificationController::class, 'verify'])->name('verification.verify');

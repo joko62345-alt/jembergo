@@ -38,18 +38,25 @@ class VerificationController extends Controller
             ->where('kode_qr', $data['kode_qr'])
             ->firstOrFail();
         $booking = $ticket->pemesanan;
-        $participants = collect($booking->nama_anggota)
-            ->prepend(['nama' => $booking->ketua_nama, 'id_jenis_tiket' => (int) $booking->jenis_tiket_ketua])
-            ->values()
-            ->map(function (array $participant) use ($booking): array {
-                $ticketTypeId = (int) ($participant['id_jenis_tiket'] ?? 0);
+        $participants = $booking->kanal_penjualan === 'LOKET'
+            ? $booking->detailPemesanan->map(fn ($detail): array => [
+                'nama' => null,
+                'jenis_tiket' => $detail->jenisTiket?->nama_jenis,
+                'jumlah' => (int) $detail->jumlah,
+            ])->values()
+            : collect($booking->nama_anggota)
+                ->prepend(['nama' => $booking->ketua_nama, 'id_jenis_tiket' => (int) $booking->jenis_tiket_ketua])
+                ->values()
+                ->map(function (array $participant) use ($booking): array {
+                    $ticketTypeId = (int) ($participant['id_jenis_tiket'] ?? 0);
 
-                return [
-                    'nama' => $participant['nama'],
-                    'jenis_tiket' => $booking->detailPemesanan
-                        ->firstWhere('id_jenis_tiket', $ticketTypeId)?->jenisTiket?->nama_jenis,
-                ];
-            });
+                    return [
+                        'nama' => $participant['nama'],
+                        'jenis_tiket' => $booking->detailPemesanan
+                            ->firstWhere('id_jenis_tiket', $ticketTypeId)?->jenisTiket?->nama_jenis,
+                        'jumlah' => 1,
+                    ];
+                });
 
         return [
             'kode_booking' => $booking->kode_booking,
@@ -58,6 +65,7 @@ class VerificationController extends Controller
             'status_pembayaran' => $booking->pembayaran?->status_pembayaran,
             'total_harga' => (float) $booking->total_harga,
             'peserta' => $participants,
+            'jumlah_peserta' => (int) $booking->detailPemesanan->sum('jumlah'),
             'status_tiket' => $ticket->status_tiket,
             'waktu_verifikasi' => $ticket->waktu_verifikasi?->toIso8601String(),
         ];

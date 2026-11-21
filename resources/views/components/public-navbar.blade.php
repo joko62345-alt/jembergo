@@ -85,7 +85,7 @@
                                 <hr class="dropdown-divider my-2">
                             </li>
                             <li>
-                                <form method="POST" action="{{ route('logout') }}">
+                                <form method="POST" action="{{ route('logout') }}" data-confirm-logout>
                                     @csrf
                                     <button
                                         class="dropdown-item rounded-2 py-2 px-3 d-flex align-items-center gap-2 text-danger w-100 border-0 bg-transparent"
@@ -160,3 +160,4 @@
         });
     </script>
 </nav>
+@include('components.logout-confirmation')

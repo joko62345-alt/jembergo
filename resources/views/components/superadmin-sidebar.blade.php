@@ -77,10 +77,12 @@
                     class="bi bi-person" aria-hidden="true"></i><span>Profil</span></a>
         @endif
     </nav>
-    <form method="POST" action="{{ route('logout') }}" class="superadmin-logout">@csrf<button
+    <form method="POST" action="{{ route('logout') }}" class="superadmin-logout"
+        data-confirm-logout>@csrf<button
             class="nav-link" type="submit" title="Keluar"><i class="bi bi-box-arrow-left"
                 aria-hidden="true"></i><span>Keluar</span></button></form>
 </aside>
+@include('components.logout-confirmation')
 <script>
     const sidebarCollapseToggle = document.querySelector('[data-sidebar-collapse]');
     const sidebar = document.getElementById('superadmin-sidebar');

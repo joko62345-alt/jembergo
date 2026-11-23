@@ -49,8 +49,8 @@
     </div>
     <div class="report-summary-card">
         <div><span class="report-summary-label">Total pendapatan</span><strong>Rp
-                {{ number_format($totalPendapatan, 0, ',', '.') }}</strong><small>Berdasarkan filter
-                laporan aktif</small></div><i class="bi bi-wallet2" aria-hidden="true"></i>
+                {{ number_format($totalPendapatan, 0, ',', '.') }}</strong><small>Hanya transaksi lunas
+                sesuai filter laporan aktif</small></div><i class="bi bi-wallet2" aria-hidden="true"></i>
     </div>
     <div class="card">
         <div class="table-responsive">

@@ -7,7 +7,9 @@ use App\Models\Customer;
 use App\Models\DestinasiWisata;
 use App\Models\JenisTiket;
 use App\Models\Pemesanan;
+use App\Services\PaymentGateway\PaymentGateway;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class CounterSaleTest extends TestCase
@@ -69,7 +71,8 @@ class CounterSaleTest extends TestCase
             ->assertSeeText('Penjualan tiket di tempat')
             ->assertSeeText('Sisa kuota hari ini 2 dari 4 tiket')
             ->assertSeeText('Uang diterima')
-            ->assertSeeText('Kembalian dihitung otomatis');
+            ->assertSeeText('Kembalian dihitung otomatis')
+            ->assertSeeText('Simpan transaksi');
 
         $this->withSession([
             'jg_role' => 'ADMIN_PARIWISATA',
@@ -135,6 +138,155 @@ class CounterSaleTest extends TestCase
         $this->assertSame(0, Pemesanan::query()->where('kanal_penjualan', 'LOKET')->count());
     }
 
+    public function test_qris_counter_sales_use_midtrans_and_verify_the_ticket_after_payment(): void
+    {
+        config([
+            'services.midtrans.server_key' => 'sandbox-server-key',
+            'services.midtrans.is_production' => false,
+        ]);
+        $destination = $this->createDestination();
+        $ticketType = $this->createTicketType($destination);
+        $admin = $this->createAdmin($destination);
+        $this->app->instance(PaymentGateway::class, new class implements PaymentGateway
+        {
+            public function createPayment(Pemesanan $booking, string $method, ?float $amount = null): array
+            {
+                return [
+                    'order_id' => 'JGO-COUNTER-ORDER',
+                    'transaction_id' => 'counter-transaction',
+                    'transaction_status' => 'pending',
+                    'payment_type' => 'qris',
+                    'gross_amount' => (float) $booking->total_harga,
+                    'reference' => 'counter-transaction',
+                    'qris_url' => 'https://api.sandbox.midtrans.com/v2/qris/gopay/counter/qr-code',
+                    'qris_expires_at' => now()->addHour()->toIso8601String(),
+                ];
+            }
+
+            public function createPaymentForAmount(Pemesanan $booking, string $method, float $amount): array
+            {
+                return [];
+            }
+        });
+        Http::fake([
+            'api.sandbox.midtrans.com/v2/JGO-COUNTER-ORDER/status' => Http::sequence()
+                ->push(['transaction_status' => 'pending', 'gross_amount' => '10000.00'], 200)
+                ->push([
+                    'transaction_status' => 'settlement',
+                    'transaction_id' => 'counter-transaction',
+                    'payment_type' => 'qris',
+                    'gross_amount' => '10000.00',
+                ], 200),
+            'api.sandbox.midtrans.com/v2/qris/gopay/counter/qr-code' => Http::response('qr-image', 200, [
+                'Content-Type' => 'image/png',
+            ]),
+        ]);
+
+        $response = $this->withSession([
+            'jg_role' => 'ADMIN_PARIWISATA',
+            'jg_user_id' => $admin->id_admin,
+        ])->post(route('admin.counter-sales.store'), [
+            'jumlah' => [$ticketType->id_jenis_tiket => 1],
+            'metode_pembayaran' => 'QRIS',
+        ]);
+
+        $booking = Pemesanan::query()->where('kanal_penjualan', 'LOKET')->firstOrFail();
+        $response->assertRedirect(route('admin.counter-sales.qris', $booking->id_pemesanan));
+        $this->assertSame('PENDING', $booking->status_pemesanan);
+        $this->assertSame('PENDING', $booking->pembayaran->status_pembayaran);
+        $this->assertSame('JGO-COUNTER-ORDER', $booking->pembayaran->order_id);
+        $this->assertSame(0, $booking->tiket()->count());
+
+        $adminSession = [
+            'jg_role' => 'ADMIN_PARIWISATA',
+            'jg_user_id' => $admin->id_admin,
+        ];
+        $this->withSession($adminSession)
+            ->get(route('admin.counter-sales.qris', $booking->id_pemesanan))
+            ->assertOk()
+            ->assertSeeText('Scan dan selesaikan pembayaran.')
+            ->assertSee(route('admin.counter-sales.qris.image', $booking->id_pemesanan))
+            ->assertSee('qris-code-card')
+            ->assertSee('copyMidtransLink')
+            ->assertSee('paymentSuccessModal')
+            ->assertSee('bootstrap.bundle.min.js')
+            ->assertSeeText('Penjualan tiket di tempat')
+            ->assertSeeText('1 tiket');
+        $this->withSession($adminSession)
+            ->get(route('admin.counter-sales.show', $booking->id_pemesanan))
+            ->assertRedirect(route('admin.counter-sales.qris', $booking->id_pemesanan));
+
+        $this->withSession($adminSession)
+            ->getJson(route('admin.counter-sales.qris', $booking->id_pemesanan))
+            ->assertOk()
+            ->assertJsonPath('status', 'PENDING');
+
+        $this->withSession($adminSession)
+            ->get(route('admin.counter-sales.qris.image', $booking->id_pemesanan))
+            ->assertOk()
+            ->assertHeader('Content-Type', 'image/png')
+            ->assertContent('qr-image');
+
+        $grossAmount = '10000.00';
+        $serverKey = 'sandbox-server-key';
+        $this->postJson(route('payment.midtrans.notification'), [
+            'order_id' => 'JGO-COUNTER-ORDER',
+            'status_code' => '200',
+            'transaction_status' => 'settlement',
+            'transaction_id' => 'counter-transaction',
+            'payment_type' => 'qris',
+            'gross_amount' => $grossAmount,
+            'signature_key' => hash('sha512', 'JGO-COUNTER-ORDER200'.$grossAmount.$serverKey),
+        ])->assertOk()->assertJsonPath('message', 'Notification processed.');
+
+        $this->assertSame('PAID', $booking->fresh()->status_pemesanan);
+        $this->assertSame('PAID', $booking->pembayaran->fresh()->status_pembayaran);
+        $this->assertSame('USED', $booking->tiket()->firstOrFail()->status_tiket);
+        $this->assertNotNull($booking->tiket()->firstOrFail()->waktu_verifikasi);
+    }
+
+    public function test_counter_sale_does_not_issue_tickets_when_qris_creation_fails(): void
+    {
+        $destination = $this->createDestination();
+        $ticketType = $this->createTicketType($destination);
+        $admin = $this->createAdmin($destination);
+        $this->app->instance(PaymentGateway::class, new class implements PaymentGateway
+        {
+            public function createPayment(Pemesanan $booking, string $method, ?float $amount = null): array
+            {
+                return [];
+            }
+
+            public function createPaymentForAmount(Pemesanan $booking, string $method, float $amount): array
+            {
+                return [];
+            }
+        });
+
+        $adminSession = [
+            'jg_role' => 'ADMIN_PARIWISATA',
+            'jg_user_id' => $admin->id_admin,
+        ];
+        $this->withSession($adminSession)
+            ->from(route('admin.counter-sales.create'))
+            ->post(route('admin.counter-sales.store'), [
+                'jumlah' => [$ticketType->id_jenis_tiket => 1],
+                'metode_pembayaran' => 'QRIS',
+            ])
+            ->assertRedirect(route('admin.counter-sales.create'))
+            ->assertSessionHasErrors('payment');
+
+        $this->withSession($adminSession)
+            ->get(route('admin.counter-sales.create'))
+            ->assertOk()
+            ->assertSeeText('Lanjut pembayaran');
+
+        $booking = Pemesanan::query()->where('kanal_penjualan', 'LOKET')->firstOrFail();
+        $this->assertSame('FAILED', $booking->status_pemesanan);
+        $this->assertSame('FAILED', $booking->pembayaran->status_pembayaran);
+        $this->assertSame(0, $booking->tiket()->count());
+    }
+
     public function test_admin_and_super_admin_can_filter_reports_by_sales_channel(): void
     {
         $destination = $this->createDestination();
@@ -166,7 +318,8 @@ class CounterSaleTest extends TestCase
             'jg_user_id' => $admin->id_admin,
         ])->post(route('admin.counter-sales.store'), [
             'jumlah' => [$ticketType->id_jenis_tiket => 1],
-            'metode_pembayaran' => 'QRIS',
+            'metode_pembayaran' => 'TUNAI',
+            'uang_diterima' => 10000,
         ])->assertRedirect();
         $counterBookingCode = Pemesanan::query()->where('kanal_penjualan', 'LOKET')->value('kode_booking');
 

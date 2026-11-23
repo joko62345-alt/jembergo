@@ -86,6 +86,7 @@ class AdminReportTest extends TestCase
             ->assertSee('BOOKING-PAID-REPORT')
             ->assertSee('BOOKING-EXPIRED-REPORT')
             ->assertSee('Gagal')
+            ->assertSeeText('Hanya transaksi lunas sesuai filter laporan aktif')
             ->assertSeeInOrder(['Total pendapatan', 'Rp 25.000']);
 
         $previewResponse = $this->withSession(['jg_role' => 'SUPER_ADMIN'])

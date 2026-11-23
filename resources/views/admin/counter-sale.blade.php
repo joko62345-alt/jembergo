@@ -107,10 +107,10 @@
                                 <input type="radio" name="metode_pembayaran" value="QRIS"
                                     @checked(old('metode_pembayaran') === 'QRIS')>
                                 <span class="counter-pos-payment-icon"><i class="bi bi-qr-code" aria-hidden="true"></i></span>
-                                <span><strong>QRIS</strong><small>Bayar melalui QRIS loket</small></span>
+                                <span><strong>QRIS</strong><small>QRIS Midtrans</small></span>
                                 <i class="bi bi-check-circle-fill counter-pos-payment-check" aria-hidden="true"></i>
                             </label>
-                            <p class="counter-pos-payment-note">Pembayaran QRIS dilakukan langsung di loket. Simpan transaksi setelah pembayaran terkonfirmasi.</p>
+                            <p class="counter-pos-payment-note">Scan QRIS Midtrans di loket. Tiket akan diverifikasi otomatis setelah pembayaran berhasil.</p>
                         </fieldset>
 
                         <div class="counter-pos-cash-fields" id="counter-pos-cash-fields">
@@ -136,7 +136,9 @@
                         <p class="counter-pos-validation" id="counter-pos-validation" role="status" hidden></p>
                         <button class="counter-pos-submit" type="submit" id="counter-pos-submit" disabled>
                             <i class="bi bi-check2-circle" aria-hidden="true"></i>
-                            Simpan transaksi 
+                            <span id="counter-pos-submit-label">
+                                {{ old('metode_pembayaran', 'TUNAI') === 'QRIS' ? 'Lanjut pembayaran' : 'Simpan transaksi' }}
+                            </span>
                         </button>
                         <span class="counter-pos-secure-note"><i class="bi bi-shield-check" aria-hidden="true"></i> Transaksi tercatat pada laporan destinasi</span>
                     </aside>
@@ -754,6 +756,7 @@
         const countDisplay = document.getElementById('counter-pos-quantity-total');
         const totalDisplay = document.getElementById('counter-pos-total');
         const submitButton = document.getElementById('counter-pos-submit');
+        const submitLabel = document.getElementById('counter-pos-submit-label');
         const validationMessage = document.getElementById('counter-pos-validation');
         const cashFields = document.getElementById('counter-pos-cash-fields');
         const cashInput = document.getElementById('uang_diterima');
@@ -794,6 +797,7 @@
             const overQuota = quotaEnabled && count > remaining;
             const overLimit = count > 100000;
             const isCash = paymentInputs.find((input) => input.checked)?.value === 'TUNAI';
+            submitLabel.textContent = isCash ? 'Simpan transaksi' : 'Lanjut pembayaran';
             const cashReceived = Number(cashInput.value) || 0;
             const cashShort = isCash && count > 0 && cashReceived < total;
             cashFields.hidden = !isCash;

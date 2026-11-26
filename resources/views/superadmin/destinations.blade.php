@@ -195,7 +195,7 @@
 @endsection
 
 @push('scripts')
-    <script>
+    <script data-existing-destination-names="{{ $destinationNames->values()->toJson() }}">
         (() => {
             const openDialog = (id) => {
                 const dialog = document.getElementById(id);
@@ -469,7 +469,8 @@
             filterCards();
             const normalizeDestinationName = (value) => String(value || '').trim().replace(/\s+/g,
                 ' ').toLocaleLowerCase();
-            const existingDestinationNames = @js($destinationNames->values()->all());
+            const existingDestinationNames = JSON.parse(
+                document.currentScript.dataset.existingDestinationNames);
             let destinationFormIndex = 0;
             document.querySelectorAll('.destination-form').forEach((form) => {
                 const currentFormIndex = ++destinationFormIndex;
@@ -660,7 +661,7 @@
                     if (type === 'facility') row.innerHTML =
                         `<input name="fasilitas[]" class="form-control mb-2" placeholder="Masukkan Fasilitas yang ada di Destinasi">`;
                     if (type === 'ticket') row.innerHTML =
-                        `<div class="col-md-5"><input name="jenis_tiket[${index}][nama_jenis]" class="form-control" placeholder="Masukkan Jenis Tiket" required></div><div class="col-md-5"><div class="input-group"><span class="input-group-text">Rp</span><input type="number" inputmode="numeric" min="0" step="1" class="form-control" data-price-display placeholder="Masukkan Harga Tiket" required><input type="hidden" name="jenis_tiket[${index}][harga]" data-price-value></div></div><div class="col-md-2 d-flex"><button type="button" class="btn btn-outline-danger w-100" data-remove-ticket-row aria-label="Hapus baris tiket"><i class="bi bi-trash3" aria-hidden="true"></i><span class="visually-hidden">Hapus</span></button></div>`;
+                        `<div class="col-md-5"><input name="jenis_tiket[${index}][nama_jenis]" class="form-control" placeholder="Masukkan Jenis Tiket" required></div><div class="col-md-5"><div class="input-group"><span class="input-group-text">Rp</span><input type="number" inputmode="numeric" min="0" max="999999" step="1" class="form-control" data-price-display placeholder="Masukkan Harga Tiket" required><input type="hidden" name="jenis_tiket[${index}][harga]" data-price-value></div></div><div class="col-md-2 d-flex"><button type="button" class="btn btn-outline-danger w-100" data-remove-ticket-row aria-label="Hapus baris tiket"><i class="bi bi-trash3" aria-hidden="true"></i><span class="visually-hidden">Hapus</span></button></div>`;
                     if (type === 'gallery') row.innerHTML =
                         `<div class="gallery-row-preview"><span class="gallery-empty"><i class="bi bi-image" aria-hidden="true"></i>Foto baru</span></div><div class="gallery-row-fields"><div><label class="form-label" for="gallery-${index}-foto">File foto</label><input id="gallery-${index}-foto" name="galeri[${index}][foto]" type="file" accept="image/jpeg,image/png,image/webp" class="form-control"></div><div><label class="form-label" for="gallery-${index}-caption">Keterangan</label><input id="gallery-${index}-caption" name="galeri[${index}][keterangan]" class="form-control" placeholder="Masukkan Keterangan Foto"></div></div>`;
                     list.appendChild(row);

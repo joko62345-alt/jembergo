@@ -86,7 +86,7 @@ class SuperAdminManagementController extends Controller
     {
         GaleriDestinasi::create($request->validate([
             'id_destinasi' => ['required', 'exists:destinasi_wisata,id_destinasi'],
-            'url_foto' => ['required', 'url', 'max:500'],
+            'url_foto' => ['required', 'url', 'max:255'],
             'keterangan' => ['nullable', 'string', 'max:200'],
         ]));
 

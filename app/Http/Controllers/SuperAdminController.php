@@ -237,10 +237,11 @@ class SuperAdminController extends Controller
             'jenis_tiket.*.id' => ['nullable', 'integer'],
             'jenis_tiket.*.nama_jenis' => ['required', 'string', 'max:100', 'regex:/^[\p{L}\s]+$/u'],
             'jenis_tiket.*.harga_display' => ['required', 'regex:/^\d[\d.]*$/'],
-            'jenis_tiket.*.harga' => ['required', 'numeric', 'min:0'],
+            'jenis_tiket.*.harga' => ['required', 'numeric', 'min:0', 'max:999999'],
         ], [
             'jenis_tiket.*.harga_display.regex' => 'Harga tiket hanya boleh berisi angka.',
             'jenis_tiket.*.harga_display.required' => 'Harga tiket wajib diisi.',
+            'jenis_tiket.*.harga.max' => 'Harga tiket maksimal Rp999.999.',
             'jenis_tiket.*.nama_jenis.regex' => 'Jenis tiket hanya boleh berisi huruf dan spasi.',
         ]);
 

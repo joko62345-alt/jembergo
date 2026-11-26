@@ -286,7 +286,7 @@
                 </div>
                 <div class="col-md-5">
                     <div class="input-group"><span class="input-group-text">Rp</span><input
-                            type="number" inputmode="numeric" min="0" step="1"
+                            type="number" inputmode="numeric" min="0" max="999999" step="1"
                             name="jenis_tiket[{{ $loop->index }}][harga_display]"
                             value="{{ $ticket ? number_format((float) $ticket->harga, 0, ',', '.') : '' }}"
                             class="form-control" data-price-display

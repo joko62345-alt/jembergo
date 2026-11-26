@@ -366,9 +366,103 @@ class BookingIntegrityTest extends TestCase
             ->assertOk()
             ->assertSee('JGO-TEST-QR-001')
             ->assertSee('Scan dengan kamera')
+            ->assertSee('Kode booking valid. Silakan verifikasi tiket.')
             ->assertSee('Verifikasi seluruh');
 
         $this->getJson(route('api.tickets.scan', ['kode_qr' => 'invalid-token']))
             ->assertNotFound();
+    }
+
+    public function test_admin_verification_distinguishes_destination_and_visit_date(): void
+    {
+        $customer = Customer::create([
+            'nama' => 'Andi Wijaya',
+            'email' => 'andi@example.com',
+            'no_hp' => '081234567890',
+            'alamat' => 'Jember',
+            'password' => bcrypt('secret123'),
+            'auth_provider' => 'manual',
+        ]);
+        $adminDestination = DestinasiWisata::create([
+            'nama_wisata' => 'Pantai Papuma',
+            'deskripsi' => 'Wisata pantai',
+            'kategori' => 'Bahari',
+            'latitude' => -8.152,
+            'longitude' => 113.719,
+            'alamat' => 'Jember',
+            'jam_operasional' => '00:00-23:59',
+            'status_aktif' => true,
+            'kuota_harian_aktif' => false,
+        ]);
+        $otherDestination = DestinasiWisata::create([
+            'nama_wisata' => 'Air Terjun Tancak',
+            'deskripsi' => 'Wisata alam',
+            'kategori' => 'Alam',
+            'latitude' => -8.036,
+            'longitude' => 113.607,
+            'alamat' => 'Jember',
+            'jam_operasional' => '08:00-17:00',
+            'status_aktif' => true,
+            'kuota_harian_aktif' => false,
+        ]);
+        $adminTicketType = JenisTiket::create([
+            'id_destinasi' => $adminDestination->id_destinasi,
+            'nama_jenis' => 'Dewasa',
+            'harga' => 25000,
+        ]);
+        $otherTicketType = JenisTiket::create([
+            'id_destinasi' => $otherDestination->id_destinasi,
+            'nama_jenis' => 'Dewasa',
+            'harga' => 25000,
+        ]);
+        $bookingDetails = [
+            'id_customer' => $customer->id_customer,
+            'ketua_nama' => 'Andi Wijaya',
+            'ketua_email' => 'andi@example.com',
+            'ketua_no_hp' => '081234567890',
+            'nama_anggota' => [],
+            'tanggal_pemesanan' => now(),
+            'total_harga' => 25000,
+            'status_pemesanan' => 'PAID',
+            'batas_waktu_pembayaran' => now()->addHours(2),
+        ];
+        Pemesanan::create([
+            ...$bookingDetails,
+            'id_destinasi' => $otherDestination->id_destinasi,
+            'jenis_tiket_ketua' => $otherTicketType->id_jenis_tiket,
+            'kode_booking' => 'JGO-OTHER-DESTINATION',
+            'tanggal_kunjungan' => today()->toDateString(),
+        ]);
+        Pemesanan::create([
+            ...$bookingDetails,
+            'id_destinasi' => $adminDestination->id_destinasi,
+            'jenis_tiket_ketua' => $adminTicketType->id_jenis_tiket,
+            'kode_booking' => 'JGO-FUTURE-VISIT',
+            'tanggal_kunjungan' => today()->addDay()->toDateString(),
+        ]);
+        $admin = AdminPariwisata::create([
+            'id_destinasi' => $adminDestination->id_destinasi,
+            'nama' => 'Admin Wisata',
+            'email' => 'admin@example.com',
+            'no_hp' => '081234567890',
+            'password' => bcrypt('secret123'),
+            'status_akun' => 'AKTIF',
+        ]);
+        $adminSession = [
+            'jg_user_id' => $admin->id_admin,
+            'jg_role' => 'ADMIN_PARIWISATA',
+        ];
+
+        $this->withSession($adminSession)
+            ->from(route('admin.verification'))
+            ->post(route('admin.verification.lookup'), ['kode_booking' => 'JGO-OTHER-DESTINATION'])
+            ->assertRedirect(route('admin.verification'))
+            ->assertSessionHas('verification_error', 'Kode booking bukan milik destinasi ini.');
+
+        $this->withSession($adminSession)
+            ->from(route('admin.verification'))
+            ->post(route('admin.verification.lookup'), ['kode_booking' => 'JGO-FUTURE-VISIT'])
+            ->assertRedirect(route('admin.verification'))
+            ->assertSessionHas('verification_error', 'Tiket tidak dapat diverifikasi hari ini. Booking ini baru bisa diverifikasi pada tanggal '.today()->addDay()->format('d/m/Y').'.');
     }
 }

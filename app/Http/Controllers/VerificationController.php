@@ -93,11 +93,14 @@ class VerificationController extends Controller
 
         $booking = Pemesanan::with(['customer', 'destinasi', 'pembayaran', 'tiket', 'detailPemesanan.jenisTiket'])
             ->where('kode_booking', $bookingCode)
-            ->where('id_destinasi', $admin->id_destinasi)
             ->first();
 
         if (! $booking) {
-            return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Booking tidak valid atau bukan milik destinasi ini. Periksa kembali QR grup atau kode booking.');
+            return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Kode booking tidak ditemukan.');
+        }
+
+        if ((int) $booking->id_destinasi !== (int) $admin->id_destinasi) {
+            return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Kode booking bukan milik destinasi ini.');
         }
 
         $booking->expireTicketsIfPastVisitDate();
@@ -105,8 +108,16 @@ class VerificationController extends Controller
             ? Carbon::parse($booking->tanggal_kunjungan)->toDateString()
             : null;
 
+        if ($visitDate === null) {
+            return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Tanggal kunjungan booking tidak tersedia.');
+        }
+
         if ($visitDate !== null && $visitDate < today()->toDateString()) {
             return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Tiket sudah kadaluarsa karena tanggal kunjungan telah lewat.');
+        }
+
+        if ($visitDate > today()->toDateString()) {
+            return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Tiket tidak dapat diverifikasi hari ini. Booking ini baru bisa diverifikasi pada tanggal '.Carbon::parse($visitDate)->format('d/m/Y').'.');
         }
 
         if ($visitDate === today()->toDateString()) {
@@ -117,10 +128,6 @@ class VerificationController extends Controller
 
         if (! $booking->pembayaran || $booking->pembayaran->status_pembayaran !== 'PAID') {
             return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Tiket belum dibayar.');
-        }
-
-        if ($visitDate !== null && $visitDate > today()->toDateString()) {
-            return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Tiket belum dapat diverifikasi. Jadwal kunjungan baru pada '.date('d/m/Y', strtotime((string) $booking->tanggal_kunjungan)).'.');
         }
 
         $ticket = $inputDetails['ticket_id']
@@ -135,7 +142,11 @@ class VerificationController extends Controller
             return redirect()->route('admin.verification')->withInput()->with('verification_error', 'Tiket tidak valid karena sudah digunakan atau telah dibatalkan.');
         }
 
-        return view('admin.verification-page', ['booking' => $booking, 'selectedTicketId' => $inputDetails['ticket_id']]);
+        return view('admin.verification-page', [
+            'booking' => $booking,
+            'selectedTicketId' => $inputDetails['ticket_id'],
+            'verificationSuccess' => 'Kode booking valid. Silakan verifikasi tiket.',
+        ]);
     }
 
     private function bookingDetailsFromInput(string $input): array

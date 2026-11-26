@@ -4,8 +4,8 @@
         <h1>Verifikasi tiket</h1>
         <p>Temukan booking dengan kode atau QR, periksa detail peserta, lalu konfirmasi tiket yang digunakan.</p>
     </div>
-    @if (session('verification_success'))
-        <div class="alert alert-success">{{ session('verification_success') }}</div>
+    @if (session('verification_success') || isset($verificationSuccess))
+        <div class="alert alert-success">{{ $verificationSuccess ?? session('verification_success') }}</div>
     @endif
     @if (session('verification_error'))
         <div class="alert alert-danger">{{ session('verification_error') }}</div>
@@ -790,14 +790,20 @@
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script>
         (() => {
-            const form = document.querySelector('form[action="{{ route('admin.verification.lookup') }}"]');
-            const bookingCodeInput = document.getElementById('kode_booking');
             const startButton = document.getElementById('startQrScanner');
+            const form = startButton ? startButton.closest('form') : null;
+            const bookingCodeInput = document.getElementById('kode_booking');
             const stopButton = document.getElementById('stopQrScanner');
             const panel = document.getElementById('qrScannerPanel');
             const video = document.getElementById('qrScannerVideo');
             const message = document.getElementById('qrScannerMessage');
-            if (!form || !bookingCodeInput || !startButton || !stopButton || !panel || !video || !message) return;
+            if (!form || !bookingCodeInput || !startButton || !stopButton || !panel || !video || !message) {
+                if (message) {
+                    message.textContent = 'Fitur scan QR tidak dapat dimuat. Muat ulang halaman atau masukkan kode booking secara manual.';
+                }
+                console.error('QR ticket scanner could not initialize because required page elements are missing.');
+                return;
+            }
 
             let cameraStream = null;
             let animationFrame = null;

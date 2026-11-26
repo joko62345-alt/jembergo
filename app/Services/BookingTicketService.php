@@ -7,9 +7,29 @@ use App\Models\Tiket;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
+use RuntimeException;
 
 class BookingTicketService
 {
+    public function issueForCounterSale(Pemesanan $booking): void
+    {
+        if ($booking->kanal_penjualan !== 'LOKET' || $booking->status_pemesanan !== 'PAID') {
+            throw new RuntimeException('Hanya penjualan loket yang sudah dibayar dapat diverifikasi.');
+        }
+
+        $this->issue($booking);
+        $verifiedCount = $booking->tiket()
+            ->where('status_tiket', 'ACTIVE')
+            ->update([
+                'status_tiket' => 'USED',
+                'waktu_verifikasi' => now()->utc(),
+            ]);
+
+        if ($verifiedCount !== 1) {
+            throw new RuntimeException('Tiket loket tidak dapat ditandai sebagai sudah digunakan.');
+        }
+    }
+
     public function issue(Pemesanan $booking): void
     {
         if ($booking->status_pemesanan !== 'PAID') {

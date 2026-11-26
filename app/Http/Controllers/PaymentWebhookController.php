@@ -116,7 +116,12 @@ class PaymentWebhookController extends Controller
             ]);
             $lockedBooking->update(['status_pemesanan' => $status]);
             if ($status === 'PAID') {
-                app(BookingTicketService::class)->issue($lockedBooking->fresh());
+                $freshBooking = $lockedBooking->fresh();
+                if ($freshBooking->kanal_penjualan === 'LOKET') {
+                    app(BookingTicketService::class)->issueForCounterSale($freshBooking);
+                } else {
+                    app(BookingTicketService::class)->issue($freshBooking);
+                }
             }
 
             return true;

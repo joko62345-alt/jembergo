@@ -59,6 +59,8 @@ class AuthController extends Controller
             ['table' => 'admin_pariwisata', 'model' => AdminPariwisata::class, 'role' => 'ADMIN_PARIWISATA', 'id' => 'id_admin', 'name' => 'nama'],
             ['table' => 'customer', 'model' => Customer::class, 'role' => 'CUSTOMER', 'id' => 'id_customer', 'name' => 'nama'],
         ];
+        $emailFound = false;
+        $passwordMatches = false;
 
         foreach ($accounts as $account) {
             if (! Schema::hasTable($account['table'])) {
@@ -67,7 +69,19 @@ class AuthController extends Controller
 
             $user = $account['model']::query()->where('email', $credentials['email'])->first();
 
-            if ($user && Hash::check($credentials['password'], $user->password) && $account['role'] === 'ADMIN_PARIWISATA') {
+            if (! $user) {
+                continue;
+            }
+
+            $emailFound = true;
+
+            if (! Hash::check($credentials['password'], $user->password)) {
+                continue;
+            }
+
+            $passwordMatches = true;
+
+            if ($account['role'] === 'ADMIN_PARIWISATA') {
                 $user->loadMissing('destinasi');
 
                 if ($user->destinasi && $user->destinasi->status_aktif !== 'aktif') {
@@ -75,23 +89,31 @@ class AuthController extends Controller
                 }
             }
 
-            if ($user && Hash::check($credentials['password'], $user->password) && ($account['role'] !== 'ADMIN_PARIWISATA' || $user->status_akun === 'AKTIF')) {
-                $request->session()->regenerate();
-                $request->session()->put([
-                    'jg_user_id' => $user->{$account['id']},
-                    'jg_user_name' => $user->{$account['name']},
-                    'jg_role' => $account['role'],
-                ]);
-
-                if ($account['role'] === 'CUSTOMER') {
-                    return redirect()->to($request->session()->pull('customer_redirect', route('home')));
-                }
-
-                return redirect()->route('dashboard');
+            if ($account['role'] === 'ADMIN_PARIWISATA' && $user->status_akun !== 'AKTIF') {
+                continue;
             }
+
+            $request->session()->regenerate();
+            $request->session()->put([
+                'jg_user_id' => $user->{$account['id']},
+                'jg_user_name' => $user->{$account['name']},
+                'jg_role' => $account['role'],
+            ]);
+
+            if ($account['role'] === 'CUSTOMER') {
+                return redirect()->to($request->session()->pull('customer_redirect', route('home')));
+            }
+
+            return redirect()->route('dashboard');
         }
 
-        return back()->withInput($request->only('email'))->with('error', 'Email atau password tidak sesuai.');
+        $errorMessage = match (true) {
+            ! $emailFound => 'Email tidak sesuai.',
+            ! $passwordMatches => 'Password salah.',
+            default => 'Akun tidak aktif.',
+        };
+
+        return back()->withInput($request->only('email'))->with('error', $errorMessage);
     }
 
     public function redirectToGoogle(Request $request): RedirectResponse

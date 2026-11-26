@@ -747,10 +747,15 @@
                                     class="form-control" placeholder="Masukkan Email"
                                     value="{{ old('email') }}" required></div>
                             <div class="auth-field"><label
-                                    for="register-password">Password</label><input
-                                    id="register-password" name="password" type="password"
-                                    class="form-control" placeholder="Minimal 8 karakter"
-                                    required></div>
+                                    for="register-password">Password</label>
+                                <div class="input-group">
+                                    <input id="register-password" name="password" type="password"
+                                        class="form-control" placeholder="Minimal 8 karakter" required>
+                                    <button type="button" class="btn password-toggle"
+                                        data-target="register-password"
+                                        aria-label="Tampilkan password"><i class="bi bi-eye"></i></button>
+                                </div>
+                            </div>
                             <button class="auth-submit" type="submit"><span>Daftar</span><i
                                     class="bi bi-arrow-right"></i></button>
                         </form>
@@ -793,7 +798,10 @@
                 const isVisible = input.type === 'text';
                 input.type = isVisible ? 'password' : 'text';
                 button.innerHTML = `<i class="bi bi-eye${isVisible ? '' : '-slash'}"></i>`;
-                button.setAttribute('aria-label', `${isVisible ? 'Tampilkan' : 'Sembunyikan'} ${input.name === 'password_confirmation' ? 'konfirmasi password' : 'password baru'}`);
+                const passwordLabel = input.name === 'password_confirmation'
+                    ? 'konfirmasi password'
+                    : ['login-password', 'register-password'].includes(input.id) ? 'password' : 'password baru';
+                button.setAttribute('aria-label', `${isVisible ? 'Tampilkan' : 'Sembunyikan'} ${passwordLabel}`);
             }));
 
         if ('{{ $authMode }}' !== 'forgot' && !@json($showRegistrationOtpForm)) {

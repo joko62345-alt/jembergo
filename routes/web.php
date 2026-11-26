@@ -99,6 +99,8 @@ Route::middleware('role:ADMIN_PARIWISATA')->prefix('admin')->name('admin.')->gro
     Route::get('/penjualan-loket', [CounterSaleController::class, 'create'])->name('counter-sales.create');
     Route::post('/penjualan-loket', [CounterSaleController::class, 'store'])->name('counter-sales.store');
     Route::get('/penjualan-loket/{id}', [CounterSaleController::class, 'show'])->whereNumber('id')->name('counter-sales.show');
+    Route::get('/penjualan-loket/{id}/qris', [CounterSaleController::class, 'qrisPayment'])->whereNumber('id')->name('counter-sales.qris');
+    Route::get('/penjualan-loket/{id}/qris/image', [CounterSaleController::class, 'qrisImage'])->whereNumber('id')->name('counter-sales.qris.image');
     Route::get('/verifikasi-tiket', [VerificationController::class, 'index'])->name('verification');
     Route::post('/verifikasi-tiket', [VerificationController::class, 'lookup'])->name('verification.lookup');
     Route::post('/verifikasi-tiket/konfirmasi', [VerificationController::class, 'verify'])->name('verification.verify');

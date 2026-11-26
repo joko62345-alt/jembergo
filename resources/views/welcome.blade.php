@@ -379,9 +379,14 @@
                         <p class="text-white-50 mb-0 mt-2">Dapatkan pengalaman wisata terbaik dengan
                             pemesanan yang mudah dan aman.</p>
                     </div>
-                    <a href="{{ route('destinations.index') }}"
-                        class="btn btn-jg-primary btn-lg">Mulai Eksplorasi <i
-                            class="bi bi-arrow-right"></i></a>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ route('destinations.index') }}"
+                            class="btn btn-jg-primary btn-lg">Mulai Eksplorasi <i
+                                class="bi bi-arrow-right"></i></a>
+                        <a href="{{ asset('downloads/jembergo.apk') }}" class="btn btn-outline-light btn-lg"
+                            download="jembergo.apk"><i class="bi bi-android2 me-1"
+                                aria-hidden="true"></i>Unduh APK Android</a>
+                    </div>
                 </div>
             </div>
         </section>

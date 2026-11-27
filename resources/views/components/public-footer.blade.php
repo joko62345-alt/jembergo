@@ -14,6 +14,8 @@
                 <a href="{{ route('destinations.index') }}">Destinasi Wisata</a>
                 <a href="{{ route('articles.index') }}">Artikel & Tips</a>
                 <a href="{{ route('about') }}">Tentang JemberGo</a>
+                <a href="{{ route('privacy-policy') }}">Kebijakan Privasi</a>
+                <a href="{{ route('terms-of-service') }}">Persyaratan Layanan</a>
                 <a href="{{ asset('downloads/jembergo.apk') }}" download="jembergo.apk">
                     <i class="bi bi-android2 me-1" aria-hidden="true"></i>Unduh Aplikasi Android
                 </a>

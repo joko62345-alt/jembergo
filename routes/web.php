@@ -27,6 +27,8 @@ Route::get('/assets/jembergo-background.png', fn () => response()->file(resource
 Route::get('/assets/jembergo-login.png', fn () => response()->file(resource_path('images/login.png')))->name('assets.login');
 Route::get('/', [PublicController::class, 'home'])->name('home');
 Route::get('/tentang', [PublicController::class, 'about'])->name('about');
+Route::view('/kebijakan-privasi', 'public.privacy-policy')->name('privacy-policy');
+Route::view('/persyaratan-layanan', 'public.terms-of-service')->name('terms-of-service');
 Route::get('/destinasi', [PublicController::class, 'destinations'])->name('destinations.index');
 Route::get('/destinasi/cari', [PublicController::class, 'destinations'])->name('destinations.search');
 Route::get('/destinasi/{id}', [PublicController::class, 'destination'])->whereNumber('id')->name('destinations.show');

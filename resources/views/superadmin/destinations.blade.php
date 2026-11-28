@@ -74,7 +74,7 @@
                                 class="bi bi-pencil me-1" aria-hidden="true"></i>Edit destinasi</button>
                         <button type="button" class="btn btn-outline-danger"
                             data-delete-destination="{{ $destination->nama_wisata }}"
-                            data-delete-action="{{ route('superadmin.destinations.destroy', $destination->id_destinasi) }}"><i
+                            data-delete-action="{{ route('superadmin.destinations.destroy', $destination->id_destinasi, false) }}"><i
                                 class="bi bi-archive me-1" aria-hidden="true"></i>Arsipkan</button>
                     </div>
                 </div>

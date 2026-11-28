@@ -68,7 +68,7 @@
                                             aria-hidden="true"></i>Edit</a><button type="button"
                                         class="btn btn-outline-danger btn-sm" data-delete-article
                                         data-article-title="{{ $article->judul }}"
-                                        data-delete-action="{{ route('superadmin.articles.destroy', $article->id_artikel) }}"><i
+                                        data-delete-action="{{ route('superadmin.articles.destroy', $article->id_artikel, false) }}"><i
                                             class="bi bi-trash3 me-1"
                                             aria-hidden="true"></i>Hapus</button></div>
                             </td>
